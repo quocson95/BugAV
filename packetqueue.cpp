@@ -65,7 +65,7 @@ void PacketQueue::abort()
 {
     QMutexLocker lock(&mutex);
     Q_UNUSED(lock)
-    abort_request = -1;
+    abort_request = 1;
     cond.wakeOne();
 }
 

@@ -126,3 +126,13 @@ int64_t FrameQueue::queueLastPos()
     else
         return -1;
 }
+
+Frame::Frame()
+{
+    uploaded = 0;
+}
+
+Frame::~Frame()
+{
+
+}

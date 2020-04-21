@@ -1,4 +1,4 @@
-QT += core widgets concurrent
+QT += core widgets concurrent opengl
 
 CONFIG += c++14
 #CONFIG -= app_bundle
@@ -21,14 +21,23 @@ SOURCES += \
 #        compat/getopt.c \
 #        compat/msvcrt/snprintf.c \
 #        compat/strtod.c \
+        bugglwidget.cpp \
+        bugplayer.cpp \
         clock.cpp \
-        demux.cpp \
+        decoder.cpp \
         demuxer.cpp \
         framequeue.cpp \
         main.cpp \
         packetqueue.cpp \
-        streaminfo.cpp
+        render.cpp \
+        renderer.cpp \
+        streaminfo.cpp \
+        videodecoder.cpp \
+        videostate.cpp
 HEADERS += \
+    IRenderer.h \
+    bugglwidget.h \
+    bugplayer.h \
     clock.h \
     common.h \
 #    compat/aix/math.h \
@@ -56,19 +65,23 @@ HEADERS += \
 #    compat/w32dlfcn.h \
 #    compat/w32pthreads.h \
     config.h \
+    decoder.h \
     define.h \
-    demux.h \
     demuxer.h \
     framequeue.h \
     packetqueue.h \
-    streaminfo.h
+    render.h \
+    renderer.h \
+    streaminfo.h \
+    videodecoder.h \
+    videostate.h
 
 
 #INCLUDEPATH += D:/libbase/ffmpeg/include
 #DEPENDPATH += D:/libbase/ffmpeg/include
 #LIBS += -LD:/libbase/ffmpeg/lib -lavutil -lavformat -lavcodec
 
-LIBS += -lSDL2 -lavutil -lavformat -lavcodec -lswscale -lswresample -lavfilter
+LIBS += -lavutil -lavformat -lavcodec -lswscale -lswresample -lavfilter
 
 #INCLUDEPATH += /home/sondq/Documents/dev/qt/QtAV/ffmpeg/include
 #LIBS += -L/home/sondq/Documents/dev/qt/QtAV/ffmpeg/lib

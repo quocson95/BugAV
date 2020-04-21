@@ -14,6 +14,9 @@ class PacketQueue;
 
 class Frame {
 public:
+    Frame();
+    ~Frame();
+public:
     AVFrame *frame;
     AVSubtitle sub;
     int serial;

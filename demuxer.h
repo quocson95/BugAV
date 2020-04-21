@@ -10,46 +10,58 @@ extern "C" {
 class PacketQueue;
 class Clock;
 class StreamInfo;
+class VideoState;
 class Demuxer: public QObject
 {
     Q_OBJECT
 public:
     Demuxer();
+    Demuxer(VideoState *is);
     ~Demuxer();
-
-    void fakeInit();
-
-    void setPktq(PacketQueue *value);
     void setAvformat(QVariantMap avformat);
 
     bool load();
     void unload();
-    void readFrame();
+    int readFrame();
 
     QString getFileUrl() const;
     void setFileUrl(const QString &value);
 
-private:
-    static bool isRealtime(const QString &fileUrl);
+    void start();
+    void stop();
+
+    void setIs(VideoState *value);
+
+signals:
+    void loadDone();
+        void readFrameError();
+private:    
     static int findBestStream(AVFormatContext *ic, AVMediaType type, int index);
     static int streamHasEnoughPackets(AVStream *st, int streamID, PacketQueue *queue);
     int streamOpenCompnent(int streamIndex);
     void seek();
     int doQueueAttachReq();
     void stepToNextFrame();
-    void streamTogglePause();
+//    void streamTogglePause();
     void streamSeek(int64_t pos, int64_t rel, int seek_by_bytes);
 private slots:
     void process();
 private:
+    VideoState *is;
     QThread *thread;
     QMutex mutex;
     QWaitCondition cond;
-    PacketQueue *videoq;
-    AVDictionary *formatOpts;
-    AVInputFormat *input_format;
-    QVariantMap avformat;
 
+    AVDictionary *formatOpts;
+    QVariantMap avformat;
+    int64_t startTime; // using for seek begin
+    int stIndex[AVMEDIA_TYPE_NB];
+    int infinityBuff = 0;
+    int loop;
+
+//    AVCodecContext *avctx;
+    /*AVInputFormat *input_format;
+    PacketQueue *videoq;
     AVFormatContext *ic;
     Clock *audclk;
     Clock *vidclk;
@@ -76,7 +88,7 @@ private:
 
     StreamInfo *vStreamInfo;
     int loop;
-    QWaitCondition continueReadThread; // must set to decoder
+    QWaitCondition continueReadThread; */// must set to decoder
     AVPacket pkt1, *pkt;
 
 };

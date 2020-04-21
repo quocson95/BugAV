@@ -10,7 +10,7 @@ public:
     void setAt(double pts, int serial, double time);
     double get();
 
-    static void syncToSlave(Clock *c, Clock *slave);
+    void syncToSlave(Clock *slave);
 public:
     double pts;           /* clock base */
     double pts_drift;     /* clock base minus time at which we updated the clock */

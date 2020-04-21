@@ -55,11 +55,11 @@ double Clock::get()
     return pts_drift + time - (time - last_updated) * (1.0 - speed);
 }
 
-void Clock::syncToSlave(Clock *c, Clock *slave)
+void Clock::syncToSlave(Clock *slave)
 {
-    double clock = c->get();
+    double clock = this->get();
     double slave_clock = slave->get();
     if (!qIsNaN(slave_clock) && (qIsNaN(clock) || qAbs(clock - slave_clock) > AV_NOSYNC_THRESHOLD)) {
-        c->set(slave_clock, slave->serial);
+        this->set(slave_clock, slave->serial);
     }
 }

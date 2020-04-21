@@ -3776,22 +3776,47 @@
 //    return 0;
 //}
 
-
-#include "demux.h"
 #include "demuxer.h"
+#include "bugglwidget.h"
+#include "render.h"
+#include "renderer.h"
+#include "videodecoder.h"
+#include "videostate.h"
+#include "bugplayer.h"
 
 #include <QApplication>
 #include <QWidget>
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    QWidget s;
-    VideoState is;
-    auto file = QLatin1String("rtmp://61.28.231.227:1935/live/b90ee7b1-b097-455d-9082-5d506676baa1_sub_1587024653?ci=JGI5MGVlN2IxLWIwOTctNDU1ZC05MDgyLTVkNTA2Njc2YmFhMQMxMjcAA3N1YgN2Y2MbMWFUbGx4enY0dEtOV2xaZldTelZmU1lGczQ2AAA=&sig=d923d844b");
-    Demuxer demuxer;
-    demuxer.setFileUrl(file);
-    demuxer.load();
-    s.show();
+
+//    auto file = QLatin1String("rtmp://61.28.231.227:1935/live/756bd856-6774-44eb-9fa7-92b2fcfe1167_sub_1587032712?ci=JDc1NmJkODU2LTY3NzQtNDRlYi05ZmE3LTkyYjJmY2ZlMTE2NwMxMjcAA3N1YgN2Y2MbMWFUbGx4enY0dEtOV2xaZldTelZmU1lGczQ2AAA=&sig=1bdd79324");
+    auto file = QLatin1String("http://api.stg.vcloudcam.vn/rec/v1/segment/playlist/?camUuid=45236d67-fc26-42a0-9bd5-be920da274be\u0026expire=1587545369\u0026from=1587281755\u0026to=1587285384\u0026token=88d0bb2052d228e39c107ec23f57d60bfc997e76\u0026type=hls");
+//    VideoState is;
+//    Demuxer demuxer;
+//    demuxer.setIs(&is);
+//    demuxer.setFileUrl(file);
+//    demuxer.start();
+
+//    VideoDecoder vDecoder;
+//    vDecoder.setIs(&is);
+//    vDecoder.start();
+//    BugGLWidget s;
+//    Render render;
+//    render.setIs(&is);
+//    render.setRender(&s);
+//    render.start();
+
+//    auto img  =QImage("/home/sondq/Documents/dev/build-BugAV-Desktop_Qt_5_12_6_GCC_64bit-Debug/492067917.png");
+//    s.setCurrentImage(img);
+//    s.show();
+    BugPlayer::setLog();
+    BugPlayer bplayer;
+    bplayer.setFile(file);
+    bplayer.start();
+    bplayer.show();
     a.exec();
+//    demuxer.stop();
+//    vDecoder.stop();
     return 0;
 }
