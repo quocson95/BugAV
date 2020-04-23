@@ -7,14 +7,13 @@ extern "C" {
 #include <libswresample/swresample.h>
 #include <libavcodec/avfft.h>
 }
-#include <QImage>
 
 #include "define.h"
 #include "framequeue.h"
 #include "packetqueue.h"
 #include "clock.h"
 
-static unsigned sws_flags = SWS_FAST_BILINEAR;
+#define sws_flags SWS_FAST_BILINEAR
 
 class AudioParams {
 public:
@@ -197,30 +196,30 @@ class SDL_Texture;
 //    { AV_PIX_FMT_NONE,           SDL_PIXELFORMAT_UNKNOWN },
 //};
 
-static const struct {
-    AVPixelFormat fmt;
-    QImage::Format qfmt;
-} qpixfmt_map[] = {
-{ AV_PIX_FMT_RGB8,              QImage::Format_Invalid },
-    { AV_PIX_FMT_RGB444,         QImage::Format_Invalid },
-    { AV_PIX_FMT_RGB555,         QImage::Format_RGB555 },
-    { AV_PIX_FMT_BGR555,         (QImage::Format)-QImage::Format_RGB555 },
-    { AV_PIX_FMT_RGB565,         QImage::Format_RGB16 },
-    { AV_PIX_FMT_BGR565,         (QImage::Format)-QImage::Format_RGB16 },
-    { AV_PIX_FMT_RGB24,          QImage::Format_RGB888 },
-    { AV_PIX_FMT_BGR24,          (QImage::Format)-QImage::Format_RGB888 },
-    { AV_PIX_FMT_0RGB32,         QImage::Format_Invalid },
-    { AV_PIX_FMT_0BGR32,         QImage::Format_Invalid },
-    { AV_PIX_FMT_NE(RGB0, 0BGR), QImage::Format_ARGB32 },
-    { AV_PIX_FMT_NE(BGR0, 0RGB), QImage::Format_ARGB32 },
-    { AV_PIX_FMT_RGB32,          QImage::Format_Invalid },
-    { AV_PIX_FMT_RGB32_1,        QImage::Format_Invalid },
-    { AV_PIX_FMT_BGR32,          QImage::Format_Invalid },
-    { AV_PIX_FMT_BGR32_1,        QImage::Format_Invalid },
-    { AV_PIX_FMT_YUV420P,        QImage::Format_Invalid },
-    { AV_PIX_FMT_YUYV422,        QImage::Format_Invalid },
-    { AV_PIX_FMT_UYVY422,        QImage::Format_Invalid },
-    { AV_PIX_FMT_NONE,           QImage::Format_Invalid },
-};
+//static const struct {
+//    AVPixelFormat fmt;
+//    QImage::Format qfmt;
+//} qpixfmt_map[] = {
+//{ AV_PIX_FMT_RGB8,                  QImage::Format_Invalid },
+//    { AV_PIX_FMT_RGB444,         QImage::Format_Invalid },
+//    { AV_PIX_FMT_RGB555,         QImage::Format_RGB555 },
+//    { AV_PIX_FMT_BGR555,         (QImage::Format)-QImage::Format_RGB555 },
+//    { AV_PIX_FMT_RGB565,         QImage::Format_RGB16 },
+//    { AV_PIX_FMT_BGR565,         (QImage::Format)-QImage::Format_RGB16 },
+//    { AV_PIX_FMT_RGB24,          QImage::Format_RGB888 },
+//    { AV_PIX_FMT_BGR24,          (QImage::Format)-QImage::Format_RGB888 },
+//    { AV_PIX_FMT_0RGB32,         QImage::Format_Invalid },
+//    { AV_PIX_FMT_0BGR32,         QImage::Format_Invalid },
+//    { AV_PIX_FMT_NE(RGB0, 0BGR), QImage::Format_ARGB32 },
+//    { AV_PIX_FMT_NE(BGR0, 0RGB), QImage::Format_ARGB32 },
+//    { AV_PIX_FMT_RGB32,          QImage::Format_Invalid },
+//    { AV_PIX_FMT_RGB32_1,        QImage::Format_Invalid },
+//    { AV_PIX_FMT_BGR32,          QImage::Format_Invalid },
+//    { AV_PIX_FMT_BGR32_1,        QImage::Format_Invalid },
+//    { AV_PIX_FMT_YUV420P,        QImage::Format_Invalid },
+//    { AV_PIX_FMT_YUYV422,        QImage::Format_Invalid },
+//    { AV_PIX_FMT_UYVY422,        QImage::Format_Invalid },
+//    { AV_PIX_FMT_NONE,           QImage::Format_Invalid },
+//};
 
 #endif // COMMON_H

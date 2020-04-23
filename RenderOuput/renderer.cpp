@@ -1,7 +1,6 @@
 #include "renderer.h"
 
 #include <QGLWidget>
-#include "QApplication"
 static GLuint textureID(10);
 
 Renderer::Renderer(QWidget *parent) : QGLWidget(parent)

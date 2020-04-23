@@ -2,20 +2,22 @@
 extern "C" {
 #include "libavutil/time.h"
 }
-#include "define.h"
+#include "common/define.h"
 #include "QDebug"
 #include <QThread>
+#include <QThreadPool>
 
-#include "packetqueue.h"
-#include "clock.h"
-#include "streaminfo.h"
-#include "common.h"
-#include "framequeue.h"
-#include "decoder.h"
-#include "videostate.h"
+#include "common/packetqueue.h"
+#include "common/clock.h"
+#include "common/common.h"
+#include "common/framequeue.h"
+#include "common/videostate.h"
+#include "Decoder/decoder.h"
+#include "handlerinterupt.h"
 
 Demuxer::Demuxer()
     : Demuxer(nullptr)
+
 {
 
 }
@@ -24,26 +26,27 @@ Demuxer::Demuxer(VideoState *is)
     :QObject(nullptr)
     ,is{is}
     ,formatOpts{nullptr}
+    ,handlerInterupt{nullptr}
 {
-    startTime = 600000000;
+    startTime = AV_NOPTS_VALUE;
     pkt = &pkt1;
-    thread = new QThread();
+    thread = new QThread(this);
     moveToThread(thread);
     connect(thread, SIGNAL (started()), this, SLOT (process()));
-//    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
+//    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));    
 }
 
 Demuxer::~Demuxer()
 {
     unload();
     av_dict_free(&formatOpts);
-    delete thread;
+//    delete thread;
 }
 
 void Demuxer::setAvformat(QVariantMap avformat)
 {
     this->avformat = avformat;
-    av_dict_set(&formatOpts, "probesize", QByteArray::number(4096000), 0);
+//    av_dict_set(&formatOpts, "probesize", QByteArray::number(40960), 0);
 
 }
 
@@ -57,21 +60,28 @@ bool Demuxer::load()
         return AVERROR(ENOMEM);
     }
     // todo: set interrupt
+    is->ic->interrupt_callback = *handlerInterupt;
     // set avformat    
 
+    parseAvFormatOpts();
+
+    handlerInterupt->begin(HandlerInterupt::Action::Open);
     auto ret = avformat_open_input(&is->ic,
                                    is->fileUrl.toUtf8().constData(),
                                    is->iformat, &formatOpts);
+    handlerInterupt->end();
     if (ret < 0) {
         qDebug() << "Open input fail";
-        unload();
+//        unload();
         return false;
     }
     is->ic->flags |= AVFMT_FLAG_GENPTS;
     av_format_inject_global_side_data(is->ic);
 
     //find stream info
+    handlerInterupt->begin(HandlerInterupt::Action::FindStreamInfo);
     ret = avformat_find_stream_info(is->ic, nullptr);
+    handlerInterupt->end();
     if (ret < 0) {
         unload();
         qDebug() << "could not find codec parameters";
@@ -118,11 +128,16 @@ bool Demuxer::load()
 
 void Demuxer::unload()
 {    
+    if (is->ic != nullptr) {
+        avformat_close_input(&is->ic);
+    }
+    handlerInterupt->setStatus(0);
+    is->resetStream();
 }
 
 int Demuxer::readFrame()
 {    
-//    qDebug() << "read frame";
+//    qDebug() << "read frame " << QThread::currentThreadId();
     if (is->paused != is->last_paused) {
         is->last_paused = is->paused;
         if (is->paused) {
@@ -131,11 +146,15 @@ int Demuxer::readFrame()
             av_read_play(is->ic);
         }
     }
-    if (is->paused && is->fileUrl.startsWith(QLatin1String("rtsp://"))) {
+
+    if (is->paused &&
+                    (!strcmp(is->ic->iformat->name, "rtsp") ||
+                     (is->ic->pb && !is->fileUrl.startsWith("mmsh:")))) {
     //  need wait 10 ms to avoid trying to get another packet
         thread->msleep(10);
-        return 0 ;
+        return 0;
     }
+//    qDebug() << " read frame ";
     if (is->seek_req) {
         seek();
     }
@@ -146,20 +165,19 @@ int Demuxer::readFrame()
             return ret;
         }
     }
-    auto enoughtPkt = streamHasEnoughPackets(
-                is->video_st, is->video_stream, &is->videoq);
-    if ((infinityBuff < 1 && is->videoq.size > MAX_QUEUE_SIZE)
+    auto enoughtPkt = streamHasEnoughPackets(is->video_st, is->video_stream, is->videoq);
+    if ((infinityBuff < 1 && is->videoq->size > MAX_QUEUE_SIZE)
             || enoughtPkt) {
 //        qDebug() << "full queue";
         mutex.lock();
-        cond.wait(&mutex, 10); // wait max 10ms
+        is->continue_read_thread->wait(&mutex, 10); // wait max 10ms
         mutex.unlock();
         return 0;
     }
     if (!is->paused &&
-            (is->video_st == nullptr
-             || (is->viddec.finished == is->videoq.serial
-                 && is->pictq.queueNbRemain()))) {
+            (is->video_st != nullptr
+             || (is->viddec.finished == is->videoq->serial
+                 && is->pictq.queueNbRemain() == 0))) {
         if (loop != 1 && (!loop || -- loop)) {
             streamSeek(startTime != AV_NOPTS_VALUE ? startTime : 0, 0, 0);
         } else {
@@ -167,11 +185,13 @@ int Demuxer::readFrame()
 //            return; // todo
         }
     }
+    handlerInterupt->begin(HandlerInterupt::Action::Read);
     auto ret = av_read_frame(is->ic, pkt);
+    handlerInterupt->end();
     if (ret < 0) {
         if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !is->eof) {
             if (is->video_stream >= 0) {
-                is->videoq.putNullPkt(is->video_stream);
+                is->videoq->putNullPkt(is->video_stream);
             }
             is->eof = 1;
         }
@@ -187,7 +207,7 @@ int Demuxer::readFrame()
     }
     if (pkt->stream_index == is->video_stream
             && !(is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
-        is->videoq.put(pkt);
+        is->videoq->put(pkt);
     } else {
         av_packet_unref(pkt);
     }
@@ -215,7 +235,7 @@ void Demuxer::stop()
     cond.wakeAll();
     thread->quit();
     do {
-    this->thread->wait(100);
+        thread->wait(100);
     } while (thread->isRunning());
 }
 
@@ -229,10 +249,22 @@ int Demuxer::streamHasEnoughPackets(AVStream *st, int streamID, PacketQueue *que
     return streamID < 0 ||
                queue->abort_request ||
                (st->disposition & AV_DISPOSITION_ATTACHED_PIC) ||
-               queue->nb_packets > MIN_FRAMES && (!queue->duration || av_q2d(st->time_base) * queue->duration > 1.0);
+            queue->nb_packets > MIN_FRAMES && (!queue->duration || av_q2d(st->time_base) * queue->duration > 1.0);
 }
 
-int Demuxer::   streamOpenCompnent(int stream_index)
+void Demuxer::parseAvFormatOpts()
+{
+    if (formatOpts) {
+        av_dict_free(&formatOpts);
+    }
+    auto keys = avformat.keys();
+    foreach (auto key, keys) {
+        auto val = avformat.value(key).toByteArray();
+        av_dict_set(&formatOpts, key.toUtf8(), val, 0);
+    }
+}
+
+int Demuxer::streamOpenCompnent(int stream_index)
 {
     if (stream_index < 0 || stream_index >= int(is->ic->nb_streams)){
         return -1;
@@ -246,6 +278,12 @@ int Demuxer::   streamOpenCompnent(int stream_index)
     }
     avctx->pkt_timebase = is->ic->streams[stream_index]->time_base;
     auto codec = avcodec_find_decoder(avctx->codec_id);
+    switch(avctx->codec_type){
+        case AVMEDIA_TYPE_VIDEO: {
+            is->last_video_stream  = stream_index;
+            break;
+        }
+    }
     if (!codec) {
         qDebug() << "No decoder could be found for codec";
         ret = AVERROR(EINVAL);
@@ -259,8 +297,10 @@ int Demuxer::   streamOpenCompnent(int stream_index)
         stream_lowres = codec->max_lowres;
     }
     avctx->lowres = stream_lowres;
+    avctx->flags2 |= AV_CODEC_FLAG2_FAST;
     AVDictionary *opts;
     opts = nullptr;
+    av_dict_set(&opts, "threads", "auto", 0);
     if (stream_lowres)
         av_dict_set_int(&opts, "lowres", stream_lowres, 0);
     if (avctx->codec_type == AVMEDIA_TYPE_VIDEO || avctx->codec_type == AVMEDIA_TYPE_AUDIO)
@@ -281,7 +321,8 @@ int Demuxer::   streamOpenCompnent(int stream_index)
             is->viddec.setAvctx(avctx);
             is->queue_attachments_req = 1;
             is->viddec.start();
-//            is->viddec.init(&is->videoq, avctx, is->continue_read_thread);
+            is->viddec.setEmptyQueueCond(is->continue_read_thread);
+
             break;
         }
     }
@@ -298,8 +339,8 @@ void Demuxer::seek()
         qDebug() << is->ic->url << " error while seeking";
     } else {
         // todo add flush for audio queue, subs queue
-        is->videoq.flush();
-        is->videoq.putFlushPkt();
+        is->videoq->flush();
+        is->videoq->putFlushPkt();
         if (is->seek_flags == AVSEEK_FLAG_BYTE) {
             is->extclk.set(NAN, 0);
         } else {
@@ -326,8 +367,8 @@ int Demuxer::doQueueAttachReq()
               return ret;
             }
         }
-        is->videoq.put(&copy);
-        is->videoq.putNullPkt(is->video_stream);
+        is->videoq->put(&copy);
+        is->videoq->putNullPkt(is->video_stream);
     }
     is->queue_attachments_req = 0;
     return 0;
@@ -357,21 +398,27 @@ void Demuxer::streamSeek(int64_t pos, int64_t rel, int seek_by_bytes)
 
 void Demuxer::process()
 {
-    qDebug() << "do process";
+    if (handlerInterupt == nullptr) {
+        handlerInterupt = new HandlerInterupt(this);
+    }
+    emit  started();
+    qDebug() << "!!!Demuxer Thread start";
     int countSleed = -1; // count sleep 3s
     forever {
         if (is->abort_request) {
             break;
         }
-        if (countSleed > 0) {
-            thread->sleep(100);
+        if (countSleed > 0) {            
+            thread->msleep(100);
             countSleed--;
             continue;
         }
         if (load()) {
             break;
-        } else {
-            countSleed = 30;
+        } else {            
+            countSleed = 5;
+            qDebug() << "Try open input after " << countSleed * 100 << "ms";
+            continue;
         }
     }
     if (!is->abort_request) {
@@ -384,15 +431,23 @@ void Demuxer::process()
             }
             ret = readFrame();
             if (ret < 0) {
+                qDebug() << "Read frame error " << ret;
                 emit readFrameError(); // read frame error
                 break;
             }
         }
     }
+    emit stopped();
     qDebug() << "!!!Demuxer Thread exit";
+    thread->quit();
 }
 
 void Demuxer::setIs(VideoState *value)
 {
     is = value;
+}
+
+bool Demuxer::isRunning() const
+{
+    return thread->isRunning();
 }

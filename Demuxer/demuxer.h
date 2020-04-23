@@ -4,6 +4,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 #include <QMutex>
+#include <QThread>
 #include <QVariantHash>
 #include <QWaitCondition>
 
@@ -11,6 +12,8 @@ class PacketQueue;
 class Clock;
 class StreamInfo;
 class VideoState;
+class HandlerInterupt;
+
 class Demuxer: public QObject
 {
     Q_OBJECT
@@ -32,18 +35,25 @@ public:
 
     void setIs(VideoState *value);
 
+    bool isRunning() const;
+
 signals:
+    void started();
+    void stopped();
     void loadDone();
-        void readFrameError();
+    void readFrameError();
 private:    
     static int findBestStream(AVFormatContext *ic, AVMediaType type, int index);
     static int streamHasEnoughPackets(AVStream *st, int streamID, PacketQueue *queue);
+
+    void parseAvFormatOpts();
     int streamOpenCompnent(int streamIndex);
     void seek();
     int doQueueAttachReq();
     void stepToNextFrame();
 //    void streamTogglePause();
     void streamSeek(int64_t pos, int64_t rel, int seek_by_bytes);
+
 private slots:
     void process();
 private:
@@ -90,7 +100,8 @@ private:
     int loop;
     QWaitCondition continueReadThread; */// must set to decoder
     AVPacket pkt1, *pkt;
-
+    HandlerInterupt *handlerInterupt;
+    friend HandlerInterupt;
 };
 
 #endif // DEMUXER_H

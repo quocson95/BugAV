@@ -2,6 +2,7 @@
 #define VIDEODECODER_H
 
 #include <QObject>
+#include <QThread>
 extern "C" {
 #include <libavutil/frame.h>
 }
@@ -21,6 +22,11 @@ public:
 
     void setIs(VideoState *value);
 
+    bool isRunning() const;
+
+signals:
+    void started();
+    void stopped();
 private:
     int getVideoFrame(AVFrame *frame);
     int queuePicture(AVFrame *srcFrame, double pts, double duration, int64_t pos, int serial);
@@ -36,6 +42,7 @@ private:
     int ret;
     AVRational tb;
     AVRational frame_rate;    
+    double speed_rate;
 };
 
 #endif // VIDEODECODER_H

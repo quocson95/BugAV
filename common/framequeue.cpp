@@ -18,8 +18,8 @@ FrameQueue::~FrameQueue()
 int FrameQueue::init(PacketQueue *pktq, int maxSize, int keepLast)
 {
     this->pktq = pktq;
-    this->max_size = maxSize;
-    this->keep_last = keepLast;
+    this->max_size = FFMIN(maxSize, FRAME_QUEUE_SIZE);
+    this->keep_last = !!keepLast;
     for (auto i = 0; i < max_size; i++)
     if (!(queue[i].frame = av_frame_alloc())) {
         // not enough mem for alloc

@@ -130,7 +130,8 @@ int PacketQueue::get(AVPacket *pkt, int block, int *serial)
             *pkt = pkt1->pkt;
             if (serial)
                 *serial = pkt1->serial;
-            av_free(pkt1);
+//            av_free(pkt1);
+            delete pkt1;
             ret = 1;
             break;
         } else if (!block) {
@@ -155,14 +156,16 @@ int PacketQueue::putPrivate(AVPacket *pkt)
         return -1;
     pkt1->pkt = *pkt;
     pkt1->next = nullptr;
-    if (pkt == &flushPkt)
+    if (pkt == &flushPkt) {
         serial++;
+    }
     pkt1->serial = serial;
 
     if (last_pkt == nullptr)
         first_pkt = pkt1;
-    else
+    else {
         last_pkt->next = pkt1;
+    }
     last_pkt = pkt1;
     nb_packets++;
     size += pkt1->pkt.size + int(sizeof(*pkt1));

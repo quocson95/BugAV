@@ -13,8 +13,6 @@
 #include <QOpenGLTexture>
 #include <QMutex>
 
-
-
 QT_FORWARD_DECLARE_CLASS(QOpenGLTexture)
 QT_FORWARD_DECLARE_CLASS(QOpenGLShader)
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
@@ -43,9 +41,12 @@ protected:
     void resizeGL(int w, int h) Q_DECL_OVERRIDE;
     void paintGL() Q_DECL_OVERRIDE;
     void initializeGL() Q_DECL_OVERRIDE;
+//    void loadBackGroundImage();
 
 private:
      void initializeTexture( GLuint id, int width, int height);
+     void freeBuffer();
+     void initBuffer(int size);
 private:
 //    QTimer *timer;
 
@@ -67,6 +68,7 @@ private:
     quint8 *buffer[BUF_SIZE];
     int bufIndex;   
     QMutex mutex;
+
 };
 
 #endif // BugGLWidget_H

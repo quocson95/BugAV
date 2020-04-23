@@ -1,4 +1,5 @@
 #include "bugglwidget.h"
+
 #include <QPainter>
 #include <QPaintEngine>
 #include <QOpenGLShaderProgram>
@@ -6,6 +7,7 @@
 #include <QCoreApplication>
 #include <math.h>
 #include "QTimer"
+
 
 GLuint          m_textureIds[3];
 
@@ -51,6 +53,25 @@ void BugGLWidget::initializeTexture( GLuint  id, int width, int height) {
                  GL_UNSIGNED_BYTE, NULL);
 }
 
+void BugGLWidget::freeBuffer()
+{
+    for(int i=0;i<BUF_SIZE;i++)
+    {
+       if (buffer[i] != nullptr) {
+           free(buffer[i]);
+       }
+    }
+}
+
+void BugGLWidget::initBuffer(int size)
+{
+    freeBuffer();
+    for(int i=0;i<BUF_SIZE;i++)
+    {
+       buffer[i]=(unsigned char*)malloc(size);
+    }
+}
+
 
 
 BugGLWidget::BugGLWidget()
@@ -58,17 +79,14 @@ BugGLWidget::BugGLWidget()
       m_transparent(false),
       m_background(Qt::white)
 {
-
     width=0;
     height=0;
     bufIndex=0;
     memset(buffer, 0, BUF_SIZE);
+    buffer[0] = nullptr;
+    buffer[1] = nullptr;
     memset(m_textureIds,0,3);
     isShaderInited=false;
-    initShader(300, 400);
-//    timer = new QTimer(this);
-//    connect(timer, SIGNAL(timeout()), this, SLOT(update()));
-
 }
 
 BugGLWidget::~BugGLWidget()
@@ -77,9 +95,8 @@ BugGLWidget::~BugGLWidget()
     makeCurrent();
 
     doneCurrent();
+    freeBuffer();   
 }
-
-
 
 void BugGLWidget::initializeGL()
 {
@@ -139,8 +156,51 @@ void BugGLWidget::initializeGL()
     // glViewport(0, 0, width, height);
 
 
-    //timer->start(30);    
+    //timer->start(30);
 }
+
+//void BugGLWidget::loadBackGroundImage()
+//{
+//    QImage img("/home/sondq/Documents/dev/BugAV/logo.png", "png");
+////    auto i = QImage::Format(5);
+//    uchar* out_buffer = (uchar*)av_malloc((int)ceil(img.height() * img.width() * 1.5));
+//    //allocate ffmpeg frame structures
+//    AVFrame* inpic = av_frame_alloc();
+//    backgroundImage = av_frame_alloc();
+
+//    avpicture_fill((AVPicture*)inpic,
+//                   img.bits(),
+//                   AV_PIX_FMT_RGB0,
+//                   img.width(),
+//                   img.height());
+
+//    avpicture_fill((AVPicture*)backgroundImage,
+//                   out_buffer,
+//                   AV_PIX_FMT_YUV420P,
+//                   img.width(),
+//                   img.height());
+
+//    SwsContext* ctx = sws_getContext(img.width(),
+//                                     img.height(),
+//                                     AV_PIX_FMT_RGB0,
+//                                     img.width(),
+//                                     img.height(),
+//                                     AV_PIX_FMT_YUV420P,
+//                                     SWS_BICUBIC,
+//                                     NULL, NULL, NULL);
+//    sws_scale(ctx,
+//              inpic->data,
+//              inpic->linesize,
+//              0,
+//              img.height(),
+//              backgroundImage->data,
+//              backgroundImage->linesize);
+
+//    //free memory
+//    av_free(inpic);
+//    //free output buffer when done with it
+//    av_free(out_buffer);
+//}
 
 
 void BugGLWidget::initShader(int w,int h)
@@ -148,22 +208,12 @@ void BugGLWidget::initShader(int w,int h)
 
     if(width!=w || height !=h)
     {
-
         width=w;
         height=h;
         int size=width*height*3/2;
 
-        mutex.lock();
-        for(int i=0;i<BUF_SIZE;i++)
-        {
-           if (buffer[i] == 0) {
-               free(buffer[i]);
-           }
-        }
-        for(int i=0;i<BUF_SIZE;i++)
-        {
-           buffer[i]=(unsigned char*)malloc(size);
-        }
+        mutex.lock();        
+        initBuffer(size);
         mutex.unlock();
         isShaderInited=false;
     }
@@ -222,9 +272,9 @@ void BugGLWidget::paintGL()
     //QPainter p;
     //p.begin(this);
     //p.beginNativePainting();
-    glClearColor(m_background.redF(), m_background.greenF(), m_background.blueF(), m_transparent ? 0.0f : 1.0f);
+//    glClearColor(m_background.redF(), m_background.greenF(), m_background.blueF(), m_transparent ? 0.0f : 1.0f);
     //glViewport(0, 0, WIDTH, HEIGHT);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
     //  glFrontFace(GL_CW);
@@ -252,6 +302,7 @@ void BugGLWidget::paintGL()
     glEnd();
 */
 
+//    QOpenGLContext::currentContext()->functions()->glViewport(100, 100, 100, 100);
     if(width ==0 || height ==0)return;
     m_programA->bind();
 

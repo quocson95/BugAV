@@ -3776,22 +3776,18 @@
 //    return 0;
 //}
 
-#include "demuxer.h"
-#include "bugglwidget.h"
-#include "render.h"
-#include "renderer.h"
-#include "videodecoder.h"
-#include "videostate.h"
-#include "bugplayer.h"
+#include "form.h"
 
 #include <QApplication>
 #include <QWidget>
+
+#include <BugPlayer/bugplayer.h>
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-//    auto file = QLatin1String("rtmp://61.28.231.227:1935/live/756bd856-6774-44eb-9fa7-92b2fcfe1167_sub_1587032712?ci=JDc1NmJkODU2LTY3NzQtNDRlYi05ZmE3LTkyYjJmY2ZlMTE2NwMxMjcAA3N1YgN2Y2MbMWFUbGx4enY0dEtOV2xaZldTelZmU1lGczQ2AAA=&sig=1bdd79324");
-    auto file = QLatin1String("http://api.stg.vcloudcam.vn/rec/v1/segment/playlist/?camUuid=45236d67-fc26-42a0-9bd5-be920da274be\u0026expire=1587545369\u0026from=1587281755\u0026to=1587285384\u0026token=88d0bb2052d228e39c107ec23f57d60bfc997e76\u0026type=hls");
+    auto file = "rtmp://61.28.231.227:1935/live/756bd856-6774-44eb-9fa7-92b2fcfe1167_sub_1587032712?ci=JDc1NmJkODU2LTY3NzQtNDRlYi05ZmE3LTkyYjJmY2ZlMTE2NwMxMjcAA3N1YgN2Y2MbMWFUbGx4enY0dEtOV2xaZldTelZmU1lGczQ2AAA=&sig=1bdd79324";
+//    auto file = QLatin1String("http://api.stg.vcloudcam.vn/rec/v1/segment/playlist/?camUuid=45236d67-fc26-42a0-9bd5-be920da274be\u0026expire=1587545369\u0026from=1587281755\u0026to=1587285384\u0026token=88d0bb2052d228e39c107ec23f57d60bfc997e76\u0026type=hls");
 //    VideoState is;
 //    Demuxer demuxer;
 //    demuxer.setIs(&is);
@@ -3811,10 +3807,12 @@ int main(int argc, char *argv[])
 //    s.setCurrentImage(img);
 //    s.show();
     BugPlayer::setLog();
-    BugPlayer bplayer;
-    bplayer.setFile(file);
-    bplayer.start();
-    bplayer.show();
+//    BugPlayer bplayer;
+//    bplayer.setFile(file);
+//    bplayer.play();
+//    bplayer.show();
+    Form w;
+    w.show();
     a.exec();
 //    demuxer.stop();
 //    vDecoder.stop();
