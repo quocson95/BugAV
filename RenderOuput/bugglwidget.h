@@ -1,8 +1,8 @@
 #ifndef BugGLWidget_H
 #define BugGLWidget_H
 
-#include "IRenderer.h"
-
+#include "IBugAVRenderer.h"
+#include "marco.h"
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
 #include <QOpenGLBuffer>
@@ -17,21 +17,23 @@ QT_FORWARD_DECLARE_CLASS(QOpenGLTexture)
 QT_FORWARD_DECLARE_CLASS(QOpenGLShader)
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 
+
+namespace BugAV {
 #define BUF_SIZE 2
 
-
-
-class BugGLWidget : public QOpenGLWidget, protected QOpenGLFunctions, public IRenderer
+class LIB_EXPORT BugGLWidget : public QOpenGLWidget, protected QOpenGLFunctions, public IBugAVRenderer
 {
     Q_OBJECT
 public:
-    BugGLWidget();
+    BugGLWidget(QWidget *parent = nullptr);
     ~BugGLWidget() override;
 
-    void updateData(unsigned char*);
-    void updateData(unsigned char**) override;
+    void updateData(unsigned char**);
+    void updateData(AVFrame *frame) override;
 
-    void initShader(int w,int h) override;
+    void initShader(int w,int h);
+//    QObject *widget() override;
+
 public slots:
 
     void setTransparent(bool transparent);
@@ -46,11 +48,12 @@ protected:
 private:
      void initializeTexture( GLuint id, int width, int height);
      void freeBuffer();
-     void initBuffer(int size);
+     void initBuffer(size_t size);
 private:
 //    QTimer *timer;
 
     //--------------------
+    GLuint          m_textureIds[3];
     QOpenGLShader *m_vshaderA;
     QOpenGLShader *m_fshaderA;
     QOpenGLShaderProgram *m_programA;
@@ -65,10 +68,13 @@ private:
     bool isShaderInited;
     int width;
     int height;
-    quint8 *buffer[BUF_SIZE];
+    size_t wxh;
+    size_t wxh_4;
+
+    uint8_t *buffer[BUF_SIZE];
     int bufIndex;   
     QMutex mutex;
 
 };
-
+}
 #endif // BugGLWidget_H

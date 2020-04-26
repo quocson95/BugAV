@@ -57,3 +57,4 @@ const int program_birth_year = 2003;
 #define AVFORMAT_STATIC_REGISTER FFMPEG_MODULE_CHECK(LIBAVFORMAT, 58, 9, 100)
 
 #endif // DEFINE_H
+

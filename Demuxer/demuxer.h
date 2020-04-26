@@ -8,6 +8,8 @@ extern "C" {
 #include <QVariantHash>
 #include <QWaitCondition>
 
+namespace BugAV {
+
 class PacketQueue;
 class Clock;
 class StreamInfo;
@@ -21,7 +23,7 @@ public:
     Demuxer();
     Demuxer(VideoState *is);
     ~Demuxer();
-    void setAvformat(QVariantMap avformat);
+    void setAvformat(QVariantHash avformat);
 
     bool load();
     void unload();
@@ -41,6 +43,7 @@ signals:
     void started();
     void stopped();
     void loadDone();
+    void loadFailed();
     void readFrameError();
 private:    
     static int findBestStream(AVFormatContext *ic, AVMediaType type, int index);
@@ -63,11 +66,13 @@ private:
     QWaitCondition cond;
 
     AVDictionary *formatOpts;
-    QVariantMap avformat;
+    QVariantHash avformat;
     int64_t startTime; // using for seek begin
     int stIndex[AVMEDIA_TYPE_NB];
     int infinityBuff = 0;
     int loop;
+
+    bool isRun;
 
 //    AVCodecContext *avctx;
     /*AVInputFormat *input_format;
@@ -100,8 +105,9 @@ private:
     int loop;
     QWaitCondition continueReadThread; */// must set to decoder
     AVPacket pkt1, *pkt;
-    HandlerInterupt *handlerInterupt;
+//    HandlerInterupt *handlerInterupt;
     friend HandlerInterupt;
 };
-
+}
 #endif // DEMUXER_H
+

@@ -7,8 +7,9 @@ extern "C" {
 #include "clock.h"
 #include "common.h"
 #include "Decoder/decoder.h"
-
 #include "framequeue.h"
+
+namespace BugAV {
 
 class VideoState {
 public:
@@ -123,6 +124,8 @@ public:
     int width, height, xleft, ytop;
     int step;
 
+    bool useAVFilter; // need avfilter avframe
+
 #if CONFIG_AVFILTER
     int vfilter_idx;
     AVFilterContext *in_video_filter;   // the first filter in the video chain
@@ -137,5 +140,6 @@ public:
     QWaitCondition *continue_read_thread = nullptr;
     int framedrop = 1;
 };
-
+}
 #endif // VIDEOSTATE_H
+

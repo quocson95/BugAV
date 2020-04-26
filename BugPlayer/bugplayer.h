@@ -2,35 +2,68 @@
 #define BugPlayer_H
 
 #include <QString>
+#include <taskscheduler.h>
 
 #include <RenderOuput/bugglwidget.h>
-#include <RenderOuput/opengldisplay.h>
 
+#include "marco.h"
+
+namespace BugAV {
 class VideoState;
 class Demuxer;
 class VideoDecoder;
 class Render;
 
-class BugPlayer: public BugGLWidget
+class LIB_EXPORT BugPlayer: public QObject
 {
+    Q_OBJECT
 public:
-    BugPlayer();
+    enum class AVState {
+        StoppedState,
+        LoadingState,
+        PlayingState,
+        PausedState,
+        PlayingNoRenderState,
+    };
+    BugPlayer(QObject *parent = nullptr);
     ~BugPlayer();
     static void setLog();
 
+    static void stopTaskScheduler();
+
     void setFile(const QString &file);
+    QString getFile() const;
 
     void play();
 
+    void play(const QString &file);
+
     void pause();
+
+    void togglePause();
 
     void stop();
 
-    void reset();
+    void refresh();
 
     bool isPlaying() const;
 
     bool isSourceChange() const;
+
+    qint64 buffered() const;
+
+    qreal bufferPercent() const;
+
+    void setRenderer(IBugAVRenderer *renderer);
+
+    IBugAVRenderer *getRenderer();
+
+    void setOptionsForFormat(QVariantHash avFormat);
+
+
+public: signals:
+    void stateChanged(BugAV::BugPlayer::AVState state);
+
 
 private:
     void initPriv();
@@ -41,6 +74,7 @@ private slots:
     void workerStopped();
 
     void streamLoaded();
+    void streamLoadedFailed();
 private:
     VideoState *is;
     Demuxer *demuxer;
@@ -51,7 +85,11 @@ private:
 
     bool demuxerRunning;
     bool vDecoderRunning;
-    bool renderRunning;    
-};
+    bool renderRunning;
 
+//    TaskScheduler *taskScheduler;
+
+};
+} // namespace BugAV
 #endif // BugPlayer_H
+

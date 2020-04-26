@@ -15,6 +15,7 @@ extern "C" {
 #include "Decoder/decoder.h"
 #include "handlerinterupt.h"
 
+namespace BugAV {
 Demuxer::Demuxer()
     : Demuxer(nullptr)
 
@@ -26,10 +27,12 @@ Demuxer::Demuxer(VideoState *is)
     :QObject(nullptr)
     ,is{is}
     ,formatOpts{nullptr}
-    ,handlerInterupt{nullptr}
+//    ,handlerInterupt{nullptr}
 {
     startTime = AV_NOPTS_VALUE;
     pkt = &pkt1;
+    isRun = false;
+
     thread = new QThread(this);
     moveToThread(thread);
     connect(thread, SIGNAL (started()), this, SLOT (process()));
@@ -43,7 +46,7 @@ Demuxer::~Demuxer()
 //    delete thread;
 }
 
-void Demuxer::setAvformat(QVariantMap avformat)
+void Demuxer::setAvformat(QVariantHash avformat)
 {
     this->avformat = avformat;
 //    av_dict_set(&formatOpts, "probesize", QByteArray::number(40960), 0);
@@ -60,16 +63,16 @@ bool Demuxer::load()
         return AVERROR(ENOMEM);
     }
     // todo: set interrupt
-    is->ic->interrupt_callback = *handlerInterupt;
+//    is->ic->interrupt_callback = *handlerInterupt;
     // set avformat    
 
     parseAvFormatOpts();
 
-    handlerInterupt->begin(HandlerInterupt::Action::Open);
+//    handlerInterupt->begin(HandlerInterupt::Action::Open);
     auto ret = avformat_open_input(&is->ic,
                                    is->fileUrl.toUtf8().constData(),
                                    is->iformat, &formatOpts);
-    handlerInterupt->end();
+//    handlerInterupt->end();
     if (ret < 0) {
         qDebug() << "Open input fail";
 //        unload();
@@ -79,9 +82,9 @@ bool Demuxer::load()
     av_format_inject_global_side_data(is->ic);
 
     //find stream info
-    handlerInterupt->begin(HandlerInterupt::Action::FindStreamInfo);
+//    handlerInterupt->begin(HandlerInterupt::Action::FindStreamInfo);
     ret = avformat_find_stream_info(is->ic, nullptr);
-    handlerInterupt->end();
+//    handlerInterupt->end();
     if (ret < 0) {
         unload();
         qDebug() << "could not find codec parameters";
@@ -131,7 +134,7 @@ void Demuxer::unload()
     if (is->ic != nullptr) {
         avformat_close_input(&is->ic);
     }
-    handlerInterupt->setStatus(0);
+//    handlerInterupt->setStatus(0);
     is->resetStream();
 }
 
@@ -185,9 +188,9 @@ int Demuxer::readFrame()
 //            return; // todo
         }
     }
-    handlerInterupt->begin(HandlerInterupt::Action::Read);
+//    handlerInterupt->begin(HandlerInterupt::Action::Read);
     auto ret = av_read_frame(is->ic, pkt);
-    handlerInterupt->end();
+//    handlerInterupt->end();
     if (ret < 0) {
         if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !is->eof) {
             if (is->video_stream >= 0) {
@@ -228,6 +231,22 @@ void Demuxer::setFileUrl(const QString &value)
 void Demuxer::start()
 {
     thread->start();
+    if (isRun) {
+        return;
+    }
+    isRun = true;
+//    class DemuxerRun: public QRunnable {
+//    public:
+//        DemuxerRun(Demuxer *demuxer) {
+//            this->demuxer = demuxer;
+//        }
+//        void run() {
+//            demuxer->process();
+//        }
+//    private:
+//        Demuxer *demuxer;
+//    };
+//    QThreadPool::globalInstance()->start(new DemuxerRun{this});
 }
 
 void Demuxer::stop()
@@ -235,7 +254,7 @@ void Demuxer::stop()
     cond.wakeAll();
     thread->quit();
     do {
-        thread->wait(100);
+        thread->wait(500);
     } while (thread->isRunning());
 }
 
@@ -398,29 +417,44 @@ void Demuxer::streamSeek(int64_t pos, int64_t rel, int seek_by_bytes)
 
 void Demuxer::process()
 {
-    if (handlerInterupt == nullptr) {
-        handlerInterupt = new HandlerInterupt(this);
-    }
+    isRun = true;
+//    if (handlerInterupt == nullptr) {
+//        handlerInterupt = new HandlerInterupt(this);
+//    }
     emit  started();
     qDebug() << "!!!Demuxer Thread start";
     int countSleed = -1; // count sleep 3s
-    forever {
-        if (is->abort_request) {
-            break;
+    int numTry = 0;
+//    forever {
+//        if (is->abort_request) {
+//            break;
+//        }
+//        if (countSleed > 0) {
+//            thread->msleep(100);
+//            countSleed--;
+//            continue;
+//        }
+//        if (load()) {
+//            emit loadFailed();
+//            return;
+//            break;
+//        } else {
+//            if (numTry < 15) {
+//                numTry++;
+//            }
+//            countSleed = 10 * numTry;
+//            qDebug() << "Try open input after " << countSleed * 100 << "ms";
+//            continue;
+//        }
+        if (!load()) {
+            emit loadFailed();
+            isRun = false;
+            thread->quit();
+            return;
+        } else {
+//            emit loadDone();
         }
-        if (countSleed > 0) {            
-            thread->msleep(100);
-            countSleed--;
-            continue;
-        }
-        if (load()) {
-            break;
-        } else {            
-            countSleed = 5;
-            qDebug() << "Try open input after " << countSleed * 100 << "ms";
-            continue;
-        }
-    }
+//    }
     if (!is->abort_request) {
         qDebug() << "Start read frame";
         emit loadDone();
@@ -437,6 +471,7 @@ void Demuxer::process()
             }
         }
     }
+    isRun = false;
     emit stopped();
     qDebug() << "!!!Demuxer Thread exit";
     thread->quit();
@@ -449,5 +484,7 @@ void Demuxer::setIs(VideoState *value)
 
 bool Demuxer::isRunning() const
 {
+    return isRun;
     return thread->isRunning();
+}
 }

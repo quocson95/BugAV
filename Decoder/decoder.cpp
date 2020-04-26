@@ -2,7 +2,7 @@
 #include "QDebug"
 #include <QThread>
 #include "common/videostate.h"
-
+namespace BugAV {
 Decoder::Decoder()
 {    
 }
@@ -140,4 +140,5 @@ int Decoder::decodeFrame(AVFrame *frame)
             av_packet_unref(&pkt);
         }
     }
+}
 }

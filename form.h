@@ -4,6 +4,7 @@
 #include <QWidget>
 
 #include <BugPlayer/bugplayer.h>
+using namespace BugAV;
 
 namespace Ui {
 class Form;
@@ -26,7 +27,8 @@ private slots:
 
 private:
     Ui::Form *ui;
-    BugPlayer bPlayer;
+    BugPlayer bPlayer{nullptr};
+    BugGLWidget *renderer;
 };
 
 #endif // FORM_H

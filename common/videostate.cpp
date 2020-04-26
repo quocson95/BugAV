@@ -2,12 +2,15 @@
 extern "C" {
 #include "libavutil/time.h"
 }
+
+namespace BugAV {
 VideoState::VideoState()
 {    
     continue_read_thread = new QWaitCondition;
     show_mode = ShowMode::SHOW_MODE_VIDEO;    
     av_sync_type = ShowModeClock::AV_SYNC_VIDEO_MASTER;
     videoq = new PacketQueue;
+    useAVFilter = false;
     init();
     reset();
 }
@@ -155,3 +158,4 @@ void VideoState::reset()
     eof = 0;
 }
 
+}

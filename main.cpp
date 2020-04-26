@@ -3777,6 +3777,7 @@
 //}
 
 #include "form.h"
+#include "grid.h"
 
 #include <QApplication>
 #include <QWidget>
@@ -3811,7 +3812,7 @@ int main(int argc, char *argv[])
 //    bplayer.setFile(file);
 //    bplayer.play();
 //    bplayer.show();
-    Form w;
+    Grid w;
     w.show();
     a.exec();
 //    demuxer.stop();

@@ -1,6 +1,7 @@
 #include "framequeue.h"
 #include "packetqueue.h"
 
+namespace BugAV {
 FrameQueue::FrameQueue()
 {
 }
@@ -127,6 +128,18 @@ int64_t FrameQueue::queueLastPos()
         return -1;
 }
 
+qreal FrameQueue::bufferPercent()
+{
+    return (queueNbRemain() / FRAME_QUEUE_SIZE) * 100;
+}
+
+bool FrameQueue::isWriteable()
+{
+    auto allowWrite = !(size >= max_size
+                       &&!pktq->abort_request);
+    return allowWrite;
+}
+
 Frame::Frame()
 {
     uploaded = 0;
@@ -135,4 +148,5 @@ Frame::Frame()
 Frame::~Frame()
 {
 
+}
 }

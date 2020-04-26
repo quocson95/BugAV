@@ -5,7 +5,7 @@ extern "C" {
 #include "QtMath"
 #include "define.h"
 
-
+namespace BugAV {
 Clock::Clock()
     :pts{0.0}
     ,pts_drift{0.0}
@@ -62,4 +62,5 @@ void Clock::syncToSlave(Clock *slave)
     if (!qIsNaN(slave_clock) && (qIsNaN(clock) || qAbs(clock - slave_clock) > AV_NOSYNC_THRESHOLD)) {
         this->set(slave_clock, slave->serial);
     }
+}
 }

@@ -7,6 +7,7 @@ extern "C" {
 #include <QMutex>
 #include <QWaitCondition>
 
+namespace BugAV {
 
 class MyAVPacketList {
 public:
@@ -49,6 +50,7 @@ public:
     QWaitCondition cond;
 
 };
-
+}
 
 #endif // PACKETQUEUE_H
+

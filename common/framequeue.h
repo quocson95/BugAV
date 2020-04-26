@@ -10,6 +10,8 @@ extern "C" {
 #include <QMutex>
 #include <QWaitCondition>
 
+namespace BugAV {
+
 class PacketQueue;
 
 class Frame {
@@ -50,6 +52,10 @@ public:
     int queueNbRemain();
     int64_t queueLastPos();
 
+    qreal bufferPercent();
+
+    bool isWriteable();
+
 public:
     Frame queue[FRAME_QUEUE_SIZE];
     int rindex;
@@ -62,5 +68,6 @@ public:
     QWaitCondition cond;
     PacketQueue *pktq;
 };
-
+}
 #endif // FRAMEQUEUE_H
+

@@ -13,7 +13,9 @@ extern "C" {
 #include "packetqueue.h"
 #include "clock.h"
 
-#define sws_flags SWS_FAST_BILINEAR
+namespace BugAV {
+
+#define sws_flags SWS_BICUBIC
 
 class AudioParams {
 public:
@@ -221,5 +223,6 @@ class SDL_Texture;
 //    { AV_PIX_FMT_UYVY422,        QImage::Format_Invalid },
 //    { AV_PIX_FMT_NONE,           QImage::Format_Invalid },
 //};
-
+}
 #endif // COMMON_H
+

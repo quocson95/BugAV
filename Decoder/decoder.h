@@ -5,11 +5,14 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 }
 #include "QObject"
-//class StreamInfo;
-class VideoState;
-class PacketQueue;
+
 class QWaitCondition;
 
+//class StreamInfo;
+namespace BugAV {
+
+class VideoState;
+class PacketQueue;
 class Decoder {
 public:
     Decoder();
@@ -39,6 +42,7 @@ public:
     QWaitCondition *emptyQueueCond;
     int decoder_reorder_pts = -1;
 };
+}
 
 
 #endif // DECODER_H

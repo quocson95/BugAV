@@ -2,40 +2,54 @@
 #define RENDER_H
 
 #include <QImage>
+#include <QMutex>
 #include <QObject>
+#include <QRunnable>
 extern "C" {
 #include <libavutil/frame.h>
 }
+
 class QThread;
-class VideoState;
-class Frame;
-class IRenderer;
-class BugFilter;
 class SwsContext;
 
-class Render: public QObject
+namespace BugAV {
+
+class VideoState;
+class Frame;
+class IBugAVRenderer;
+class BugFilter;
+
+class Render:public QObject, public QRunnable
 {
     Q_OBJECT
 public:
     Render();
-    Render(IRenderer *renderer, VideoState *is);
+    Render(VideoState *is, IBugAVRenderer *renderer = nullptr);
     ~Render();
 
     void start();
     void stop();
     void setIs(VideoState *value);
 
-    void setRenderer(IRenderer *value);
+    void setRenderer(IBugAVRenderer *value);
+    IBugAVRenderer *getRenderer();
 
     bool getRequestStop() const;
     void setRequestStop(bool value);
 
     bool isRunning() const;
 private:
-    void initPriv();
-signals:
-    void started();
-    void stopped();
+    bool initPriv();
+
+    bool isAvailFirstFrame();
+
+    bool handlerFrameState1();
+    bool handlerFrameState2();
+    int handlerFrameState3();
+
+    bool handlerFrameState4();//signals:
+//    void started();
+//    void stopped();
 private:
     static double vp_duration(double maxFrameDuration, Frame *vp, Frame *nextvp);
     static double compute_target_delay (VideoState *is, double delay);
@@ -47,23 +61,44 @@ private:
 
     void uploadTexture(Frame *f, SwsContext **img_convert_ctx);
 
-    AVFrame *cropImage(AVFrame *frame, int left, int top, int right, int bottom);
-private slots:
+//    AVFrame *cropImage(AVFrame *frame, int left, int top, int right, int bottom);
+//private slots:
     void process();
     void videoRefresh();
     void videoDisplay();
 private:
+
+    enum class PrivState {
+        Stop = -1,
+        Init = 0,
+        WaitingFirstFrame,
+        HandleFrameState1,
+        HandleFrameState2,
+        HandleFrameState3,
+        HandleFrameState4,
+    };
     AVFrame *frameYUV;
+    uint8_t * buffer;
     uint8_t *out_buffer;
     bool hasInit;
-    QThread *thread;
-    IRenderer *renderer;
+//    QThread *thread;
+    IBugAVRenderer *renderer;
+    IBugAVRenderer *defaultRenderer;
     VideoState *is;
-    BugFilter *filter;
+//    BugFilter *filter;
     double rdftspeed = 0.02;
     double remaining_time = 0;
-    bool requestStop;    
+    bool requestStop;
+    QMutex mutex;
+    bool isRun;
 
+    PrivState privState;
+
+
+    // QRunnable interface
+public:
+    void run();
 };
-
+}
 #endif // RENDER_H
+

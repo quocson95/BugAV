@@ -1,5 +1,8 @@
 #include "bugglwidget.h"
 
+extern "C" {
+#include <libavutil/frame.h>
+}
 #include <QPainter>
 #include <QPaintEngine>
 #include <QOpenGLShaderProgram>
@@ -8,21 +11,19 @@
 #include <math.h>
 #include "QTimer"
 
-
-GLuint          m_textureIds[3];
-
+namespace BugAV {
 
 
 //-------------------------------------
-const char g_indices[] = { 0, 3, 2, 0, 2, 1 };
-const char g_vertextShader[] = { "attribute vec4 aPosition;\n"
+static const char g_indices[] = { 0, 3, 2, 0, 2, 1 };
+static const char g_vertextShader[] = { "attribute vec4 aPosition;\n"
                                  "attribute vec2 aTextureCoord;\n"
                                  "varying vec2 vTextureCoord;\n"
                                  "void main() {\n"
                                  "  gl_Position = aPosition;\n"
                                  "  vTextureCoord = aTextureCoord;\n"
                                  "}\n" };
-const char g_fragmentShader[] = {
+static const char g_fragmentShader[] = {
     "uniform sampler2D Ytex,Utex,Vtex;\n"
     "varying vec2 vTextureCoord;\n"
     "void main(void) {\n"
@@ -36,7 +37,7 @@ const char g_fragmentShader[] = {
     "1.13983, -0.58060,  0) * yuv;\n"
     "gl_FragColor = vec4(rgb, 1);\n"
     "}\n" };
-GLfloat m_verticesA[20] = { 1, 1, 0, 1, 0, -1, 1, 0, 0, 0, -1, -1, 0, 0,
+static GLfloat m_verticesA[20] = { 1, 1, 0, 1, 0, -1, 1, 0, 0, 0, -1, -1, 0, 0,
                             1, 1, -1, 0, 1, 1, };
 //------------------------------------------
 
@@ -50,7 +51,7 @@ void BugGLWidget::initializeTexture( GLuint  id, int width, int height) {
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, width, height, 0, GL_LUMINANCE,
-                 GL_UNSIGNED_BYTE, NULL);
+                 GL_UNSIGNED_BYTE, nullptr);
 }
 
 void BugGLWidget::freeBuffer()
@@ -58,34 +59,38 @@ void BugGLWidget::freeBuffer()
     for(int i=0;i<BUF_SIZE;i++)
     {
        if (buffer[i] != nullptr) {
-           free(buffer[i]);
+           delete buffer[i] ;
        }
     }
 }
 
-void BugGLWidget::initBuffer(int size)
+void BugGLWidget::initBuffer(size_t size)
 {
     freeBuffer();
     for(int i=0;i<BUF_SIZE;i++)
     {
-       buffer[i]=(unsigned char*)malloc(size);
+       buffer[i]= static_cast<unsigned char*>(malloc(size));
     }
+
 }
 
 
-
-BugGLWidget::BugGLWidget()
-    :m_texture(0),
-      m_transparent(false),
-      m_background(Qt::white)
+BugGLWidget::BugGLWidget(QWidget *parent)
+    :QOpenGLWidget{parent}
+    ,m_texture(nullptr)
+    ,m_transparent(false)
+    ,m_background(Qt::white)
 {
     width=0;
     height=0;
     bufIndex=0;
-    memset(buffer, 0, BUF_SIZE);
+//    memset(buffer, 0, BUF_SIZE);
     buffer[0] = nullptr;
     buffer[1] = nullptr;
-    memset(m_textureIds,0,3);
+//    memset(m_textureIds, 0, 3);
+    for(auto i = 0; i < 3; i++) {
+        m_textureIds[i] = 0;
+    }
     isShaderInited=false;
 }
 
@@ -95,7 +100,7 @@ BugGLWidget::~BugGLWidget()
     makeCurrent();
 
     doneCurrent();
-    freeBuffer();   
+    freeBuffer();
 }
 
 void BugGLWidget::initializeGL()
@@ -132,18 +137,18 @@ void BugGLWidget::initializeGL()
     m_programA->addShader(m_fshaderA);
     m_programA->link();
 
-    int positionHandle=m_programA->attributeLocation("aPosition");
-    int textureHandle=m_programA->attributeLocation("aTextureCoord");
+    auto  positionHandle=m_programA->attributeLocation("aPosition");
+    auto textureHandle=m_programA->attributeLocation("aTextureCoord");
 
-    glVertexAttribPointer(positionHandle, 3, GL_FLOAT, false,
+    glVertexAttribPointer(GLuint(positionHandle), 3, GL_FLOAT, false,
                           5 * sizeof(GLfloat), m_verticesA);
 
-    glEnableVertexAttribArray(positionHandle);
+    glEnableVertexAttribArray(GLuint(positionHandle));
 
-    glVertexAttribPointer(textureHandle, 2, GL_FLOAT, false,
+    glVertexAttribPointer(GLuint(textureHandle), 2, GL_FLOAT, false,
                           5 * sizeof(GLfloat), &m_verticesA[3]);
 
-    glEnableVertexAttribArray(textureHandle);
+    glEnableVertexAttribArray(GLuint(textureHandle));
 
     int i=m_programA->uniformLocation("Ytex");
     glUniform1i(i, 0);
@@ -206,45 +211,69 @@ void BugGLWidget::initializeGL()
 void BugGLWidget::initShader(int w,int h)
 {
 
-    if(width!=w || height !=h)
+    if(width != w || height != h)
     {
-        width=w;
-        height=h;
-        int size=width*height*3/2;
+        this->width = w;
+        this->height = h;
 
-        mutex.lock();        
-        initBuffer(size);
-        mutex.unlock();
+        wxh = size_t(width * height);
+        wxh_4 = wxh / 4;
+        initBuffer(wxh*3/2);
         isShaderInited=false;
     }
-
 }
 
-
-void BugGLWidget::updateData(unsigned char *data)
+void BugGLWidget::  updateData(unsigned char**data)
 {
+    if (!data || !*data) {
+        return;
+    }
+    auto tmp=buffer[bufIndex];
 
-   // unsigned char *tmp=buffer[bufIndex];
+    memcpy(tmp,data[0], wxh);
+    tmp+= wxh;
 
-   // memcpy(tmp,data,width*height*3/2);
+    memcpy(tmp,data[1], wxh_4);
 
-
-    //this->update();
+    tmp+=wxh_4;
+    memcpy(tmp,data[2], wxh_4);
+    this->update();
 }
 
-void BugGLWidget::updateData(unsigned char**data)
+void BugGLWidget::updateData(AVFrame *frame)
 {
+    if (frame->width != width
+            || frame->height != height)
+    {
+        initShader(frame->width, frame->height);
+    }
 
-    unsigned char *tmp=buffer[bufIndex];
+    if (frame->linesize[0] == frame->width) {
+        updateData(frame->data);
+        return;
+    }  
 
-    memcpy(tmp,data[0],width*height);
-    tmp+=width*height;
-
-    memcpy(tmp,data[1],width*height/4);
-
-    tmp+=width*height/4;
-    memcpy(tmp,data[2],width*height/4);
-
+    auto tmp = buffer[bufIndex];
+    // Y
+    for (int i = 0; i < height; i++) {
+         memcpy(tmp + width * i,
+                frame->data[0] + frame->linesize[0] * i,
+                static_cast<size_t>(width));
+    }
+    tmp += wxh;
+    // U
+    for (int i = 0; i < height / 2; i++) {
+         memcpy(tmp + width / 2 * i,
+                frame->data[1] + frame->linesize[1] * i,
+                static_cast<size_t>(width));
+    }
+    tmp += wxh_4;
+    // V
+    for (int i = 0; i < height / 2; i++) {
+         memcpy(tmp + width / 2 * i,
+                frame->data[2] + frame->linesize[2] * i,
+                static_cast<size_t>(width));
+    }
     this->update();
 }
 
@@ -269,40 +298,8 @@ void BugGLWidget::paintGL()
         glActiveTexture(GL_TEXTURE2);
         initializeTexture( m_textureIds[2], width / 2, height / 2);
     }
-    //QPainter p;
-    //p.begin(this);
-    //p.beginNativePainting();
-//    glClearColor(m_background.redF(), m_background.greenF(), m_background.blueF(), m_transparent ? 0.0f : 1.0f);
-    //glViewport(0, 0, WIDTH, HEIGHT);
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-    //  glFrontFace(GL_CW);
-    // glCullFace(GL_FRONT);
-    //  glEnable(GL_CULL_FACE);
-    // glEnable(GL_DEPTH_TEST);
-    //qDebug()<<"C===========";
-
-    //glBindTexture(GL_TEXTURE_2D, m_textureIds[0]);
-    //glTexImage2D(GL_TEXTURE_2D, 0, 4, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
-
-
-    //m_texture->bind();
-    //glColor3f(1.0f,0.0f,0.0f);
-    /*  glBegin(GL_QUADS);
-
-    // 前面
-
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f, -1.0f,  0.0f);
-    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f, -1.0f,  0.0f);
-    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f,  1.0f,  0.0f);
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f,  1.0f,  0.0f);
-
-
-    glEnd();
-*/
-
-//    QOpenGLContext::currentContext()->functions()->glViewport(100, 100, 100, 100);
     if(width ==0 || height ==0)return;
     m_programA->bind();
 
@@ -319,7 +316,7 @@ void BugGLWidget::paintGL()
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, m_textureIds[1]);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width / 2, height / 2, GL_LUMINANCE,
-                    GL_UNSIGNED_BYTE, (char *) buffer[bufIndex] + width * height);
+                    GL_UNSIGNED_BYTE, buffer[bufIndex] + width * height);
 
     i=m_programA->uniformLocation("Utex");
     glUniform1i(i, 1);
@@ -327,7 +324,7 @@ void BugGLWidget::paintGL()
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, m_textureIds[2]);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width / 2, height / 2, GL_LUMINANCE,
-                    GL_UNSIGNED_BYTE, (char *) buffer[bufIndex] + width * height * 5 / 4);
+                    GL_UNSIGNED_BYTE, buffer[bufIndex] + width * height * 5 / 4);
 
 
     mutex.unlock();
@@ -362,5 +359,8 @@ void BugGLWidget::setTransparent(bool transparent)
 
 void BugGLWidget::resizeGL(int w, int h)
 {
-
+    if (w > 0 || h > 0) {
+        glViewport(0, 0, w, h);
+    }
+}
 }

@@ -1,5 +1,6 @@
 #include "handlerinterupt.h"
 #include <QDebug>
+namespace BugAV {
 HandlerInterupt::HandlerInterupt(Demuxer *demuxer, qint64 timeout)
     :status{0}
     ,timeout{timeout}
@@ -89,4 +90,5 @@ int HandlerInterupt::getStatus() const
 void HandlerInterupt::setStatus(int value)
 {
     status = value;
+}
 }

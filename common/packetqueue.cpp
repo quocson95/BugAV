@@ -1,5 +1,5 @@
 #include "packetqueue.h"
-
+namespace BugAV {
 AVPacket PacketQueue::flushPkt;
 
 MyAVPacketList::MyAVPacketList()
@@ -173,4 +173,5 @@ int PacketQueue::putPrivate(AVPacket *pkt)
     /* XXX: should duplicate packet data in DV case */
     cond.wakeOne();
     return 0;
+}
 }

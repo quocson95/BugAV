@@ -6,15 +6,21 @@ extern "C" {
 #include "libavfilter/avfilter.h"
 #include <libavcodec/avcodec.h>
 }
+class AVStream;
 
 #include <QString>
+namespace BugAV {
+
+class VideoState;
+
+
 class BugFilter
 {
 public:
     BugFilter();
     ~BugFilter();
 
-    int init(AVCodecContext *avctx);
+    int init(AVFrame *frame, VideoState *is);
 
     QString getFilterDesc() const;
     void setFilterDesc(const QString &value);
@@ -23,20 +29,36 @@ public:
     AVFrame *pullFrame();
 
     int getStatusInit() const;
+    AVRational getTimeBase();
+
+    AVRational getFrameRate();
 
 private:
-    int initPriv(AVCodecContext *avctx);
+    int initPriv(AVFrame *frame, VideoState *is);
+
+    void freeMem();
+
+    int configure_filtergraph(AVFilterGraph *graph, const char *filtergraph,
+                                     AVFilterContext *source_ctx, AVFilterContext *sink_ctx);
+
+    int getRotation(AVStream *st);
 private:
     int statusInit;
     AVFrame *avFrame;
     QString filterDesc;
 
-    AVFilterContext *out_filter_ctx;
-    AVFilterContext *in_filter_ctx;
-    AVFilterGraph *filter_graph;
+    AVFilterContext *filt_out;
+    AVFilterContext *filt_in;
+    AVFilterGraph *graph;
+
+    int lastW, lastH;
+    AVPixelFormat lastFormat;
+    int lastSerial;
+    int lastVFilterIdx;
+//    AVRational frameRate;
 
 
 
 };
-
+}
 #endif // BUGFILTER_H

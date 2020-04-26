@@ -6,6 +6,8 @@ extern "C" {
 }
 #include <QElapsedTimer>
 
+namespace BugAV {
+
 class Demuxer;
 
 class HandlerInterupt: public AVIOInterruptCB
@@ -17,7 +19,7 @@ public:
         FindStreamInfo,
         Read
     };
-    HandlerInterupt(Demuxer *demuxer, qint64 timeout = 3000);
+    HandlerInterupt(Demuxer *demuxer, qint64 timeout =30000);
     ~HandlerInterupt();
 
     void begin(Action action);
@@ -36,5 +38,6 @@ private:
     bool emitError;
     bool timeoutAbort;
 };
-
+}
 #endif // HANDLERINTERUPT_H
+

@@ -1,6 +1,8 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 
+namespace BugAV {
+
 class Clock {
 public:
     Clock();
@@ -20,5 +22,5 @@ public:
     int paused;
     int queue_serial;
 };
-
+}
 #endif // CLOCK_H
