@@ -1,7 +1,7 @@
 #include "taskscheduler.h"
 #include "QThread"
 #include <QDebug>
-
+#include <QApplication>
 #include <Render/render.h>
 
 #include <Decoder/videodecoder.h>
@@ -9,14 +9,9 @@
 namespace BugAV {
 
 TaskScheduler::TaskScheduler()
+    :QObject(nullptr)
 {
-
-//    thread = new QThread{};
-//    workerForRender = new Worker(&queueRunableForRender);
-//    workerForvDecoder = new Worker(&queueRunableForvDecoder);
-    maxTaskPerWorker = 25;
-//    worker->start(thread);
-    for(auto i = 0; i < 4; i++) {
+    for(auto i = 0; i < 10; i++) {
 //        auto mutex = new QMutex;
         workerForRender.append(new Worker());
 //        mutexsForRender.append(mutex);
@@ -36,8 +31,6 @@ BugAV::TaskScheduler::~TaskScheduler()
     stop();
     qDeleteAll(workerForRender);
     qDeleteAll(workerForvDecoder);
-//    queueRunableForRender.clear();
-//    queueRunableForvDecoder.clear();
 }
 
 void TaskScheduler::addTask(TaskType task)
@@ -46,8 +39,6 @@ void TaskScheduler::addTask(TaskType task)
     if (renderTask != nullptr) {
         auto w = getWorkerMinQueue(&workerForRender);
         w->addTask(task);
-//        queueRunableForRender.append(task);
-//        updateIndexWorker(&workerForRender);
         return;
     }
     auto vDecoderTask = dynamic_cast<VideoDecoder *>(task);
@@ -59,7 +50,7 @@ void TaskScheduler::addTask(TaskType task)
 }
 
 void TaskScheduler::removeTask(TaskType task)
-{    
+{
     auto renderTask = dynamic_cast<Render *>(task);
     if (renderTask != nullptr) {
         removeTask(&workerForRender, task);
@@ -107,9 +98,12 @@ Worker *TaskScheduler::getWorkerMinQueue(QVector<Worker *> *queueWorker)
 
 void TaskScheduler::removeTask(QVector<Worker *> *queueWorker, TaskType task)
 {
+    QMutexLocker lock(&mutex);
+    Q_UNUSED(lock)
     for(auto it = queueWorker->cbegin(); it != queueWorker->cend(); it++) {
-        if ((*it)->indexTask(task) >= 0) {
-            (*it)->removeTask(task);
+        auto index = (*it)->indexTask(task);
+        if ( index >= 0) {
+            (*it)->removeTask(index);
             return;
         }
     }

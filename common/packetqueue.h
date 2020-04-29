@@ -28,6 +28,9 @@ public:
 
     static void mustInitOnce();
     static bool compareFlushPkt(AVPacket *pkt);
+
+    void init();
+
     void flush();
     void abort();
     void start();

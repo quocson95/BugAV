@@ -15,15 +15,15 @@ namespace BugAV {
 
 
 //-------------------------------------
-static const char g_indices[] = { 0, 3, 2, 0, 2, 1 };
-static const char g_vertextShader[] = { "attribute vec4 aPosition;\n"
+const char g_indices[] = { 0, 3, 2, 0, 2, 1 };
+const char g_vertextShader[] = { "attribute vec4 aPosition;\n"
                                  "attribute vec2 aTextureCoord;\n"
                                  "varying vec2 vTextureCoord;\n"
                                  "void main() {\n"
                                  "  gl_Position = aPosition;\n"
                                  "  vTextureCoord = aTextureCoord;\n"
                                  "}\n" };
-static const char g_fragmentShader[] = {
+const char g_fragmentShader[] = {
     "uniform sampler2D Ytex,Utex,Vtex;\n"
     "varying vec2 vTextureCoord;\n"
     "void main(void) {\n"
@@ -37,7 +37,7 @@ static const char g_fragmentShader[] = {
     "1.13983, -0.58060,  0) * yuv;\n"
     "gl_FragColor = vec4(rgb, 1);\n"
     "}\n" };
-static GLfloat m_verticesA[20] = { 1, 1, 0, 1, 0, -1, 1, 0, 0, 0, -1, -1, 0, 0,
+const GLfloat m_verticesA[20] = { 1, 1, 0, 1, 0, -1, 1, 0, 0, 0, -1, -1, 0, 0,
                             1, 1, -1, 0, 1, 1, };
 //------------------------------------------
 
@@ -59,7 +59,8 @@ void BugGLWidget::freeBuffer()
     for(int i=0;i<BUF_SIZE;i++)
     {
        if (buffer[i] != nullptr) {
-           delete buffer[i] ;
+           free (buffer[i]);
+           buffer[i] = nullptr;
        }
     }
 }
@@ -74,13 +75,16 @@ void BugGLWidget::initBuffer(size_t size)
 
 }
 
-
 BugGLWidget::BugGLWidget(QWidget *parent)
     :QOpenGLWidget{parent}
+    ,m_vshaderA{nullptr}
+    ,m_fshaderA{nullptr}
+    ,m_programA{nullptr}
     ,m_texture(nullptr)
     ,m_transparent(false)
     ,m_background(Qt::white)
 {
+//    moveToThread(qApp->thread());
     width=0;
     height=0;
     bufIndex=0;
@@ -92,15 +96,33 @@ BugGLWidget::BugGLWidget(QWidget *parent)
         m_textureIds[i] = 0;
     }
     isShaderInited=false;
+    connect(this, &BugGLWidget::reqUpdate, this, &BugGLWidget::callUpdate);
+
+
 }
 
 BugGLWidget::~BugGLWidget()
 {
+    qDebug() << " BugGLWidget destroy";
     // And now release all OpenGL resources.
     makeCurrent();
 
-    doneCurrent();
     freeBuffer();
+
+    if (m_vshaderA != nullptr) {
+        delete m_vshaderA;
+    }
+    if (m_fshaderA != nullptr) {
+        delete m_fshaderA;
+    }
+    if (m_texture != nullptr) {
+        delete m_texture;
+    }
+    if (m_programA) {
+        delete m_programA;
+    }
+
+    doneCurrent();    
 }
 
 void BugGLWidget::initializeGL()
@@ -164,6 +186,11 @@ void BugGLWidget::initializeGL()
     //timer->start(30);
 }
 
+void BugGLWidget::callUpdate()
+{
+    this->update();
+}
+
 //void BugGLWidget::loadBackGroundImage()
 //{
 //    QImage img("/home/sondq/Documents/dev/BugAV/logo.png", "png");
@@ -216,18 +243,15 @@ void BugGLWidget::initShader(int w,int h)
         this->width = w;
         this->height = h;
 
-        wxh = size_t(width * height);
+        wxh = size_t(width) * size_t(height);
         wxh_4 = wxh / 4;
-        initBuffer(wxh*3/2);
+        initBuffer(wxh*2);
         isShaderInited=false;
     }
 }
 
 void BugGLWidget::  updateData(unsigned char**data)
-{
-    if (!data || !*data) {
-        return;
-    }
+{   
     auto tmp=buffer[bufIndex];
 
     memcpy(tmp,data[0], wxh);
@@ -236,12 +260,16 @@ void BugGLWidget::  updateData(unsigned char**data)
     memcpy(tmp,data[1], wxh_4);
 
     tmp+=wxh_4;
-    memcpy(tmp,data[2], wxh_4);
-    this->update();
+    memcpy(tmp,data[2], wxh_4);  
 }
 
 void BugGLWidget::updateData(AVFrame *frame)
 {
+    if (frame->linesize[0] < 0) {
+        qDebug() << "Current buggl render not support frame linesize < 0";
+        return;
+    }
+
     if (frame->width != width
             || frame->height != height)
     {
@@ -250,31 +278,30 @@ void BugGLWidget::updateData(AVFrame *frame)
 
     if (frame->linesize[0] == frame->width) {
         updateData(frame->data);
-        return;
-    }  
-
-    auto tmp = buffer[bufIndex];
-    // Y
-    for (int i = 0; i < height; i++) {
-         memcpy(tmp + width * i,
+    }   else {
+        auto tmp = buffer[bufIndex];
+        // Y
+        for (int i = 0; i < height; i++) {
+            memcpy(tmp + width * i,
                 frame->data[0] + frame->linesize[0] * i,
                 static_cast<size_t>(width));
+        }
+        tmp += wxh;
+        // U
+        for (int i = 0; i < height / 2; i++) {
+             memcpy(tmp + width / 2 * i,
+                    frame->data[1] + frame->linesize[1] * i,
+                    static_cast<size_t>(width));
+        }
+        tmp += wxh_4;
+        // V
+        for (int i = 0; i < height / 2; i++) {
+             memcpy(tmp + width / 2 * i,
+                    frame->data[2] + frame->linesize[2] * i,
+                    static_cast<size_t>(width));
+        }
     }
-    tmp += wxh;
-    // U
-    for (int i = 0; i < height / 2; i++) {
-         memcpy(tmp + width / 2 * i,
-                frame->data[1] + frame->linesize[1] * i,
-                static_cast<size_t>(width));
-    }
-    tmp += wxh_4;
-    // V
-    for (int i = 0; i < height / 2; i++) {
-         memcpy(tmp + width / 2 * i,
-                frame->data[2] + frame->linesize[2] * i,
-                static_cast<size_t>(width));
-    }
-    this->update();
+    emit reqUpdate();
 }
 
 
@@ -299,6 +326,7 @@ void BugGLWidget::paintGL()
         initializeTexture( m_textureIds[2], width / 2, height / 2);
     }
 
+//    glViewport(0, 0, width, height);
 
     if(width ==0 || height ==0)return;
     m_programA->bind();

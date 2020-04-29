@@ -58,9 +58,9 @@ public:
     FrameQueue subpq;
     FrameQueue sampq;
 
-    Decoder auddec;
+//    Decoder auddec;
     Decoder viddec;
-    Decoder subdec;
+//    Decoder subdec;
 
     int audio_stream;
 

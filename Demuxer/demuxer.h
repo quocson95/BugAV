@@ -69,10 +69,11 @@ private:
     QVariantHash avformat;
     int64_t startTime; // using for seek begin
     int stIndex[AVMEDIA_TYPE_NB];
-    int infinityBuff = 0;
+    int infinityBuff = -1;
     int loop;
 
     bool isRun;
+    int seek_by_bytes = -1;
 
 //    AVCodecContext *avctx;
     /*AVInputFormat *input_format;
@@ -105,7 +106,7 @@ private:
     int loop;
     QWaitCondition continueReadThread; */// must set to decoder
     AVPacket pkt1, *pkt;
-//    HandlerInterupt *handlerInterupt;
+    HandlerInterupt *handlerInterupt;
     friend HandlerInterupt;
 };
 }

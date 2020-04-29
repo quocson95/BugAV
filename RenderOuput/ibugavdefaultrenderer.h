@@ -12,6 +12,8 @@ public:
 
     void updateData(unsigned char **);
     void initShader(int w, int h);    
+
+    void updateData(AVFrame *frame);
 };
 }
 #endif // IBUGAVDEFAULTRENDERER_H

@@ -32,6 +32,13 @@ private:
     QVector<BugAV::IBugAVRenderer *> renderers;
 //    BugAV::TaskScheduler taskS`cheduler;
     int size;
+    int kStatistic;
+    // QObject interface
+protected:
+    void timerEvent(QTimerEvent *event);
+private slots:
+    void on_reCreateGrid_clicked();
+    void on_create_clicked();
 };
 
 #endif // GRID_H

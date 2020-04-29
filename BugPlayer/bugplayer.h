@@ -61,6 +61,9 @@ public:
     void setOptionsForFormat(QVariantHash avFormat);
 
 
+    QString statistic();
+
+    bool setSaveRawImage(bool save = false);
 public: signals:
     void stateChanged(BugAV::BugPlayer::AVState state);
 
@@ -75,6 +78,8 @@ private slots:
 
     void streamLoaded();
     void streamLoadedFailed();
+
+    void demuxerStopped();
 private:
     VideoState *is;
     Demuxer *demuxer;
@@ -87,8 +92,14 @@ private:
     bool vDecoderRunning;
     bool renderRunning;
 
+    int kUpdateStatistic;
+
 //    TaskScheduler *taskScheduler;
 
+
+    // QObject interface
+protected:
+    void timerEvent(QTimerEvent *event);
 };
 } // namespace BugAV
 #endif // BugPlayer_H

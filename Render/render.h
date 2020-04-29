@@ -19,7 +19,7 @@ class Frame;
 class IBugAVRenderer;
 class BugFilter;
 
-class Render:public QObject, public QRunnable
+class Render:public QObject //, public QRunnable
 {
     Q_OBJECT
 public:
@@ -38,6 +38,8 @@ public:
     void setRequestStop(bool value);
 
     bool isRunning() const;
+
+    QString statistic();
 private:
     bool initPriv();
 
@@ -47,7 +49,6 @@ private:
     bool handlerFrameState2();
     int handlerFrameState3();
 
-    bool handlerFrameState4();//signals:
 //    void started();
 //    void stopped();
 private:
@@ -62,7 +63,7 @@ private:
     void uploadTexture(Frame *f, SwsContext **img_convert_ctx);
 
 //    AVFrame *cropImage(AVFrame *frame, int left, int top, int right, int bottom);
-//private slots:
+private slots:
     void process();
     void videoRefresh();
     void videoDisplay();
@@ -74,14 +75,13 @@ private:
         WaitingFirstFrame,
         HandleFrameState1,
         HandleFrameState2,
-        HandleFrameState3,
-        HandleFrameState4,
+        HandleFrameState3,        
     };
-    AVFrame *frameYUV;
+//    AVFrame *frameYUV;
     uint8_t * buffer;
-    uint8_t *out_buffer;
+//    uint8_t *out_buffer;
     bool hasInit;
-//    QThread *thread;
+    QThread *thread;
     IBugAVRenderer *renderer;
     IBugAVRenderer *defaultRenderer;
     VideoState *is;
@@ -94,10 +94,20 @@ private:
 
     PrivState privState;
 
+    qint64 lastUpdateFrame;
+
+    QImage *img;
+
+    bool saveRawImage = false;
+
+
+    qint64 lastVideoRefresh;
+
 
     // QRunnable interface
 public:
     void run();
+    void setSaveRawImage(bool value);
 };
 }
 #endif // RENDER_H

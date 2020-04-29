@@ -12,7 +12,8 @@ namespace BugAV {
 using TaskType = QRunnable *;
 class Worker;
 
-class TaskScheduler{
+class TaskScheduler: public QObject{
+    Q_OBJECT
 public:
 
     static TaskScheduler& instance() {
@@ -52,13 +53,15 @@ private:
     QVector<Worker *> workerForvDecoder;
 
     int maxTaskPerWorker;
+
+    QMutex mutex;
 };
 
 class Worker:public QObject {
     Q_OBJECT
 public:
-    Worker(QObject *parent = nullptr)
-        :QObject{parent}
+    Worker()
+        :QObject{nullptr}
         ,thread{nullptr}
     {        
     }
@@ -98,6 +101,12 @@ public:
         mutex.unlock();
     }
 
+    void removeTask(int index) {
+        mutex.lock();
+        queueTask.removeAt(index);
+        mutex.unlock();
+    }
+
     void stop() {
         requestStop = true;
         thread->quit();
@@ -106,7 +115,9 @@ public:
         } while(thread->isRunning());
     }    
 
-    ~Worker() {}
+    ~Worker() {
+        delete thread;
+    }
 
 private slots:
     void process() {
@@ -117,19 +128,20 @@ private slots:
                 }
                 mutex.lock();
                 if (queueTask.size() == 0) {
-                    thread->msleep(500);
+                    thread->usleep(1000);
                     mutex.unlock();
                     continue;
                 }
-                for(auto it = queueTask.cbegin(); it != queueTask.cend(); it++) {
+                auto s = queueTask.size();
+                for(auto i = 0; i < s; i++) {
                     if (requestStop) {
                         mutex.unlock();
                         return;
                     }
-                    (*it)->run();
+                    queueTask.at(i)->run();
                 }
                 mutex.unlock();
-                thread->usleep(2*1000);
+                thread->usleep(1);
             }
     }
 private:

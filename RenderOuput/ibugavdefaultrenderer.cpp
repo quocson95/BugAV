@@ -1,5 +1,6 @@
 #include "ibugavdefaultrenderer.h"
 
+#include <QDebug>
 namespace BugAV {
 
 IBugAVDefaultRenderer::IBugAVDefaultRenderer()
@@ -21,6 +22,11 @@ void IBugAVDefaultRenderer::updateData(unsigned char **data)
 void IBugAVDefaultRenderer::initShader(int w, int h)
 {
 
+}
+
+void IBugAVDefaultRenderer::updateData(AVFrame *frame)
+{
+   qDebug() << "default render";
 }
 
 }

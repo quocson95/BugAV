@@ -14,7 +14,7 @@ namespace BugAV {
 class VideoState;
 class BugFilter;
 
-class VideoDecoder: public QObject, public QRunnable
+class VideoDecoder: public QObject //, public QRunnable
 {
     Q_OBJECT
 public:

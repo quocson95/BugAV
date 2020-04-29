@@ -17,7 +17,6 @@ QT_FORWARD_DECLARE_CLASS(QOpenGLTexture)
 QT_FORWARD_DECLARE_CLASS(QOpenGLShader)
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 
-
 namespace BugAV {
 #define BUF_SIZE 2
 
@@ -29,15 +28,14 @@ public:
     ~BugGLWidget() override;
 
     void updateData(unsigned char**);
-    void updateData(AVFrame *frame) override;
+    virtual void updateData(AVFrame *frame) override;
 
     void initShader(int w,int h);
 //    QObject *widget() override;
 
 public slots:
 
-    void setTransparent(bool transparent);
-
+    void setTransparent(bool transparent);    
 
 protected:
     void resizeGL(int w, int h) Q_DECL_OVERRIDE;
@@ -45,6 +43,10 @@ protected:
     void initializeGL() Q_DECL_OVERRIDE;
 //    void loadBackGroundImage();
 
+private: signals:
+    void reqUpdate();
+private slots:
+    void callUpdate();
 private:
      void initializeTexture( GLuint id, int width, int height);
      void freeBuffer();
@@ -74,6 +76,8 @@ private:
     uint8_t *buffer[BUF_SIZE];
     int bufIndex;   
     QMutex mutex;
+
+    int kUpdate;
 
 };
 }

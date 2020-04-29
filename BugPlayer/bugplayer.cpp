@@ -1,5 +1,6 @@
 #include "bugplayer.h"
 #include <QDebug>
+#include <QTimerEvent>
 #include "common/videostate.h"
 #include "Decoder/videodecoder.h"
 #include "Demuxer/demuxer.h"
@@ -23,7 +24,8 @@ BugPlayer::BugPlayer(QObject *parent)
 
     connect(demuxer, &Demuxer::loadDone, this, &BugPlayer::streamLoaded);
     connect(demuxer, &Demuxer::loadFailed, this, &BugPlayer::streamLoadedFailed);
-//    connect(demuxer, &Demuxer::started, this, &BugPlayer::workerStarted);
+    connect(demuxer, &Demuxer::stopped, this, &BugPlayer::demuxerStopped);
+    //    connect(demuxer, &Demuxer::started, this, &BugPlayer::workerStarted);
 //    connect(demuxer, &Demuxer::stopped, this, &BugPlayer::workerStopped);
 
 //    connect(vDecoder, &VideoDecoder::started, this, &BugPlayer::workerStarted);
@@ -36,24 +38,29 @@ BugPlayer::BugPlayer(QObject *parent)
     avformat["probesize"] = 4096000;
     avformat["analyzeduration"] = 1000000;
     demuxer->setAvformat(avformat);
+
+    kUpdateStatistic = 0;
+    //    if (kUpdateStatistic <= 0 ) {
+    //        kUpdateStatistic = startTimer(2000);
+    //    }
 }
 
 BugPlayer::~BugPlayer()
 {    
-    is->abort_request = 1;
-    render->stop();
+    disconnect(demuxer, &Demuxer::loadDone, this, &BugPlayer::streamLoaded);
+    disconnect(demuxer, &Demuxer::loadFailed, this, &BugPlayer::streamLoadedFailed);
+    disconnect(demuxer, &Demuxer::stopped, this, &BugPlayer::demuxerStopped);
 
-    demuxer->stop();
+    qDebug() << "desktroy bugplayer";
+    stop();
 
-    is->vidDecoderAbort();
-    vDecoder->stop();
-
-    TaskScheduler::instance().removeTask(render);
-    TaskScheduler::instance().removeTask(vDecoder);
+//    TaskScheduler::instance().removeTask(render);
+//    TaskScheduler::instance().removeTask(vDecoder);
 
 
-    delete demuxer;
     delete vDecoder;
+    delete render;
+    delete demuxer;
     delete is;
 }
 
@@ -109,6 +116,7 @@ void BugPlayer::pause()
 //    }
     if (!is->paused) {
         togglePause();
+        emit stateChanged(AVState::PausedState);
     }
 }
 
@@ -121,10 +129,11 @@ void BugPlayer::togglePause()
 void BugPlayer::stop()
 {
     is->abort_request = 1;
-    render->stop();
     demuxer->stop();
-    is->vidDecoderAbort();
+    is->videoq->abort();
+    is->pictq.wakeSignal();
     vDecoder->stop();
+    render->stop();   
 }
 
 void BugPlayer::refresh()
@@ -171,6 +180,17 @@ void BugPlayer::setOptionsForFormat(QVariantHash avFormat)
     this->demuxer->setAvformat(avFormat);
 }
 
+QString BugPlayer::statistic()
+{
+    auto s = QString("Render %1").arg(render->statistic());
+    return s;    
+}
+
+bool BugPlayer::setSaveRawImage(bool save)
+{
+    this->render->setSaveRawImage(save);
+}
+
 void BugPlayer::initPriv()
 {
     is->reset();
@@ -179,11 +199,15 @@ void BugPlayer::initPriv()
 void BugPlayer::playPriv()
 {
     initPriv();
+    is->eof = 0;
     render->setRequestStop(false);
-    render->stop();
-    vDecoder->stop();
+//    render->stop();
+//    vDecoder->stop();
     is->fileUrl = curFile;
     demuxer->start();
+
+    render->start();
+    vDecoder->start();
     // will be emit state playing when loadDone stream
 }
 
@@ -245,12 +269,10 @@ void BugPlayer::workerStopped()
 void BugPlayer::streamLoaded()
 {
     if (!is->abort_request) {
-//        vDecoder->start();
-//        render->start();
-//        taskScheduler->start();
+        render->start();
         vDecoder->start();
-        TaskScheduler::instance().addTask(render);
-        TaskScheduler::instance().addTask(vDecoder);
+//        TaskScheduler::instance().addTask(render);
+//        TaskScheduler::instance().addTask(vDecoder);
         emit stateChanged(AVState::PlayingState);
     }
 }
@@ -258,6 +280,18 @@ void BugPlayer::streamLoaded()
 void BugPlayer::streamLoadedFailed()
 {
     emit stateChanged(AVState::StoppedState);
+}
+
+void BugPlayer::demuxerStopped()
+{
+    stop();
+}
+
+void BugPlayer::timerEvent(QTimerEvent *event)
+{
+    if (event->timerId() == kUpdateStatistic) {
+        qDebug() << this->render->statistic() << "\r\n";
+    }
 }
 
 } // namespace

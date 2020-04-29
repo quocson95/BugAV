@@ -4,6 +4,7 @@ AVPacket PacketQueue::flushPkt;
 
 MyAVPacketList::MyAVPacketList()
     :next{nullptr}
+    ,serial{-1}
 {
 
 }
@@ -20,7 +21,7 @@ PacketQueue::PacketQueue()
     ,size{0}
     ,duration{0}
     ,abort_request{0}
-    ,serial{0}
+    ,serial{-1}
 {
 }
 
@@ -39,6 +40,11 @@ bool PacketQueue::compareFlushPkt(AVPacket *pkt)
 {
     auto v = (pkt->data == flushPkt.data);
     return v;
+}
+
+void PacketQueue::init()
+{
+    abort_request = 1;
 }
 
 void PacketQueue::flush()

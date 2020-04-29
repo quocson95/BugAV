@@ -18,6 +18,7 @@ extern "C" {
 
 #include "RenderOuput/IBugAVRenderer.h"
 #include <RenderOuput/ibugavdefaultrenderer.h>
+#include <QTime>
 
 #define RNDTO2(X) ( ( (X) & 0xFFFFFFFE ))
 #define RNDTO32(X) ( ( (X) % 32 ) ? ( ( (X) + 32 ) & 0xFFFFFFE0 ) : (X) )
@@ -36,16 +37,20 @@ Render::Render()
 
 Render::Render(VideoState *is, IBugAVRenderer *renderer)
     :QObject(nullptr)
-    ,QRunnable()
+//    ,QRunnable()
     ,renderer{renderer}
     ,is{is}
 //    ,picture{nullptr}
 {    
-    defaultRenderer = nullptr;
-//    thread = new QThread{this};
-//    moveToThread(thread);
-//    connect(thread, SIGNAL (started()), this, SLOT (process()));
-//    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));    
+    defaultRenderer = new IBugAVDefaultRenderer;
+    if (renderer == nullptr) {
+        renderer = defaultRenderer;
+    }
+    thread = new QThread{this};
+    moveToThread(thread);
+    connect(thread, SIGNAL (started()), this, SLOT (process()));
+//    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
+    img = nullptr;
 }
 
 Render::~Render()
@@ -55,12 +60,16 @@ Render::~Render()
 //        delete filter;
 //    }
 
+        qDebug() << "Destroy Render";
     stop();
-    av_frame_free(&frameYUV);
-    delete out_buffer;
+//    av_frame_free(&frameYUV);
+//    delete out_buffer;
 
     if (defaultRenderer != nullptr)  {
         delete  defaultRenderer;
+    }
+    if (img != nullptr) {
+        delete img;
     }
 //    delete thread;
 
@@ -68,7 +77,11 @@ Render::~Render()
 
 void Render::start()
 {
+    qDebug() << "!!!Render Thread start";
     requestStop = false;
+    privState = PrivState::WaitingFirstFrame;
+    lastVideoRefresh = 0;
+    remaining_time = 0;
 //    if (isRun) {
 //        return;
 //    }
@@ -87,19 +100,19 @@ void Render::start()
 
 //    QThreadPool::globalInstance()->start(new RenderRun(this));
 
-//    thread->start();
+    thread->start();
 }
 
 void Render::stop()
 {
-    qDebug() << "!!!Render Thread exit";
+    qDebug() << "!!!Render Thread stop";
     requestStop = true;   
     isRun = false;
     privState = PrivState::Stop;
-//    thread->quit();
-//    do {
-//        thread->wait(500);
-//    } while(thread->isRunning());
+    thread->quit();
+    do {
+        thread->wait(500);
+    } while(thread->isRunning());
 }
 
 void Render::setIs(VideoState *value)
@@ -111,7 +124,7 @@ double Render::vp_duration(double maxFrameDuration, Frame *vp, Frame *nextvp)
 {
     if (vp->serial == nextvp->serial) {
         double duration = nextvp->pts - vp->pts;
-        if (qIsNaN(duration) || duration <= 0 || duration > maxFrameDuration) {
+        if (isnan(duration) || duration <= 0 || duration > maxFrameDuration) {
             return vp->duration;
         } else {
             return duration;
@@ -214,14 +227,14 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
         return;
     }
     auto fmt = (AVPixelFormat(is->viddec.avctx->pix_fmt));
-    is->img_convert_ctx = sws_getCachedContext(is->img_convert_ctx,
-                is->viddec.avctx->width, is->viddec.avctx->height, fmt,
-                is->viddec.avctx->width, is->viddec.avctx->height, AV_PIX_FMT_YUV420P, sws_flags,
-                nullptr, nullptr, nullptr);
+//    *img_convert_ctx = sws_getCachedContext(*img_convert_ctx,
+//                is->viddec.avctx->width, is->viddec.avctx->height, fmt,
+//                is->viddec.avctx->width, is->viddec.avctx->height, AV_PIX_FMT_YUV420P, sws_flags,
+//                nullptr, nullptr, nullptr);
 
-    if (!*img_convert_ctx) {
-        return;
-    }
+//    if (!*img_convert_ctx) {
+//        return;
+//    }
 //     uint8_t *dst[4] = {0};
 //     int dstStride[4];
 
@@ -230,17 +243,29 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
 //        dst[i] = (uint8_t *)malloc(dstStride[i] * is->viddec.avctx->height);
 //    }
 
-    auto ret = sws_scale(*img_convert_ctx  ,frame->data, frame->linesize, 0,
-                          is->viddec.avctx->height, frame->data, frame->linesize);
+//    auto ret = sws_scale(*img_convert_ctx  ,frame->data, frame->linesize, 0,
+//                          is->viddec.avctx->height, frame->data, frame->linesize);
+
+    auto ret = 0;
     if (ret >=0) {
 //    mutex.lock();
-    if (renderer != nullptr ) {
-//        renderer->initShader(is->viddec.avctx->width, is->viddec.avctx->height);
-        renderer->updateData(frame);
-    }
+        if (renderer != nullptr ) {
+            lastUpdateFrame = QDateTime::currentMSecsSinceEpoch();
+    //        renderer->initShader(is->viddec.avctx->width, is->viddec.avctx->height);
+            renderer->updateData(frame);
+            if (img == nullptr) {
+                img = new QImage(frame->width, frame->height, QImage::Format_RGB888);
+            }
+            if (saveRawImage) {
+                for( int y = 0; y < frame->height; ++y ) {
+                   memcpy( img->scanLine(y), frame->data[0]+y * frame->linesize[0], frame->width * 3 );
+                }
+                   img->save(QString("/home/sondq/Downloads/test/%1.png").arg(lastUpdateFrame));
+            }
+        }
 //    mutex.unlock();
     }
-//    av_frame_unref(frameYUV);
+    av_frame_unref(frame);
 //    }
 //    av_frame_free(&fCrop);
 }
@@ -271,7 +296,7 @@ void Render::process()
             break;
         }
         if (is->pictq.queueNbRemain() == 0) {
-//            thread->msleep(50);
+            thread->msleep(50);
             continue;
         } else {
             if (is->viddec.avctx != nullptr) {
@@ -282,7 +307,7 @@ void Render::process()
             }
         }
     }
-
+    remaining_time = 0.0;
     if (!requestStop) {
         forever {
             if (requestStop) {
@@ -290,7 +315,7 @@ void Render::process()
             }
             if (remaining_time > 0.0) {
     //            qDebug() << "Remain time " << remaining_time << " render need sleep";
-//                thread->usleep(static_cast<unsigned long>(remaining_time * 1000000.0));
+                thread->usleep(static_cast<unsigned long>(remaining_time * 1000000.0));
             }
             remaining_time = REFRESH_RATE;
             if (is->show_mode != ShowMode::SHOW_MODE_NONE && (!is->paused || is->force_refresh)){
@@ -301,26 +326,34 @@ void Render::process()
 //    emit stopped();
     isRun = false;
     qDebug() << "!!!Render Thread exit";
-//    thread->quit();
+    thread->quit();
 }
 
 void Render::videoRefresh()
 {
 //    qDebug() << " video refresh";
-    if (is->video_st == nullptr) {
-        return;
-    }
+
 //    Frame *sp, *sp2;
     if (!is->paused && is->getMasterSyncType() == ShowModeClock::AV_SYNC_EXTERNAL_CLOCK && is->realtime) {
             is->checkExternalClockSpeed();
     }
+
     // show video
-    auto time = av_gettime_relative() / 1000000.0;
-    if (is->force_refresh || is->last_vis_time + rdftspeed < time) {
-        videoDisplay();
-        is->last_vis_time = time;
+//    auto time = av_gettime_relative() / 1000000.0;
+//    if (is->force_refresh || is->last_vis_time + rdftspeed < time) {
+//        videoDisplay();
+//        is->last_vis_time = time;
+//    }
+//    remaining_time = FFMIN(remaining_time, is->last_vis_time + rdftspeed - time);
+    if (is->video_st == nullptr) {
+        is->force_refresh = 0;
+        return;
     }
-    remaining_time = FFMIN(remaining_time, is->last_vis_time + rdftspeed - time);
+
+    if (is->pictq.queueNbRemain() == 0 ) {
+        is->force_refresh = 0;
+        return;
+    }
     forever{
         if (is->pictq.queueNbRemain() > 0) {
             double last_duration, duration, delay;
@@ -344,7 +377,7 @@ void Render::videoRefresh()
             last_duration = vp_duration(is->max_frame_duration, lastvp, vp);
             delay = compute_target_delay(is, last_duration);
 
-            time = av_gettime_relative()/1000000.0;
+            auto time = av_gettime_relative()/1000000.0;
             if (time < is->frame_timer + delay) {
                 remaining_time = FFMIN(is->frame_timer + delay - time, remaining_time);
                 break;
@@ -358,10 +391,12 @@ void Render::videoRefresh()
                 updateVideoPts(vp->pts, vp->pos, vp->serial);
             }
             is->pictq.mutex.unlock();
+
             if (is->pictq.queueNbRemain() > 1) {
                 Frame *nextvp = is->pictq.peekNext();
                 duration = vp_duration(is->max_frame_duration, vp, nextvp);
                 if(!is->step && (is->framedrop>0 || (is->framedrop && is->getMasterSyncType() != ShowModeClock::AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
+                    qDebug() << "Drop frame";
                    is->frame_drops_late++;
                    is->pictq.queueNext();
                    continue;
@@ -393,22 +428,30 @@ void Render::videoDisplay()
 
 }
 
+void Render::setSaveRawImage(bool value)
+{
+    saveRawImage = value;
+}
+
 void Render::run()
 {
 //    qDebug() << "Run " << int(privState);
+    if (requestStop) {
+        return;
+    }
     switch (privState) {
     case PrivState::Stop: {
-        privState = PrivState::Init;
-        break;
-    }
-    case PrivState::Init: {
-        if (initPriv()) {
-            privState = PrivState::WaitingFirstFrame;
-        }
+        privState = PrivState::WaitingFirstFrame;
         break;
     }
     case PrivState::WaitingFirstFrame: {
         if (this->isAvailFirstFrame()) {
+            privState = PrivState::Init;
+        }
+        break;
+    }
+    case PrivState::Init: {
+        if (initPriv() > 0) {
             privState = PrivState::HandleFrameState1;
         }
         break;
@@ -433,16 +476,13 @@ void Render::run()
             if (is->force_refresh && is->show_mode == ShowMode::SHOW_MODE_VIDEO && is->pictq.rindex_shown) {
                 videoDisplay();
             }
-            is->force_refresh = 0;
             privState = PrivState::HandleFrameState1;
         } else if (ret == 0) {
+            privState = PrivState::HandleFrameState3;
+        } else {
             privState = PrivState::HandleFrameState1;
         }
-        break;
-    }
-    case PrivState::HandleFrameState4: {
-        handlerFrameState4();
-        privState = PrivState::HandleFrameState1;
+        is->force_refresh = 0;
         break;
     }
     }
@@ -455,16 +495,16 @@ bool Render::initPriv()
             return  hasInit;
         }
         remaining_time = 0.0;        
-        frameYUV = nullptr;
-        frameYUV = av_frame_alloc();
-         out_buffer= new uint8_t[avpicture_get_size(is->viddec.avctx->pix_fmt, is->viddec.avctx->width, is->viddec.avctx->height)];
-         avpicture_fill((AVPicture *)frameYUV, out_buffer, is->viddec.avctx->pix_fmt, is->viddec.avctx->width, is->viddec.avctx->height);
+//        frameYUV = nullptr;
+//        frameYUV = av_frame_alloc();
+//         out_buffer= new uint8_t[avpicture_get_size(is->viddec.avctx->pix_fmt, is->viddec.avctx->width, is->viddec.avctx->height)];
+//         avpicture_fill((AVPicture *)frameYUV, out_buffer, is->viddec.avctx->pix_fmt, is->viddec.avctx->width, is->viddec.avctx->height);
  //        int avpicture_fill(AVPicture *picture, const uint8_t *ptr,
  //                           enum AVPixelFormat pix_fmt, int width, int height);
 //         av_image_fill_arrays(frameYUV->data, frameYUV->linesize,  out_buffer, is->viddec.avctx->pix_fmt, is->viddec.avctx->width, is->viddec.avctx->height, 0);
-        if (defaultRenderer == nullptr) {
-            defaultRenderer = new IBugAVDefaultRenderer;
-        }
+//        if (defaultRenderer == nullptr) {
+//            defaultRenderer = new IBugAVDefaultRenderer;
+//        }
         if (renderer == nullptr) {
             renderer = defaultRenderer;
         }
@@ -486,9 +526,18 @@ bool Render::handlerFrameState1()
 //        thread->usleep(static_cast<unsigned long>(remaining_time * 1000000.0));
 //        return true;
 //    }
-//    remaining_time = REFRESH_RATE;
+    auto now = QDateTime::currentMSecsSinceEpoch();
+    if (remaining_time > 0.0) {
+        auto delay = now - lastVideoRefresh;
+        if (delay  < remaining_time) {
+            return false;
+        }
+    }
+    lastVideoRefresh = now;
+    remaining_time = REFRESH_RATE;    
     if (is->show_mode != ShowMode::SHOW_MODE_NONE && (!is->paused || is->force_refresh)){
 //        videoRefresh();
+        lastVideoRefresh = now;
         return true;
     }
     return false;
@@ -496,29 +545,31 @@ bool Render::handlerFrameState1()
 
 bool Render::handlerFrameState2()
 {
+
+//    Frame *sp, *sp2;
+    if (!is->paused && is->getMasterSyncType() == ShowModeClock::AV_SYNC_EXTERNAL_CLOCK && is->realtime) {
+        is->checkExternalClockSpeed();
+    }
+    // show video
+//    auto time = av_gettime_relative() / 1000000.0;
+//    if (is->force_refresh || is->last_vis_time + rdftspeed < time) {
+//        videoDisplay();
+//        is->last_vis_time = time;
+//    }
+//    remaining_time = FFMIN(remaining_time, is->last_vis_time + rdftspeed - time);
+
     if (is->video_st == nullptr) {
         is->force_refresh = 0;
         return false;
     }
-//    Frame *sp, *sp2;
-    if (!is->paused && is->getMasterSyncType() == ShowModeClock::AV_SYNC_EXTERNAL_CLOCK && is->realtime) {
-            is->checkExternalClockSpeed();
-    }
-    // show video
-    auto time = av_gettime_relative() / 1000000.0;
-    if (is->force_refresh || is->last_vis_time + rdftspeed < time) {
-        videoDisplay();
-        is->last_vis_time = time;
-    }
-    remaining_time = FFMIN(remaining_time, is->last_vis_time + rdftspeed - time);
     return true;
 }
 
 int Render::handlerFrameState3()
 {
     if (is->pictq.queueNbRemain() == 0 ) {
-        return -1;
-    }
+        return 1;
+    }    
     if (is->pictq.queueNbRemain() > 0) {
         double last_duration, duration, delay;
         Frame *vp, *lastvp;
@@ -527,7 +578,7 @@ int Render::handlerFrameState3()
 
         if (vp->serial != is->videoq->serial) {
             is->pictq.queueNext();
-            return  false;
+            return  0;
         }
 
         if (lastvp->serial != vp->serial) {
@@ -535,7 +586,7 @@ int Render::handlerFrameState3()
         }
 
         if (is->paused) {
-            return true;
+            return 1;
         }
         /* compute nominal last_duration */
         last_duration = vp_duration(is->max_frame_duration, lastvp, vp);
@@ -544,7 +595,7 @@ int Render::handlerFrameState3()
         auto time = av_gettime_relative()/1000000.0;
         if (time < is->frame_timer + delay) {
             remaining_time = FFMIN(is->frame_timer + delay - time, remaining_time);
-            return true;
+            return 1;
         }
         is->frame_timer += delay;
         if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX) {
@@ -559,9 +610,10 @@ int Render::handlerFrameState3()
             Frame *nextvp = is->pictq.peekNext();
             duration = vp_duration(is->max_frame_duration, vp, nextvp);
             if(!is->step && (is->framedrop>0 || (is->framedrop && is->getMasterSyncType() != ShowModeClock::AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
+                qDebug() << "drop frame";
                is->frame_drops_late++;
                is->pictq.queueNext();
-               return false;
+               return 0;
             }
         }
         is->pictq.queueNext();
@@ -570,18 +622,8 @@ int Render::handlerFrameState3()
             is->streamTogglePause();
         }
     }
-    is->force_refresh = 0;
-    return true;
-}
-
-bool Render::handlerFrameState4()
-{
-    Frame *vp = is->pictq.peekLast();
-    if (!vp->uploaded) {
-        uploadTexture(vp, &is->img_convert_ctx);
-        vp->uploaded = 1;
-        vp->flip_v = vp->frame->linesize[0] < 0;
-    }
+//    is->force_refresh = 0;
+    return 1;
 }
 
 
@@ -597,8 +639,14 @@ void Render::setRequestStop(bool value)
 
 bool Render::isRunning() const
 {
-    return true;
-//    return thread->isRunning();
+//    return true;
+    return thread->isRunning();
+}
+
+QString Render::statistic()
+{
+    auto s = QString("Last render %1").arg(QDateTime::fromMSecsSinceEpoch(lastUpdateFrame).toString());
+    return s;
 }
 
 void Render::setRenderer(IBugAVRenderer *value)

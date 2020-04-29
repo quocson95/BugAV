@@ -46,7 +46,7 @@ public:
     Frame *peekNext();
     Frame *peekLast();
     Frame *peekWriteable();
-    Frame *peekReadable();
+//    Frame *peekReadable();
     void *queuePush();
     void queueNext();
     int queueNbRemain();
@@ -67,6 +67,9 @@ public:
     QMutex mutex;
     QWaitCondition cond;
     PacketQueue *pktq;
+
+    bool waitForRead;
+//    bool
 };
 }
 #endif // FRAMEQUEUE_H

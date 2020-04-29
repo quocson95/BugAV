@@ -11,6 +11,7 @@ HandlerInterupt::HandlerInterupt(Demuxer *demuxer, qint64 timeout)
 {
     callback = handleTimeout;
     opaque = this;
+    reqStop = false;
 }
 
 HandlerInterupt::~HandlerInterupt()
@@ -40,6 +41,10 @@ int HandlerInterupt::handleTimeout(void *opaque)
     HandlerInterupt* handler = static_cast<HandlerInterupt*>(opaque);
     if (handler == nullptr) {
         qWarning() << "[Interupt] handler is null";
+        return -1;
+    }
+    if (handler->reqStop) {
+        // request stop
         return -1;
     }
 
@@ -90,5 +95,10 @@ int HandlerInterupt::getStatus() const
 void HandlerInterupt::setStatus(int value)
 {
     status = value;
+}
+
+void HandlerInterupt::setReqStop(bool value)
+{
+    reqStop = value;
 }
 }

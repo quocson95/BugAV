@@ -28,6 +28,10 @@ public:
 
     void abort();
 
+    void clear();
+
+    int decodeFrameV2(AVFrame *frame);
+
 public:   
     AVPacket pkt;
     PacketQueue *queue;
@@ -41,7 +45,27 @@ public:
     AVRational next_pts_tb;
     QWaitCondition *emptyQueueCond;
     int decoder_reorder_pts = -1;
+
+    AVPacket pktTmp;
+
+private:
+    enum PrivState {
+        InitState,
+        ReceiveFrame,
+        SendFrame,
+        CheckQueue,
+    };
+    PrivState privState;
+
+    int checkPktSerial();
+
+    int receiveFrame(AVFrame *frame);
+
+    int checkQueue();
+
+    int sendFrame();
 };
+
 }
 
 

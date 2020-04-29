@@ -8,9 +8,66 @@ VideoState::VideoState()
 {    
     continue_read_thread = new QWaitCondition;
     show_mode = ShowMode::SHOW_MODE_VIDEO;    
-    av_sync_type = ShowModeClock::AV_SYNC_VIDEO_MASTER;
+    av_sync_type = ShowModeClock::AV_SYNC_EXTERNAL_CLOCK;
     videoq = new PacketQueue;
     useAVFilter = false;
+    ic = nullptr;
+    seek_req  = 0;
+    abort_request = 0;
+    force_refresh = 0;
+    paused = 0;
+    last_paused = 0;
+    queue_attachments_req = 0;
+    seek_req = 0;
+    seek_flags = 0;
+    seek_pos = 0;
+    seek_rel = 0;
+    read_pause_return = 0;
+
+    realtime = 0;
+
+    audio_stream = -1;
+
+    audio_clock = 1.0;
+    audio_clock_serial = -1;
+    audio_diff_cum = 0.0; /* used for AV difference average computation */
+    audio_diff_avg_coef = 0.0;
+    audio_diff_threshold = 0.0;
+    audio_diff_avg_count = 0;
+
+    audio_hw_buf_size = 0;
+    audio_buf_size = 0; /* in bytes */
+    audio_buf1_size = 0;
+    audio_buf_index = 0; /* in bytes */
+    audio_write_buf_size = 0;
+    audio_volume = 0;
+    muted = 0;
+    frame_drops_early = 0;
+    frame_drops_late = 0;
+    last_i_start = 0;
+    rdft_bits = 0;
+    xpos = 0;
+    last_vis_time = 0;
+
+    subtitle_stream = 0;
+
+    frame_timer = 0.0;
+    frame_last_returned_time = 0;
+    frame_last_filter_delay = 0;
+    video_stream = -1;
+    max_frame_duration = 10.0;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
+
+    eof = 0;
+
+    fileUrl = QLatin1String("");
+    width = height = xleft = ytop = 0;
+    step = 0;
+
+    useAVFilter = false; // need avfilter avframe
+
+    last_video_stream = last_audio_stream = last_subtitle_stream = -1;
+    framedrop = 1;
+    img_convert_ctx  = nullptr;
     init();
     reset();
 }
@@ -22,7 +79,10 @@ VideoState::~VideoState()
     if (ic != nullptr) {
         avformat_close_input(&ic);
     }
-    sws_freeContext(img_convert_ctx);
+    if (img_convert_ctx != nullptr) {
+        sws_freeContext(img_convert_ctx);
+    }
+    viddec.clear();
     delete videoq;
 }
 
@@ -148,7 +208,16 @@ void VideoState::reset()
 {
     resetStream();
     framedrop = 1; // drop frame when cpu too slow.
+
+    //init frame queue
+    pictq.init(videoq, VIDEO_PICTURE_QUEUE_SIZE, 1);
+
+    //init package queue
+    videoq->init();
+
+    //init clock
     vidclk.init(videoq->serial);
+
     abort_request = 0;
     force_refresh = 0;
     paused = 0;

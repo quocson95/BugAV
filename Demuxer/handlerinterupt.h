@@ -19,7 +19,7 @@ public:
         FindStreamInfo,
         Read
     };
-    HandlerInterupt(Demuxer *demuxer, qint64 timeout =30000);
+    HandlerInterupt(Demuxer *demuxer, qint64 timeout = 3000);
     ~HandlerInterupt();
 
     void begin(Action action);
@@ -29,6 +29,8 @@ public:
     int getStatus() const;
     void setStatus(int value);
 
+    void setReqStop(bool value);
+
 private:
     int status;
     qint64 timeout;
@@ -37,6 +39,8 @@ private:
     Action action;
     bool emitError;
     bool timeoutAbort;
+
+    bool reqStop;
 };
 }
 #endif // HANDLERINTERUPT_H
