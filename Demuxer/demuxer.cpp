@@ -85,6 +85,10 @@ bool Demuxer::load()
 //        unload();
         return false;
     }
+    AVDictionaryEntry * tag;
+    while ((tag = av_dict_get(is->ic->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
+        qDebug("%s=%s\n", tag->key, tag->value);
+
     is->ic->flags |= AVFMT_FLAG_GENPTS;
     is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
 //    is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS;

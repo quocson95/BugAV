@@ -69,11 +69,6 @@ void BugPlayer::setLog()
     av_log_set_level(AV_LOG_FATAL);
 }
 
-void BugPlayer::stopTaskScheduler()
-{
-    TaskScheduler::instance().stop();
-}
-
 void BugPlayer::setFile(const QString &file)
 {
     curFile = file;

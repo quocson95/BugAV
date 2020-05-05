@@ -27,9 +27,7 @@ public:
     };
     BugPlayer(QObject *parent = nullptr);
     ~BugPlayer();
-    static void setLog();
-
-    static void stopTaskScheduler();
+    static void setLog();   
 
     void setFile(const QString &file);
     QString getFile() const;

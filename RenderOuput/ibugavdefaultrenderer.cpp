@@ -14,19 +14,23 @@ IBugAVDefaultRenderer::~IBugAVDefaultRenderer()
 
 }
 
-void IBugAVDefaultRenderer::updateData(unsigned char **data)
-{
-
-}
-
-void IBugAVDefaultRenderer::initShader(int w, int h)
-{
-
-}
-
 void IBugAVDefaultRenderer::updateData(AVFrame *frame)
 {
-   qDebug() << "default render";
+    Q_UNUSED(frame)
+//    qDebug() << "default render";
+}
+
+void IBugAVDefaultRenderer::setRegionOfInterest(int x, int y, int w, int h)
+{
+    Q_UNUSED(x)
+    Q_UNUSED(y)
+    Q_UNUSED(w)
+    Q_UNUSED(h)
+}
+
+QSize IBugAVDefaultRenderer::videoFrameSize() const
+{
+    return QSize(0, 0);
 }
 
 }

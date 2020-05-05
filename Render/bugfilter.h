@@ -2,11 +2,14 @@
 #define BUGFILTER_H
 
 extern "C" {
-#include <libavutil/frame.h>
-#include "libavfilter/avfilter.h"
-#include <libavcodec/avcodec.h>
+#include <libavutil/rational.h>
+#include <libavutil/pixfmt.h>
 }
-class AVStream;
+struct AVFrame;
+struct AVFilterGraph;
+struct AVFilterContext;
+
+struct AVStream;
 
 #include <QString>
 namespace BugAV {
@@ -27,6 +30,7 @@ public:
 
     int pushFrame(AVFrame *frame);
     AVFrame *pullFrame();
+    int pullFrame(AVFrame *frame);
 
     int getStatusInit() const;
     AVRational getTimeBase();
@@ -35,6 +39,8 @@ public:
 
 private:
     int initPriv(AVFrame *frame, VideoState *is);
+
+    int initPriv2(AVFrame *frame, VideoState *is);
 
     void freeMem();
 

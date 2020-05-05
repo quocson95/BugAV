@@ -27,10 +27,12 @@ public:
     BugGLWidget(QWidget *parent = nullptr);
     ~BugGLWidget() override;
 
-    void updateData(unsigned char**);
-    virtual void updateData(AVFrame *frame) override;
+    void updateData(AVFrame *frame) override;
 
-    void initShader(int w,int h);
+    void setRegionOfInterest(int x, int y, int w, int h) override;
+
+    QSize videoFrameSize() const override;
+    void initShader(int w,int h, int *linesize);
 //    QObject *widget() override;
 
 public slots:
@@ -48,12 +50,18 @@ private: signals:
 private slots:
     void callUpdate();
 private:
-     void initializeTexture( GLuint id, int width, int height);
+     void initializeTexture( GLuint id, int frameW, int frameH);
      void freeBuffer();
-     void initBuffer(size_t size);
+     void initBuffer(int *linesize, int h);
+
+     void initYUV();
+
+     int fastUp16(int x);
+
+     void copyData();
 private:
 //    QTimer *timer;
-
+    bool init;
     //--------------------
     GLuint          m_textureIds[3];
     QOpenGLShader *m_vshaderA;
@@ -68,16 +76,38 @@ private:
     QColor m_background;
 
     bool isShaderInited;
-    int width;
-    int height;
-    size_t wxh;
-    size_t wxh_4;
+    int frameW;
+    int frameH;
+    size_t frameWxH;
+    size_t FrameWxH_4;
 
-    uint8_t *buffer[BUF_SIZE];
+    int renderW, renderH;
+    size_t renderWxH;
+    size_t renderWxH_4;
+
+    int offsetX, offsetY;
+
+    struct YUVBuff {
+        uint8_t *y;
+        uint8_t *u;
+        uint8_t *v;
+    };
+
+    typedef struct {
+        unsigned char* data[3];
+        int linesize[3];
+    } Frame;
+
+    Frame originFrame;
+
+    YUVBuff yuvBuffer[BUF_SIZE];
+
     int bufIndex;   
     QMutex mutex;
 
     int kUpdate;
+
+    QRect realRoi;
 
 };
 }

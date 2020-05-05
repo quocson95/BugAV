@@ -10,7 +10,7 @@ extern "C" {
 }
 
 class QThread;
-class SwsContext;
+struct SwsContext;
 
 namespace BugAV {
 

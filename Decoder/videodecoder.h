@@ -68,7 +68,7 @@ private:
 
     PrivateState privState;
     bool requetsStop;
-//    BugFilter *filter;
+    BugFilter *filter;
 
     // QRunnable interface
 public:
