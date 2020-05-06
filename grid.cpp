@@ -1,4 +1,4 @@
-#include "bugrenderer.h"
+
  #include "grid.h"
 #include "ui_grid.h"
 
@@ -10,9 +10,9 @@ Grid::Grid(QWidget *parent) :
 {
     setWindowTitle("Grid");
     ui->setupUi(this);
-    file = "rtmp://61.28.233.149:1935/live/40892928-6841-4c88-b85f-4875a7488a38_sub_1587436505?ci=JDQwODkyOTI4LTY4NDEtNGM4OC1iODVmLTQ4NzVhNzQ4OGEzOAIzOAADc3ViA3ZjYxsxYkdKUkVNdzhVMFdxOGxnOW5QcVR2eTRDYjkAAA==&sig=5bf1d32f1";
-//    file = "rtmp://61.28.231.227:1935/live/756bd856-6774-44eb-9fa7-92b2fcfe1167_sub_1588315651?ci=JDc1NmJkODU2LTY3NzQtNDRlYi05ZmE3LTkyYjJmY2ZlMTE2NwMxMjcAA3N1YgN2Y2MbMWFUbGx4enY0dEtOV2xaZldTelZmU1lGczQ2AAA=&sig=1bdd79324";
-    size = 4;
+//    file = "rtmp://61.28.233.149:1935/live/2bdd1370-e975-4eac-8bb8-12e07802e757_main_1588670960?ci=JDJiZGQxMzcwLWU5NzUtNGVhYy04YmI4LTEyZTA3ODAyZTc1NwIzOAAEbWFpbgN2Y2MbMWJUbmxBWkd4UWNYZ3JzRUFCQzQybUZyNm9mAAA=&sig=cc65438e8";
+    file = "rtsp://admin:Admin123@192.168.0.2:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
+    size = 1;
 
     start();
 
@@ -54,7 +54,8 @@ void Grid::addPlayer(int i, int j)
     auto renderer = new BugAV::BugGLWidget{this};
     QVariantHash avformat;
     avformat["probesize"] = 4096000;
-    avformat["analyzeduration"] = 1000000;
+    avformat["analyzeduration"] = 500000;
+    avformat["rtsp_flags"] = "prefer_tcp";
     player->setRenderer(renderer);
     player->setOptionsForFormat(avformat);
     player->play(file);

@@ -40,6 +40,8 @@ public:
     bool isRunning() const;
 
     QString statistic();
+public: signals:
+    void firstFrameComming();
 private:
     bool initPriv();
 

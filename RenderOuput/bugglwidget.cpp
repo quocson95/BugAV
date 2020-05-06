@@ -205,6 +205,16 @@ void BugGLWidget::copyData()
                originFrame.data[2] + originFrame.linesize[2] * (i + offsetY_2) + offsetX_2,
                 static_cast<size_t>(renderW / 2));
     }
+//    if (firstBuff) {
+//        auto idx = index - 1;
+//        if (idx < 0) {
+//            idx = BUF_SIZE - 1;
+//        }
+//        yuvBuffer[idx].y = yuvBuffer[index].y;
+//        yuvBuffer[idx].u = yuvBuffer[index].u;
+//        yuvBuffer[idx].v = yuvBuffer[index].v;
+//        index
+//    }
     bufIndex = index;
     mutex.unlock();
     emit reqUpdate();
@@ -352,7 +362,7 @@ void BugGLWidget::updateData(AVFrame *frame)
     if (frame->width != frameW
             || frame->height != frameH)
     {
-        initShader(frame->width, frame->height, frame->linesize);
+        initShader(frame->width, frame->height, frame->linesize);        
     }    
     mutex.lock();
     memcpy(originFrame.data[0], frame->data[0], frame->linesize[0] * frame->height);
@@ -497,8 +507,10 @@ void BugGLWidget::setTransparent(bool transparent)
 
 void BugGLWidget::resizeGL(int w, int h)
 {
-    if (w > 0 || h > 0) {
-        glViewport(0, 0, w, h);
-    }
+//    if (w > 0 || h > 0) {
+//        glViewport(0, 0, w, h);
+//    }
+    update();
+//    raise();
 }
 }

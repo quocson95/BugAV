@@ -61,7 +61,7 @@ private slots:
     void process();
 private:
     VideoState *is;
-    QThread *thread;
+    QThread *curThread;
     QMutex mutex;
     QWaitCondition cond;
 
@@ -74,6 +74,8 @@ private:
 
     bool isRun;
     int seek_by_bytes = -1;
+
+    bool reqStop;
 
 //    AVCodecContext *avctx;
     /*AVInputFormat *input_format;

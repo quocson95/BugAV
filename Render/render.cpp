@@ -77,7 +77,11 @@ Render::~Render()
 
 void Render::start()
 {
-    qDebug() << "!!!Render Thread start";
+//    qDebug() << "!!!Render Thread start";
+    if (thread->isRunning()) {
+        return;
+    }
+    lastUpdateFrame = 0;
     requestStop = false;
     privState = PrivState::WaitingFirstFrame;
     lastVideoRefresh = 0;
@@ -105,7 +109,7 @@ void Render::start()
 
 void Render::stop()
 {
-    qDebug() << "!!!Render Thread stop";
+//    qDebug() << "!!!Render Thread stop";
     requestStop = true;   
     isRun = false;
     privState = PrivState::Stop;
@@ -214,21 +218,30 @@ void Render::updateVideoPts(double pts, int64_t pos, int serial)
 void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
 {    
 //    qDebug() << " upload Texture " << QThread::currentThreadId();
-    if (renderer == nullptr || renderer == defaultRenderer) {
-        return;
-    }
     if (f->frame == nullptr) {
         return;
     }
+
     auto frame = f->frame;
     if (frame->width == 0
             ||frame->height == 0
             ) {
         return;
     }
+
+    if (lastUpdateFrame == 0) {
+        emit firstFrameComming();
+    }
+    lastUpdateFrame = QDateTime::currentMSecsSinceEpoch();
+
+    if (renderer == nullptr || renderer == defaultRenderer) {
+        return;
+    }
+
+
     auto fmt = fixDeprecatedPixelFormat(AVPixelFormat(is->viddec.avctx->pix_fmt));
     auto ret = 0;
-//    if (fmt != AVPixelFormat::AV_PIX_FMT_YUV420P) {
+    if (fmt != AVPixelFormat::AV_PIX_FMT_YUV420P) {
         // todo native renderer non yuv 420p    
         *img_convert_ctx = sws_getCachedContext(*img_convert_ctx,
                     is->viddec.avctx->width, is->viddec.avctx->height, fmt,
@@ -240,10 +253,9 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
                             is->viddec.avctx->height, frame->data, frame->linesize);
 
         }
-//    }
+    }
     if (ret >=0) {
-        if (renderer != nullptr ) {
-            lastUpdateFrame = QDateTime::currentMSecsSinceEpoch();    
+        if (renderer != nullptr ) {            
             renderer->updateData(frame);
 //            QImage image = QImage(frame->width, frame->height, QImage::Format::Format_ARGB32);
 //            for (int y = 0; y < frame->height; y++) {
@@ -638,7 +650,7 @@ void Render::setRequestStop(bool value)
 
 bool Render::isRunning() const
 {
-//    return true;
+//    return isRun;
     return thread->isRunning();
 }
 

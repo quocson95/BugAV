@@ -24,7 +24,10 @@ BugPlayer::BugPlayer(QObject *parent)
 
     connect(demuxer, &Demuxer::loadDone, this, &BugPlayer::streamLoaded);
     connect(demuxer, &Demuxer::loadFailed, this, &BugPlayer::streamLoadedFailed);
-    connect(demuxer, &Demuxer::stopped, this, &BugPlayer::demuxerStopped);
+    connect(demuxer, &Demuxer::readFrameError, this, &BugPlayer::readFrameError);
+
+    connect(render, &Render::firstFrameComming, this, &BugPlayer::firstFrameComming);
+//    connect(demuxer, &Demuxer::stopped, this, &BugPlayer::demuxerStopped);
     //    connect(demuxer, &Demuxer::started, this, &BugPlayer::workerStarted);
 //    connect(demuxer, &Demuxer::stopped, this, &BugPlayer::workerStopped);
 
@@ -82,17 +85,18 @@ QString BugPlayer::getFile() const
 void BugPlayer::play()
 {
     // ignore if on playing
-    if (isPlaying()) {
+    auto playing = isPlaying();
+    if (playing ) {
 //        qDebug() << "is playing. Ignore play action";
         if (isSourceChange()) {
-            qDebug() << "source change, do stop before play";
+            qDebug() << "source change, do stop before play " << is->fileUrl << " --> " << curFile;
             stop();            
         } else {
             if (is->paused) {
                 togglePause();
             }
-        }
-        return;
+            return;
+        }        
     }
     emit stateChanged(AVState::LoadingState);
     playPriv();
@@ -147,7 +151,7 @@ bool BugPlayer::isPlaying() const
 
 bool BugPlayer::isSourceChange() const
 {
-    return (curFile.compare(is->fileUrl));
+    return (curFile.compare(is->fileUrl) != 0);
 }
 
 qint64 BugPlayer::buffered() const
@@ -193,7 +197,9 @@ void BugPlayer::initPriv()
 
 void BugPlayer::playPriv()
 {
+    stop();
     initPriv();
+    is->abort_request = 0;
     is->eof = 0;
     render->setRequestStop(false);
 //    render->stop();
@@ -201,8 +207,8 @@ void BugPlayer::playPriv()
     is->fileUrl = curFile;
     demuxer->start();
 
-    render->start();
-    vDecoder->start();
+//    render->start();
+//    vDecoder->start();
     // will be emit state playing when loadDone stream
 }
 
@@ -275,11 +281,23 @@ void BugPlayer::streamLoaded()
 void BugPlayer::streamLoadedFailed()
 {
     emit stateChanged(AVState::StoppedState);
+    emit error(QLatin1String("load failed"));
 }
 
 void BugPlayer::demuxerStopped()
 {
     stop();
+}
+
+void BugPlayer::readFrameError()
+{
+    stop();
+    emit error(QLatin1String("Read frame error"));
+}
+
+void BugPlayer::firstFrameComming()
+{
+    emit mediaStatusChanged(MediaStatus::FirstFrameComing);
 }
 
 void BugPlayer::timerEvent(QTimerEvent *event)

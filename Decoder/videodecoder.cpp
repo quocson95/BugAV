@@ -48,11 +48,14 @@ VideoDecoder::~VideoDecoder()
 
 void VideoDecoder::start()
 {
+    if (thread->isRunning()) {
+        return;
+    }
 //    if (isRun) {
 //        return;
 //    }
 //    isRun = true;
-    qDebug() << "!!!VideoDecoder Thread start";
+//    qDebug() << "!!!VideoDecoder Thread start";
     requetsStop = false;
     privState = PrivateState::InitState;
     thread->start();
@@ -73,7 +76,7 @@ void VideoDecoder::start()
 
 void VideoDecoder::stop()
 {
-    qDebug() << "!!!vDecoder Thread stop";
+//    qDebug() << "!!!vDecoder Thread stop";
     requetsStop = true;
 //    is->flush();
     isRun = false;
@@ -261,6 +264,7 @@ void VideoDecoder::process()
     emit started();
     speed_rate = 1.0;
     qDebug() << "!!!Video decoder Thread start";
+    isRun = true;
     if (frame == nullptr) {
         frame = av_frame_alloc();
     }
@@ -269,6 +273,7 @@ void VideoDecoder::process()
         // todo fix here
         emit stopped();
         isRun = false;
+        thread->quit();
         qDebug() << "Can't alloc frame";
         return;
     }    
@@ -340,7 +345,7 @@ void VideoDecoder::process()
 //            }
             duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
-            if (is->pictq.queueNbRemain() > 1) {
+            if (is->pictq.queueNbRemain() > 2) {
                 pts /= speed_rate;
             }
 
