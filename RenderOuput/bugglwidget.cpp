@@ -242,9 +242,8 @@ BugGLWidget::BugGLWidget(QWidget *parent)
     offsetX = offsetY = 0;
 
     bufIndex=0;
-//    memset(m_textureIds, 0, 3);
-    for(auto i = 0; i < 3; i++) {
-        m_textureIds[i] = i;
+    memset(m_textureIds, 0, 3);
+    for(auto i = 0; i < 3; i++) {        
         originFrame.data[i] = nullptr;
     }
     yuvBuffer[0].y = yuvBuffer[0].u = yuvBuffer[0].v = nullptr;
