@@ -67,10 +67,10 @@ BugPlayer::~BugPlayer()
     delete is;
 }
 
-void BugPlayer::setLog()
-{
-    av_log_set_level(AV_LOG_FATAL);
-}
+//void BugPlayer::setLog()
+//{
+//    av_log_set_level(AV_LOG_FATAL);
+//}
 
 void BugPlayer::setFile(const QString &file)
 {

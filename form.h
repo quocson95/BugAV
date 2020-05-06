@@ -28,7 +28,7 @@ private slots:
 private:
     Ui::Form *ui;
     BugPlayer bPlayer{nullptr};
-    BugGLWidget *renderer;
+    IBugAVRenderer *renderer;
 };
 
 #endif // FORM_H

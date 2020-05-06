@@ -24,7 +24,7 @@ class LIB_EXPORT BugGLWidget : public QOpenGLWidget, protected QOpenGLFunctions,
 {
     Q_OBJECT
 public:
-    BugGLWidget(QWidget *parent = nullptr);
+    explicit BugGLWidget(QWidget *parent = nullptr);
     ~BugGLWidget() override;
 
     void updateData(AVFrame *frame) override;
@@ -34,6 +34,9 @@ public:
     QSize videoFrameSize() const override;
     void initShader(int w,int h, int *linesize);
 //    QObject *widget() override;
+
+    void setQuality(int quality) override;
+    void setOutAspectRatioMode(int ratioMode) override;
 
 public slots:
 
@@ -107,8 +110,7 @@ private:
 
     int kUpdate;
 
-    QRect realRoi;
-
+    QRect realRoi;  
 };
 }
 #endif // BugGLWidget_H

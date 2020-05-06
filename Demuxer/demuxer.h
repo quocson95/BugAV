@@ -110,6 +110,8 @@ private:
     AVPacket pkt1, *pkt;
     HandlerInterupt *handlerInterupt;
     friend HandlerInterupt;
+
+    AVCodecContext *avctx;
 };
 }
 #endif // DEMUXER_H

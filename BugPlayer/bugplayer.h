@@ -1,12 +1,10 @@
 #ifndef BugPlayer_H
 #define BugPlayer_H
 
-#include <QString>
-#include <taskscheduler.h>
-
-#include <RenderOuput/bugglwidget.h>
-
 #include "marco.h"
+#include <QObject>
+#include <QString>
+#include <RenderOuput/IBugAVRenderer.h>
 
 namespace BugAV {
 class VideoState;
@@ -31,9 +29,9 @@ public:
         FirstFrameComing,
     };
 
-    BugPlayer(QObject *parent = nullptr);
+    explicit BugPlayer(QObject *parent = nullptr);
     ~BugPlayer();
-    static void setLog();   
+//    static void setLog();
 
     void setFile(const QString &file);
     QString getFile() const;
@@ -68,7 +66,7 @@ public:
     QString statistic();
 
     bool setSaveRawImage(bool save = false);
-public: signals:
+public: Q_SIGNALS:
     void stateChanged(BugAV::BugPlayer::AVState state);
     void mediaStatusChanged(BugAV::BugPlayer::MediaStatus state);
     void error(QString err);
@@ -78,7 +76,7 @@ private:
     void initPriv();
     void playPriv();
 
-private slots:
+private Q_SLOTS:
     void workerStarted();
     void workerStopped();
 
@@ -112,5 +110,8 @@ protected:
     void timerEvent(QTimerEvent *event);
 };
 } // namespace BugAV
+
+Q_DECLARE_METATYPE(BugAV::BugPlayer::AVState);
+Q_DECLARE_METATYPE(BugAV::BugPlayer::MediaStatus);
 #endif // BugPlayer_H
 

@@ -112,8 +112,8 @@ void BugGLWidget::initBuffer(int *linesize, int h)
     for(int i=0;i<BUF_SIZE;i++)
     {
        yuvBuffer[i].y= static_cast<unsigned char*>(malloc(linesize[0] * h));
-       yuvBuffer[i].u= static_cast<unsigned char*>(malloc(linesize[1] * h));
-       yuvBuffer[i].v= static_cast<unsigned char*>(malloc(linesize[2] * h));
+       yuvBuffer[i].u= static_cast<unsigned char*>(malloc(linesize[1] * h/2));
+       yuvBuffer[i].v= static_cast<unsigned char*>(malloc(linesize[2] * h/2));
     }
 }
 
@@ -349,6 +349,16 @@ void BugGLWidget::initShader(int w, int h, int *linesize)
         isShaderInited=false;
         setRegionOfInterest(0, 0, frameW, frameH);
     }
+}
+
+void BugGLWidget::setQuality(int quality)
+{
+
+}
+
+void BugGLWidget::setOutAspectRatioMode(int ratioMode)
+{
+
 }
 
 void BugGLWidget::updateData(AVFrame *frame)

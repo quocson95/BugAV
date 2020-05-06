@@ -1,6 +1,8 @@
 #include "form.h"
 #include "ui_form.h"
 
+#include <RenderOuput/bugglwidget.h>
+
 Form::Form(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::Form)
@@ -9,7 +11,7 @@ Form::Form(QWidget *parent) :
     renderer = new BugGLWidget(this);
     bPlayer.setRenderer(renderer);
 //    auto a = dynamic_cast<QWidget *>(renderer);
-    ui->videoLayout->addWidget(renderer);
+    ui->videoLayout->addWidget(dynamic_cast<QWidget *>(renderer));
     // 2land
 //    auto file = "rtmp://61.28.231.227:1935/live/756bd856-6774-44eb-9fa7-92b2fcfe1167_sub_1587032712?ci=JDc1NmJkODU2LTY3NzQtNDRlYi05ZmE3LTkyYjJmY2ZlMTE2NwMxMjcAA3N1YgN2Y2MbMWFUbGx4enY0dEtOV2xaZldTelZmU1lGczQ2AAA=&sig=1bdd79324";
    auto file = "rtmp://61.28.233.70:1935/live/40892928-6841-4c88-b85f-4875a7488a38_sub_1587436505?ci=JDQwODkyOTI4LTY4NDEtNGM4OC1iODVmLTQ4NzVhNzQ4OGEzOAIzOAADc3ViA3ZjYxsxYjdzN01CUWo5SGhHVmtrb283RldjRVNWYjgAAA==&sig=8e51ddcfd";

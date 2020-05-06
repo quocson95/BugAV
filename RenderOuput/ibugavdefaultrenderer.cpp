@@ -3,8 +3,9 @@
 #include <QDebug>
 namespace BugAV {
 
-IBugAVDefaultRenderer::IBugAVDefaultRenderer()
-    :IBugAVRenderer()
+IBugAVDefaultRenderer::IBugAVDefaultRenderer(QWidget *parent)
+    :QWidget(parent)
+    ,IBugAVRenderer()
 {
 
 }
@@ -31,6 +32,16 @@ void IBugAVDefaultRenderer::setRegionOfInterest(int x, int y, int w, int h)
 QSize IBugAVDefaultRenderer::videoFrameSize() const
 {
     return QSize(0, 0);
+}
+
+void IBugAVDefaultRenderer::setQuality(int quality)
+{
+
+}
+
+void IBugAVDefaultRenderer::setOutAspectRatioMode(int ratioMode)
+{
+
 }
 
 }

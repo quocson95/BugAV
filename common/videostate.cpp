@@ -82,6 +82,7 @@ VideoState::~VideoState()
     if (img_convert_ctx != nullptr) {
         sws_freeContext(img_convert_ctx);
     }
+
     viddec.clear();
     delete ic;
     delete videoq;

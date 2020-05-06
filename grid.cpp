@@ -4,6 +4,8 @@
 
 #include <BugPlayer/bugplayer.h>
 
+#include <RenderOuput/ibugavdefaultrenderer.h>
+
 Grid::Grid(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::Grid)
@@ -12,7 +14,7 @@ Grid::Grid(QWidget *parent) :
     ui->setupUi(this);
 //    file = "rtmp://61.28.233.149:1935/live/2bdd1370-e975-4eac-8bb8-12e07802e757_main_1588670960?ci=JDJiZGQxMzcwLWU5NzUtNGVhYy04YmI4LTEyZTA3ODAyZTc1NwIzOAAEbWFpbgN2Y2MbMWJUbmxBWkd4UWNYZ3JzRUFCQzQybUZyNm9mAAA=&sig=cc65438e8";
     file = "rtsp://admin:Admin123@192.168.0.2:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
-    size = 1;
+    size = 5;
 
     start();
 
@@ -38,7 +40,7 @@ Grid::~Grid()
 
 void Grid::start()
 {
-    BugAV::BugPlayer::setLog();
+//    BugAV::BugPlayer::setLog();
     for (auto i = 0; i < size; i++) {
         for (auto j = 0; j < size; j++) {
             addPlayer(i, j);
@@ -51,7 +53,7 @@ void Grid::start()
 void Grid::addPlayer(int i, int j)
 {
     auto player = new BugAV::BugPlayer(this);
-    auto renderer = new BugAV::BugGLWidget{this};
+    auto renderer = new BugAV::IBugAVDefaultRenderer;
     QVariantHash avformat;
     avformat["probesize"] = 4096000;
     avformat["analyzeduration"] = 500000;

@@ -3,11 +3,13 @@
 
 #include "IBugAVRenderer.h"
 
+#include <QWidget>
+
 namespace BugAV {
-class IBugAVDefaultRenderer: public IBugAVRenderer
+class IBugAVDefaultRenderer: public QWidget, public IBugAVRenderer
 {
 public:
-    IBugAVDefaultRenderer();
+    IBugAVDefaultRenderer(QWidget *parent = nullptr);
     ~IBugAVDefaultRenderer() override;
 
     void updateData(AVFrame *frame) override;
@@ -15,6 +17,9 @@ public:
     void setRegionOfInterest(int x, int y, int w, int h) override;
 
     QSize videoFrameSize() const override;
+
+    void setQuality(int quality) override;
+    void setOutAspectRatioMode(int ratioMode) override;
 };
 }
 #endif // IBUGAVDEFAULTRENDERER_H

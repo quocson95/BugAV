@@ -28,6 +28,7 @@ Demuxer::Demuxer(VideoState *is)
     ,is{is}
     ,formatOpts{nullptr}
     ,handlerInterupt{nullptr}
+    ,avctx{nullptr}
 {
     startTime = AV_NOPTS_VALUE;
     pkt = &pkt1;
@@ -49,7 +50,7 @@ Demuxer::~Demuxer()
     handlerInterupt->setReqStop(true);
     av_dict_free(&formatOpts);
     curThread->deleteLater();
-    delete handlerInterupt;    
+    delete handlerInterupt;
 }
 
 void Demuxer::setAvformat(QVariantHash avformat)
@@ -62,7 +63,7 @@ void Demuxer::setAvformat(QVariantHash avformat)
 bool Demuxer::load()
 {
     qDebug() << "start load stream input";
-        unload();
+    unload();
     is->iformat = av_find_input_format(is->fileUrl.toUtf8().constData());
     is->ic = avformat_alloc_context();
     if (is->ic == nullptr) {
@@ -82,7 +83,7 @@ bool Demuxer::load()
     handlerInterupt->end();
     if (ret < 0) {
         qDebug() << "Open input fail " << is->fileUrl;
-//        unload();
+        unload();
         return false;
     }
     AVDictionaryEntry * tag;
@@ -139,10 +140,11 @@ bool Demuxer::load()
     // open stream
     if (streamOpenCompnent(stIndex[AVMEDIA_TYPE_VIDEO]) < 0) {
         qDebug() << "Failed to open file %s " << is->fileUrl << " or configure filtergraph";
-        if (is->ic != nullptr) {
-            avformat_close_input(&is->ic);
-            is->ic = nullptr;
-        }
+//        if (is->ic != nullptr) {
+//            avformat_close_input(&is->ic);
+//            is->ic = nullptr;
+//        }
+        unload();
         return -1;
     }
     if (infinityBuff < 0 && is->realtime)
@@ -156,6 +158,10 @@ void Demuxer::unload()
         avformat_close_input(&is->ic);
         is->ic = nullptr;
     }
+    if (avctx != nullptr) {
+        avcodec_free_context(&avctx);
+    }
+    avctx = nullptr;
     handlerInterupt->setStatus(0);
     is->resetStream();
 }
@@ -314,7 +320,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
     if (stream_index < 0 || stream_index >= int(is->ic->nb_streams)){
         return -1;
     }
-    auto avctx = avcodec_alloc_context3(nullptr);
+    avctx = avcodec_alloc_context3(nullptr);
     if (!avctx)
         return AVERROR(ENOMEM);
     auto ret = avcodec_parameters_to_context(avctx, is->ic->streams[stream_index]->codecpar);

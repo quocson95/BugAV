@@ -71,6 +71,7 @@ Render::~Render()
     if (img != nullptr) {
         delete img;
     }
+    thread->deleteLater();
 //    delete thread;
 
 }

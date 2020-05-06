@@ -14,7 +14,7 @@ Decoder::Decoder(PacketQueue *queue, QWaitCondition *cond)
 
 Decoder::~Decoder()
 {
-
+    av_packet_unref(&pkt);
 }
 
 void Decoder::init(PacketQueue *queue, AVCodecContext *avctx, QWaitCondition *cond)
@@ -236,40 +236,41 @@ int Decoder::receiveFrame(AVFrame *frame)
 
 int Decoder::checkQueue()
 {
-    if (queue->nb_packets == 0)
-        emptyQueueCond->wakeOne();
-    if (packet_pending) {
-        av_packet_move_ref(&pktTmp, &this->pkt);
-        packet_pending = 0;
-    } else {        
-        if (queue->get(&pktTmp, 0, &this->pkt_serial) < 0) {
-            return -1;
-        } else {
-            return 0;
-        }
-    }
-    return (queue->serial != this->pkt_serial);
+//    if (queue->nb_packets == 0)
+//        emptyQueueCond->wakeOne();
+//    if (packet_pending) {
+//        av_packet_move_ref(&pktTmp, &this->pkt);
+//        packet_pending = 0;
+//    } else {
+//        if (queue->get(&pktTmp, 0, &this->pkt_serial) < 0) {
+//            return -1;
+//        } else {
+//            return 0;
+//        }
+//    }
+//    return (queue->serial != this->pkt_serial);
+    return 0;
 }
 
 int Decoder::sendFrame()
 {
-    if (PacketQueue::compareFlushPkt(&pktTmp)) {
-      avcodec_flush_buffers(avctx);
-      finished = 0;
-      next_pts = start_pts;
-      next_pts_tb = start_pts_tb;
-    } else {
-       if (avctx->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+//    if (PacketQueue::compareFlushPkt(&pktTmp)) {
+//      avcodec_flush_buffers(avctx);
+//      finished = 0;
+//      next_pts = start_pts;
+//      next_pts_tb = start_pts_tb;
+//    } else {
+//       if (avctx->codec_type == AVMEDIA_TYPE_SUBTITLE) {
 
-       } else {
-           if (avcodec_send_packet(this->avctx, &pktTmp) == AVERROR(EAGAIN)) {
-               qDebug() << "Receive_frame and send_packet both returned EAGAIN, which is an API violation";
-               packet_pending = 1;
-               av_packet_move_ref(&this->pkt, &pktTmp);
-           }
-       }
-       av_packet_unref(&pktTmp);
-    }
+//       } else {
+//           if (avcodec_send_packet(this->avctx, &pktTmp) == AVERROR(EAGAIN)) {
+//               qDebug() << "Receive_frame and send_packet both returned EAGAIN, which is an API violation";
+//               packet_pending = 1;
+//               av_packet_move_ref(&this->pkt, &pktTmp);
+//           }
+//       }
+//       av_packet_unref(&pktTmp);
+//    }
     return 1;
 }
 

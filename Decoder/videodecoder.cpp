@@ -43,7 +43,7 @@ VideoDecoder::~VideoDecoder()
     if (filter != nullptr) {
         delete filter;
     }
-//    delete thread;
+    thread->deleteLater();
 }
 
 void VideoDecoder::start()
@@ -358,12 +358,12 @@ void VideoDecoder::process()
 //            qDebug() << "queuePicture";
             ret = queuePicture((frame), pts, duration, frame->pkt_pos, is->viddec.pkt_serial);
 //            qDebug() << "after queuePicture";
-
+            av_frame_unref(frame);
             if (ret < 0 ) {
                 // todo ??
                 break;
             }
-            av_frame_unref(frame);
+
         }
     }
 //    is->flush();

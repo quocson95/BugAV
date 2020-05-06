@@ -3782,11 +3782,11 @@
 #include <QApplication>
 #include <QWidget>
 
-#include <BugPlayer/bugplayer.h>
+//#include <BugPlayer/bugplayer.h>
 int main(int argc, char *argv[])
 {
     QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-    QApplication::setAttribute(Qt::AA_UseOpenGLES);
+//    QApplication::setAttribute(Qt::AA_UseOpenGLES);
 
     QApplication a(argc, argv);
 
@@ -3810,7 +3810,7 @@ int main(int argc, char *argv[])
 //    auto img  =QImage("/home/sondq/Documents/dev/build-BugAV-Desktop_Qt_5_12_6_GCC_64bit-Debug/492067917.png");
 //    s.setCurrentImage(img);
 //    s.show();
-    BugPlayer::setLog();
+//    BugPlayer::setLog();
 //    BugPlayer bplayer;
 //    bplayer.setFile(file);
 //    bplayer.play();
