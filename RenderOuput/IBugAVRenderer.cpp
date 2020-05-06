@@ -2,8 +2,14 @@
 
 namespace BugAV {
 
-void IBugAVRenderer::updateData(AVFrame *frame)
+void IBugAVRenderer::setQuality(int quality)
 {
-    Q_UNUSED(frame)
+
 }
+
+void IBugAVRenderer::setOutAspectRatioMode(int ratioMode)
+{
+
+}
+
 }

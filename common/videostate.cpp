@@ -8,7 +8,7 @@ VideoState::VideoState()
 {    
     continue_read_thread = new QWaitCondition;
     show_mode = ShowMode::SHOW_MODE_VIDEO;    
-    av_sync_type = ShowModeClock::AV_SYNC_EXTERNAL_CLOCK;
+    av_sync_type = ShowModeClock::AV_SYNC_VIDEO_MASTER;
     videoq = new PacketQueue;
     useAVFilter = false;
     ic = nullptr;
@@ -66,7 +66,7 @@ VideoState::VideoState()
     useAVFilter = false; // need avfilter avframe
 
     last_video_stream = last_audio_stream = last_subtitle_stream = -1;
-    framedrop = 1;
+    framedrop = 0;
     img_convert_ctx  = nullptr;
     init();
     reset();
@@ -83,6 +83,7 @@ VideoState::~VideoState()
         sws_freeContext(img_convert_ctx);
     }
     viddec.clear();
+    delete ic;
     delete videoq;
 }
 

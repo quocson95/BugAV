@@ -20,6 +20,7 @@ VideoDecoder::VideoDecoder(VideoState *is)
 //    ,QRunnable()
     ,is{is}
     ,frame{nullptr}
+    ,filter{nullptr}
 {
     isRun = false;
     privState = PrivateState::StopState;
@@ -39,19 +40,22 @@ VideoDecoder::~VideoDecoder()
     if (frame != nullptr) {
         av_frame_free(&frame);
     }    
-//    if (filter != nullptr) {
-//        delete filter;
-//    }
+    if (filter != nullptr) {
+        delete filter;
+    }
 //    delete thread;
 }
 
 void VideoDecoder::start()
 {
+    if (thread->isRunning()) {
+        return;
+    }
 //    if (isRun) {
 //        return;
 //    }
 //    isRun = true;
-    qDebug() << "!!!VideoDecoder Thread start";
+//    qDebug() << "!!!VideoDecoder Thread start";
     requetsStop = false;
     privState = PrivateState::InitState;
     thread->start();
@@ -72,7 +76,7 @@ void VideoDecoder::start()
 
 void VideoDecoder::stop()
 {
-    qDebug() << "!!!vDecoder Thread stop";
+//    qDebug() << "!!!vDecoder Thread stop";
     requetsStop = true;
 //    is->flush();
     isRun = false;
@@ -143,7 +147,7 @@ int VideoDecoder::getFrame()
     }
 //    duration = ( ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
     pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
-    if (is->pictq.queueNbRemain() > 2) {
+    if (is->realtime && is->pictq.queueNbRemain() > 1) {
         pts /= speed_rate;
     }
     return 1;
@@ -206,29 +210,34 @@ int VideoDecoder::getVideoFrame(AVFrame *frame)
 
 AVFrame *VideoDecoder::filterFrame(AVFrame *frame)
 {
-    return frame;
-//    if (filter->init(frame, is) < 0) {
-//        return frame;
-//    } else {
-//        frame_rate = filter->getFrameRate();
-//    }
+//    return frame;
+    auto ret = 1;
+    if (filter->getStatusInit() <= 0) {
+        qDebug() << "init filter";
+        ret = filter->init(frame, is);
+    }
+    if ( ret < 0) {
+        return frame;
+    } else {
+        frame_rate = filter->getFrameRate();
+    }
 
-//    auto ret = filter->pushFrame(frame);
-//    if (ret < 0) {
-//        is->viddec.finished = is->viddec.pkt_serial;
-//        return frame;
-//    }
-//    is->frame_last_returned_time = av_gettime_relative() / 1000000.0;```
-//    auto f = filter->pullFrame();
-//    if (f != nullptr) {
-//        is->frame_last_filter_delay = av_gettime_relative() / 1000000.0 - is->frame_last_returned_time;
-//        if (fabs(is->frame_last_filter_delay) > AV_NOSYNC_THRESHOLD / 10.0)
-//            is->frame_last_filter_delay = 0;
-//        tb = filter->getTimeBase();
-//       return f;
-//    } else {
-//        return frame;
-//    }
+    ret = filter->pushFrame(frame);
+    if (ret < 0) {
+        is->viddec.finished = is->viddec.pkt_serial;
+        return frame;
+    }
+    is->frame_last_returned_time = av_gettime_relative() / 1000000.0;
+    auto f = filter->pullFrame();
+    if (f != nullptr) {
+        is->frame_last_filter_delay = av_gettime_relative() / 1000000.0 - is->frame_last_returned_time;
+        if (fabs(is->frame_last_filter_delay) > AV_NOSYNC_THRESHOLD / 10.0)
+            is->frame_last_filter_delay = 0;
+        tb = filter->getTimeBase();
+       return f;
+    } else {
+        return frame;
+    }
 }
 
 int VideoDecoder::queuePicture(AVFrame *src_frame, double pts, double duration, int64_t pos, int serial)
@@ -260,6 +269,7 @@ void VideoDecoder::process()
     emit started();
     speed_rate = 1.0;
     qDebug() << "!!!Video decoder Thread start";
+    isRun = true;
     if (frame == nullptr) {
         frame = av_frame_alloc();
     }
@@ -268,9 +278,10 @@ void VideoDecoder::process()
         // todo fix here
         emit stopped();
         isRun = false;
+        thread->quit();
         qDebug() << "Can't alloc frame";
         return;
-    }
+    }    
 //    if (filter == nullptr) {
 //        filter = new BugFilter;
 //    }
@@ -300,19 +311,51 @@ void VideoDecoder::process()
             if (!ret) {
                 continue;
             }
-//            duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
-            duration = 0;
-            if (frame_rate.num && frame_rate.den) {
-                auto av = AVRational{frame_rate.den, frame_rate.num};
-                duration = av_q2d(av);
-            }
+            // check using filter
+//            if (filter != nullptr) {
+//                if (filter->getStatusInit() < 0) {
+//                    filter->init(frame, is);
+//                }
+//                if (filter->getStatusInit()  > 0) {
+//                    ret = filter->pushFrame(frame);
+//                    while (ret >= 0) {
+//                        is->frame_last_returned_time = av_gettime_relative() / 1000000.0;
+//                        ret = filter->pullFrame(frame);
+//                        if (ret < 0) {
+//                            if (ret == AVERROR_EOF) {
+//                                is->viddec.finished = is->viddec.pkt_serial;
+//                            }
+//                            ret = 0;
+//                            break;
+//                        }
+//                        is->frame_last_filter_delay = av_gettime_relative() / 1000000.0 - is->frame_last_returned_time;
+//                        if (fabs(is->frame_last_filter_delay) > AV_NOSYNC_THRESHOLD / 10.0)
+//                            is->frame_last_filter_delay = 0;
+//                        tb = filter->getTimeBase();
+
+//                        duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
+//                        pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
+//                        if (is->pictq.queueNbRemain() > 1) {
+//                            pts /= speed_rate;
+//                        }
+
+////                        frame->linesize[0] = frame->width;
+////                        frame->linesize[1] = frame->linesize[2] = frame->width / 2;
+//                        ret = queuePicture(frame, pts, duration, frame->pkt_pos, is->viddec.pkt_serial);
+//                        av_frame_unref(frame);
+//                        if (is->videoq->serial != is->viddec.pkt_serial)
+//                            break;
+//                    }
+//                }
+//            }
+            duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
             if (is->pictq.queueNbRemain() > 2) {
                 pts /= speed_rate;
             }
 
 //            qDebug() << "queuePicture";
-            ret = queuePicture(frame, pts, duration, frame->pkt_pos, is->viddec.pkt_serial);
+            ret = queuePicture((frame), pts, duration, frame->pkt_pos, is->viddec.pkt_serial);
 //            qDebug() << "after queuePicture";
 
             if (ret < 0 ) {

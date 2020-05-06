@@ -8,12 +8,13 @@ class IBugAVDefaultRenderer: public IBugAVRenderer
 {
 public:
     IBugAVDefaultRenderer();
-    ~IBugAVDefaultRenderer();
-
-    void updateData(unsigned char **);
-    void initShader(int w, int h);    
+    ~IBugAVDefaultRenderer() override;
 
     void updateData(AVFrame *frame) override;
+
+    void setRegionOfInterest(int x, int y, int w, int h) override;
+
+    QSize videoFrameSize() const override;
 };
 }
 #endif // IBUGAVDEFAULTRENDERER_H

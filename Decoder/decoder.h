@@ -44,7 +44,7 @@ public:
     int64_t next_pts;
     AVRational next_pts_tb;
     QWaitCondition *emptyQueueCond;
-    int decoder_reorder_pts = -1;
+    int decoder_reorder_pts = -1; //let decoder reorder pts 0=off 1=on -1=auto
 
     AVPacket pktTmp;
 

@@ -10,7 +10,7 @@ extern "C" {
 }
 
 class QThread;
-class SwsContext;
+struct SwsContext;
 
 namespace BugAV {
 
@@ -40,6 +40,8 @@ public:
     bool isRunning() const;
 
     QString statistic();
+public: signals:
+    void firstFrameComming();
 private:
     bool initPriv();
 

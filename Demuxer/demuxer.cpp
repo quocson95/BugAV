@@ -36,9 +36,9 @@ Demuxer::Demuxer(VideoState *is)
     if (handlerInterupt == nullptr) {
         handlerInterupt = new HandlerInterupt(this);
     }
-    thread = new QThread(this);
-    moveToThread(thread);
-    connect(thread, SIGNAL (started()), this, SLOT (process()));
+    curThread = new QThread(this);
+    moveToThread(curThread);
+    connect(curThread, SIGNAL (started()), this, SLOT (process()));
 //    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));    
 }
 
@@ -48,7 +48,7 @@ Demuxer::~Demuxer()
     unload();
     handlerInterupt->setReqStop(true);
     av_dict_free(&formatOpts);
-    thread->deleteLater();
+    curThread->deleteLater();
     delete handlerInterupt;    
 }
 
@@ -62,7 +62,7 @@ void Demuxer::setAvformat(QVariantHash avformat)
 bool Demuxer::load()
 {
     qDebug() << "start load stream input";
-    unload();
+        unload();
     is->iformat = av_find_input_format(is->fileUrl.toUtf8().constData());
     is->ic = avformat_alloc_context();
     if (is->ic == nullptr) {
@@ -85,9 +85,14 @@ bool Demuxer::load()
 //        unload();
         return false;
     }
+    AVDictionaryEntry * tag;
+    while ((tag = av_dict_get(is->ic->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
+        qDebug("%s=%s\n", tag->key, tag->value);
+
     is->ic->flags |= AVFMT_FLAG_GENPTS;
     is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
-//    is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS;
+    is->ic->flags |= AVFMT_FLAG_NOBUFFER;
+//    is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS; // flush avio context every packet (using for decrease buffer, flush old packet)
 
     av_format_inject_global_side_data(is->ic);
    // go to here ok
@@ -171,7 +176,7 @@ int Demuxer::readFrame()
                     (!strcmp(is->ic->iformat->name, "rtsp") ||
                      (is->ic->pb && !is->fileUrl.startsWith("mmsh:")))) {
     //  need wait 10 ms to avoid trying to get another packet
-        thread->msleep(10);
+        curThread->msleep(10);
         return 0;
     }
 //    qDebug() << " read frame ";
@@ -247,12 +252,13 @@ void Demuxer::setFileUrl(const QString &value)
 
 void Demuxer::start()
 {
-    thread->start();
-    if (isRun) {
+    if (curThread->isRunning()) {
         return;
     }
-    isRun = true;
+    reqStop = false;
+    curThread->start();
     handlerInterupt->setReqStop(false);
+
 //    class DemuxerRun: public QRunnable {
 //    public:
 //        DemuxerRun(Demuxer *demuxer) {
@@ -269,11 +275,12 @@ void Demuxer::start()
 
 void Demuxer::stop()
 {        
+    reqStop = true;
     handlerInterupt->setReqStop(true);
     cond.wakeAll();
-    thread->quit();
-    while (thread->isRunning()) {
-        thread->wait(400);
+//    thread->quit();
+    while (curThread->isRunning()) {
+        curThread->wait(400);
     }
 }
 
@@ -452,7 +459,7 @@ void Demuxer::process()
     qDebug() << "!!!Demuxer Thread start";
     int countSleed = -1; // count sleep 3s
     int numTry = 0;
-//    forever {
+//    forever     {
 //        if (is->abort_request) {
 //            break;
 //        }
@@ -462,8 +469,8 @@ void Demuxer::process()
 //            continue;
 //        }
 //        if (load()) {
-//            emit loadFailed();
-//            return;
+////            emit loadFailed();
+////            return;
 //            break;
 //        } else {
 //            if (numTry < 15) {
@@ -473,19 +480,20 @@ void Demuxer::process()
 //            qDebug() << "Try open input after " << countSleed * 100 << "ms";
 //            continue;
 //        }
-    if (!load()) {
+//    }
+    if (!load() && !reqStop) {
         emit loadFailed();
         isRun = false;
-        thread->quit();
+        curThread->terminate();
         return;
     }
 
-    if (!is->abort_request) {
+    if (!reqStop) {
         qDebug() << "Start read frame";
         emit loadDone();
         int ret = 0;
         forever{
-            if (is->abort_request) {
+            if (reqStop) {
                 break;
             }
             ret = readFrame();
@@ -503,7 +511,7 @@ void Demuxer::process()
     isRun = false;
     emit stopped();
     qDebug() << "!!!Demuxer Thread exit";
-    thread->quit();
+    curThread->terminate();
 }
 
 void Demuxer::setIs(VideoState *value)
@@ -514,6 +522,7 @@ void Demuxer::setIs(VideoState *value)
 bool Demuxer::isRunning() const
 {
 //    return isRun;
-    return thread->isRunning();
+//    return thread()->isRunning();
+    return curThread->isRunning();
 }
 }

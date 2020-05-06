@@ -1,3 +1,4 @@
+
  #include "grid.h"
 #include "ui_grid.h"
 
@@ -9,9 +10,9 @@ Grid::Grid(QWidget *parent) :
 {
     setWindowTitle("Grid");
     ui->setupUi(this);
-    file = "rtmp://61.28.233.70:1935/live/40892928-6841-4c88-b85f-4875a7488a38_sub_1587436505?ci=JDQwODkyOTI4LTY4NDEtNGM4OC1iODVmLTQ4NzVhNzQ4OGEzOAIzOAADc3ViA3ZjYxsxYjdzN01CUWo5SGhHVmtrb283RldjRVNWYjgAAA==&sig=8e51ddcfd";
-//    file = "rtmp://61.28.233.149:1935/live/c3a8b94b-9e0c-444e-9e2f-b72937586cb7_sub_1587971873?ci=JGMzYThiOTRiLT";
-    size = 3;
+//    file = "rtmp://61.28.233.149:1935/live/2bdd1370-e975-4eac-8bb8-12e07802e757_main_1588670960?ci=JDJiZGQxMzcwLWU5NzUtNGVhYy04YmI4LTEyZTA3ODAyZTc1NwIzOAAEbWFpbgN2Y2MbMWJUbmxBWkd4UWNYZ3JzRUFCQzQybUZyNm9mAAA=&sig=cc65438e8";
+    file = "rtsp://admin:Admin123@192.168.0.2:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
+    size = 1;
 
     start();
 
@@ -21,7 +22,6 @@ Grid::~Grid()
 {
     killTimer(kStatistic);
 //    taskScheduler.stop();
-    BugAV::BugPlayer::stopTaskScheduler();
     foreach (auto player, players) {
         player->setRenderer(nullptr);
         player->stop();
@@ -52,7 +52,12 @@ void Grid::addPlayer(int i, int j)
 {
     auto player = new BugAV::BugPlayer(this);
     auto renderer = new BugAV::BugGLWidget{this};
+    QVariantHash avformat;
+    avformat["probesize"] = 4096000;
+    avformat["analyzeduration"] = 500000;
+    avformat["rtsp_flags"] = "prefer_tcp";
     player->setRenderer(renderer);
+    player->setOptionsForFormat(avformat);
     player->play(file);
     ui->g->addWidget(renderer, i, j);
     players.push_back(player);

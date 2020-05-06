@@ -77,7 +77,11 @@ Render::~Render()
 
 void Render::start()
 {
-    qDebug() << "!!!Render Thread start";
+//    qDebug() << "!!!Render Thread start";
+    if (thread->isRunning()) {
+        return;
+    }
+    lastUpdateFrame = 0;
     requestStop = false;
     privState = PrivState::WaitingFirstFrame;
     lastVideoRefresh = 0;
@@ -105,7 +109,7 @@ void Render::start()
 
 void Render::stop()
 {
-    qDebug() << "!!!Render Thread stop";
+//    qDebug() << "!!!Render Thread stop";
     requestStop = true;   
     isRun = false;
     privState = PrivState::Stop;
@@ -189,7 +193,7 @@ AVPixelFormat Render::fixDeprecatedPixelFormat(AVPixelFormat fmt)
         pixFormat = fmt;
         break;
     }
-    return fmt;
+    return pixFormat;
 }
 
 //int Render::getSDLPixFmt(int format)
@@ -214,60 +218,64 @@ void Render::updateVideoPts(double pts, int64_t pos, int serial)
 void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
 {    
 //    qDebug() << " upload Texture " << QThread::currentThreadId();
-    if (renderer == nullptr || renderer == defaultRenderer) {
-        return;
-    }
     if (f->frame == nullptr) {
         return;
     }
+
     auto frame = f->frame;
     if (frame->width == 0
             ||frame->height == 0
             ) {
         return;
     }
-    auto fmt = (AVPixelFormat(is->viddec.avctx->pix_fmt));
-//    *img_convert_ctx = sws_getCachedContext(*img_convert_ctx,
-//                is->viddec.avctx->width, is->viddec.avctx->height, fmt,
-//                is->viddec.avctx->width, is->viddec.avctx->height, AV_PIX_FMT_YUV420P, sws_flags,
-//                nullptr, nullptr, nullptr);
 
-//    if (!*img_convert_ctx) {
-//        return;
-//    }
-//     uint8_t *dst[4] = {0};
-//     int dstStride[4];
+    if (lastUpdateFrame == 0) {
+        emit firstFrameComming();
+    }
+    lastUpdateFrame = QDateTime::currentMSecsSinceEpoch();
 
-//    for (auto i=0; i<4; i++){
-//        dstStride[i] = is->viddec.avctx->width*4;
-//        dst[i] = (uint8_t *)malloc(dstStride[i] * is->viddec.avctx->height);
-//    }
+    if (renderer == nullptr || renderer == defaultRenderer) {
+        return;
+    }
 
-//    auto ret = sws_scale(*img_convert_ctx  ,frame->data, frame->linesize, 0,
-//                          is->viddec.avctx->height, frame->data, frame->linesize);
 
+    auto fmt = fixDeprecatedPixelFormat(AVPixelFormat(is->viddec.avctx->pix_fmt));
     auto ret = 0;
-    if (ret >=0) {
-//    mutex.lock();
-        if (renderer != nullptr ) {
-            lastUpdateFrame = QDateTime::currentMSecsSinceEpoch();
-    //        renderer->initShader(is->viddec.avctx->width, is->viddec.avctx->height);
-            renderer->updateData(frame);
-            if (img == nullptr) {
-                img = new QImage(frame->width, frame->height, QImage::Format_RGB888);
-            }
-            if (saveRawImage) {
-                for( int y = 0; y < frame->height; ++y ) {
-                   memcpy( img->scanLine(y), frame->data[0]+y * frame->linesize[0], frame->width * 3 );
-                }
-                   img->save(QString("/home/sondq/Downloads/test/%1.png").arg(lastUpdateFrame));
-            }
+    if (fmt != AVPixelFormat::AV_PIX_FMT_YUV420P) {
+        // todo native renderer non yuv 420p    
+        *img_convert_ctx = sws_getCachedContext(*img_convert_ctx,
+                    is->viddec.avctx->width, is->viddec.avctx->height, fmt,
+                    is->viddec.avctx->width, is->viddec.avctx->height, AV_PIX_FMT_YUV420P,
+                    sws_flags,nullptr, nullptr, nullptr);
+
+        if (*img_convert_ctx) {
+            ret = sws_scale(*img_convert_ctx  ,frame->data, frame->linesize, 0,
+                            is->viddec.avctx->height, frame->data, frame->linesize);
+
         }
-//    mutex.unlock();
+    }
+    if (ret >=0) {
+        if (renderer != nullptr ) {            
+            renderer->updateData(frame);
+//            QImage image = QImage(frame->width, frame->height, QImage::Format::Format_ARGB32);
+//            for (int y = 0; y < frame->height; y++) {
+//            for (int x = 0; x < frame->width; x++) {
+//            const int xx = x >> 1;
+//            const int yy = y >> 1;
+//            const int Y = frame->data[0][y * frame->linesize[0] + x] - 16;
+//            const int U = frame->data[1][yy * frame->linesize[1] + xx] - 128;
+//            const int V = frame->data[2][yy * frame->linesize[2] + xx] - 128;
+//            const int r = qBound(0, (298 * Y + 409 * V + 128) >> 8, 255);
+//            const int g = qBound(0, (298 * Y - 100 * U - 208 * V + 128) >> 8, 255);
+//            const int b = qBound(0, (298 * Y + 516 * U + 128) >> 8, 255);
+//                image.setPixel(x, y, qRgb(r, g, b));
+//            }
+
+//            }
+//            image.save("/home/sondq/Downloads/test/" + QString::number(lastUpdateFrame )+ ".png");
+        }
     }
     av_frame_unref(frame);
-//    }
-//    av_frame_free(&fCrop);
 }
 
 //AVFrame *Render::cropImage(AVFrame *in, int left, int top, int right, int bottom)
@@ -316,6 +324,9 @@ void Render::process()
             if (remaining_time > 0.0) {
     //            qDebug() << "Remain time " << remaining_time << " render need sleep";
                 thread->usleep(static_cast<unsigned long>(remaining_time * 1000000.0));
+            }
+            if (requestStop) {
+                break;
             }
             remaining_time = REFRESH_RATE;
             if (is->show_mode != ShowMode::SHOW_MODE_NONE && (!is->paused || is->force_refresh)){
@@ -639,7 +650,7 @@ void Render::setRequestStop(bool value)
 
 bool Render::isRunning() const
 {
-//    return true;
+//    return isRun;
     return thread->isRunning();
 }
 

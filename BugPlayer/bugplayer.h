@@ -24,12 +24,16 @@ public:
         PlayingState,
         PausedState,
         PlayingNoRenderState,
+
     };
+
+    enum class MediaStatus {
+        FirstFrameComing,
+    };
+
     BugPlayer(QObject *parent = nullptr);
     ~BugPlayer();
-    static void setLog();
-
-    static void stopTaskScheduler();
+    static void setLog();   
 
     void setFile(const QString &file);
     QString getFile() const;
@@ -66,6 +70,8 @@ public:
     bool setSaveRawImage(bool save = false);
 public: signals:
     void stateChanged(BugAV::BugPlayer::AVState state);
+    void mediaStatusChanged(BugAV::BugPlayer::MediaStatus state);
+    void error(QString err);
 
 
 private:
@@ -80,6 +86,10 @@ private slots:
     void streamLoadedFailed();
 
     void demuxerStopped();
+
+    void readFrameError();
+
+    void firstFrameComming();
 private:
     VideoState *is;
     Demuxer *demuxer;
