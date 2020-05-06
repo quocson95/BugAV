@@ -405,6 +405,12 @@ void BugGLWidget::setRegionOfInterest(int x, int y, int w, int h)
     } else {
         renderW = fastUp16(w);
         renderH = fastUp16(h);
+        if (renderW > frameW) {
+            renderW = frameW;
+        }
+        if (renderH > frameH) {
+            renderH = frameH;
+        }
         offsetX = x;
         offsetY = y;
         if (renderW + offsetX > frameW ) {
@@ -412,6 +418,13 @@ void BugGLWidget::setRegionOfInterest(int x, int y, int w, int h)
         }
         if (renderH +offsetY > frameH) {
             offsetY = frameH - renderH;
+        }
+
+        if (offsetX < 0) {
+            offsetX = 0;
+        }
+        if (offsetY < 0) {
+            offsetY = 0;
         }
     }
 

@@ -14,7 +14,7 @@ Decoder::Decoder(PacketQueue *queue, QWaitCondition *cond)
 
 Decoder::~Decoder()
 {
-    av_packet_unref(&pkt);
+//    av_packet_unref(&pkt);
 }
 
 void Decoder::init(PacketQueue *queue, AVCodecContext *avctx, QWaitCondition *cond)
