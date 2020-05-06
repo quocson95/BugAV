@@ -136,7 +136,12 @@ int VideoDecoder::getFrame()
     if (ret == 0) {
         return 0;
     }
-    duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
+    duration = 0;
+    if (frame_rate.num && frame_rate.den) {
+        auto av = AVRational{frame_rate.den, frame_rate.num};
+        duration = av_q2d(av);
+    }
+//    duration = ( ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
     pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
     if (is->pictq.queueNbRemain() > 2) {
         pts /= speed_rate;
@@ -295,9 +300,14 @@ void VideoDecoder::process()
             if (!ret) {
                 continue;
             }
-            duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
+//            duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
+            duration = 0;
+            if (frame_rate.num && frame_rate.den) {
+                auto av = AVRational{frame_rate.den, frame_rate.num};
+                duration = av_q2d(av);
+            }
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
-            if (is->pictq.queueNbRemain() > 1) {
+            if (is->pictq.queueNbRemain() > 2) {
                 pts /= speed_rate;
             }
 

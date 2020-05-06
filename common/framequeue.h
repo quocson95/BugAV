@@ -47,7 +47,7 @@ public:
     Frame *peekLast();
     Frame *peekWriteable();
 //    Frame *peekReadable();
-    void *queuePush();
+    void queuePush();
     void queueNext();
     int queueNbRemain();
     int64_t queueLastPos();

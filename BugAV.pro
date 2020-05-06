@@ -21,7 +21,9 @@ MAKE_LIB {
     TEMPLATE = lib
 }
 
-LIBS += -lavutil -lavformat -lavcodec -lswscale -lswresample -lavfilter
+LIBS +=-L$$PWD/ffmpeg/lib -lavutil -lavformat -lavcodec -lswscale -lswresample -lavfilter
+
+INCLUDEPATH += $$PWD/ffmpeg/include
 
 DISTFILES += \
     logo.png

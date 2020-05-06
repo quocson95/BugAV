@@ -3,9 +3,9 @@
 
 #include <QSize>
 
+struct AVFrame;
 
 class QObject;
-class AVFrame;
 
 namespace BugAV {
 
@@ -14,7 +14,7 @@ class IBugAVRenderer  {
 public:
 //    IBugAVRenderer() = default;
     virtual ~IBugAVRenderer() = default;
-    virtual void updateData(AVFrame *frame);
+    virtual void updateData(AVFrame *frame) = 0;
 };
 
 }

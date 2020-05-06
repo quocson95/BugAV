@@ -108,7 +108,7 @@ int PacketQueue::putNullPkt(int streamIndex)
 
 int PacketQueue::putFlushPkt()
 {
-    put(&flushPkt);
+    return put(&flushPkt);
 }
 
 int PacketQueue::get(AVPacket *pkt, int block, int *serial)

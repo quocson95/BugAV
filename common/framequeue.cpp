@@ -105,7 +105,7 @@ Frame *FrameQueue::peekWriteable()
 //    return &queue[(rindex + rindex_shown) % max_size];
 //}
 
-void *FrameQueue::queuePush()
+void FrameQueue::queuePush()
 {
     if (++windex == max_size){
         windex = 0;

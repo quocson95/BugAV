@@ -245,7 +245,7 @@ AVRational BugFilter::getTimeBase()
 
 AVRational BugFilter::getFrameRate()
 {
-
+    return av_buffersink_get_frame_rate(filt_out);
 }
 
 QString BugFilter::getFilterDesc() const

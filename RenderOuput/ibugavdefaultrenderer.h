@@ -13,7 +13,7 @@ public:
     void updateData(unsigned char **);
     void initShader(int w, int h);    
 
-    void updateData(AVFrame *frame);
+    void updateData(AVFrame *frame) override;
 };
 }
 #endif // IBUGAVDEFAULTRENDERER_H

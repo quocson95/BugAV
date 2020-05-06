@@ -189,6 +189,7 @@ QString BugPlayer::statistic()
 bool BugPlayer::setSaveRawImage(bool save)
 {
     this->render->setSaveRawImage(save);
+    return true;
 }
 
 void BugPlayer::initPriv()
