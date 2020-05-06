@@ -348,7 +348,8 @@ void VideoDecoder::process()
 //                    }
 //                }
 //            }
-            duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
+            auto av = AVRational{frame_rate.den, frame_rate.num};
+            duration = (frame_rate.num && frame_rate.den ? av_q2d(av) : 0);
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
             if (is->pictq.queueNbRemain() > 2) {
                 pts /= speed_rate;
