@@ -426,7 +426,7 @@ void Render::videoRefresh()
         videoDisplay();
     }
     is->force_refresh = 0;
-    if (1) {
+    if (0) {
             static int64_t last_time;
             int64_t cur_time;
             int aqsize, vqsize, sqsize;
