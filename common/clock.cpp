@@ -22,7 +22,7 @@ Clock::~Clock()
 
 }
 
-void Clock::init(int queueSerial)
+void Clock::init(int *queueSerial)
 {
     this->queue_serial = queueSerial;
     this->speed = 1.0;
@@ -46,7 +46,7 @@ void Clock::setAt(double pts, int serial, double time)
 
 double Clock::get()
 {
-    if (this->queue_serial != this->serial)
+    if (*this->queue_serial != this->serial)
         return double(NAN);
     if (paused) {
         return pts;

@@ -7,7 +7,7 @@ class Clock {
 public:
     Clock();
     ~Clock();
-    void init(int queueSerial);
+    void init(int *queueSerial);
     void set(double pts, int serial);
     void setAt(double pts, int serial, double time);
     double get();
@@ -20,7 +20,7 @@ public:
     double speed;
     int serial;           /* clock is based on a packet with this serial */
     int paused;
-    int queue_serial;
+    int *queue_serial;
 };
 }
 #endif // CLOCK_H

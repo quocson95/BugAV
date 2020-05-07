@@ -426,6 +426,45 @@ void Render::videoRefresh()
         videoDisplay();
     }
     is->force_refresh = 0;
+    if (1) {
+            static int64_t last_time;
+            int64_t cur_time;
+            int aqsize, vqsize, sqsize;
+            double av_diff;
+
+            cur_time = av_gettime_relative();
+            if (!last_time || (cur_time - last_time) >= 30000) {
+                aqsize = 0;
+                vqsize = 0;
+                sqsize = 0;
+                if (is->audio_st)
+                    aqsize = is->audioq.size;
+                if (is->video_st)
+                    vqsize = is->videoq->size;
+                if (is->subtitle_st)
+                    sqsize = is->subtitleq.size;
+                av_diff = 0;
+                if (is->audio_st && is->video_st)
+                    av_diff = is->audclk.get() - is->vidclk.get();
+                else if (is->video_st)
+                    av_diff = is->getMasterClock() - is->vidclk.get();
+                else if (is->audio_st)
+                    av_diff = is->getMasterClock() - is->audclk.get();
+                av_log(NULL, AV_LOG_INFO,
+                       "%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%" PRId64 "/%" PRId64 "   \r",
+                       is->getMasterClock(),
+                       (is->audio_st && is->video_st) ? "A-V" : (is->video_st ? "M-V" : (is->audio_st ? "M-A" : "   ")),
+                       av_diff,
+                       is->frame_drops_early + is->frame_drops_late,
+                       aqsize / 1024,
+                       vqsize / 1024,
+                       sqsize,
+                       is->video_st ? is->viddec.avctx->pts_correction_num_faulty_dts : 0,
+                       is->video_st ? is->viddec.avctx->pts_correction_num_faulty_pts : 0);
+                fflush(stdout);
+                last_time = cur_time;
+            }
+        }
 }
 
 void Render::videoDisplay()

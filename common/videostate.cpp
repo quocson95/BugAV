@@ -92,7 +92,7 @@ void VideoState::init()
 {
     viddec.init(videoq, nullptr, continue_read_thread);
     pictq.init(videoq, VIDEO_PICTURE_QUEUE_SIZE, 1);
-    vidclk.init(videoq->serial);    
+    vidclk.init(&videoq->serial);
 }
 
 ShowModeClock VideoState::getMasterSyncType()
@@ -218,7 +218,7 @@ void VideoState::reset()
     videoq->init();
 
     //init clock
-    vidclk.init(videoq->serial);
+    vidclk.init(&videoq->serial);
 
     abort_request = 0;
     force_refresh = 0;

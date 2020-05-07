@@ -202,7 +202,7 @@ int Demuxer::readFrame()
             || enoughtPkt) {
 //        qDebug() << "full queue";
         mutex.lock();
-        is->continue_read_thread->wait(&mutex, 10); // wait max 10ms
+        is->continue_read_thread->wait(&mutex, 1); // wait max 10ms
         mutex.unlock();
         return 0;
     }
@@ -375,8 +375,10 @@ int Demuxer::streamOpenCompnent(int stream_index)
             is->video_stream = stream_index;
             is->video_st = is->ic->streams[stream_index];
             is->viddec.init(is->videoq, avctx, is->continue_read_thread);
+            is->vidclk.init(&is->videoq->serial);
             is->queue_attachments_req = 1;
-            is->viddec.start();            
+            is->viddec.start();
+            is->extclk.init(&is->extclk.serial);
             break;
         }
     }
