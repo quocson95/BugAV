@@ -148,7 +148,8 @@ bool Demuxer::load()
         return -1;
     }
     if (infinityBuff < 0 && is->realtime)
-        infinityBuff = 1;    
+        infinityBuff = 1;
+    infinityBuff = -1;
     return true;
 }
 

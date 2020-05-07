@@ -253,6 +253,7 @@ BugGLWidget::BugGLWidget(QWidget *parent)
 //    setROI(100, 100,100, 100);
 //    setGeometry(100, 200, 200,100);
     init = false;
+    setTransparent(true);
 }
 
 BugGLWidget::~BugGLWidget()
@@ -289,6 +290,7 @@ void BugGLWidget::initializeGL()
 void BugGLWidget::callUpdate()
 {
     this->update();
+    window()->update();
 }
 
 //void BugGLWidget::loadBackGroundImage()
@@ -520,7 +522,8 @@ void BugGLWidget::paintGL()
 
 void BugGLWidget::setTransparent(bool transparent)
 {
-    setAttribute(Qt::WA_AlwaysStackOnTop, transparent);
+    setAttribute(Qt::WA_TransparentForMouseEvents);
+//    setAttribute(Qt::WA_AlwaysStackOnTop, transparent);
     m_transparent = transparent;
     // Call update() on the top-level window after toggling AlwayStackOnTop to make sure
     // the entire backingstore is updated accordingly.
@@ -529,10 +532,10 @@ void BugGLWidget::setTransparent(bool transparent)
 
 void BugGLWidget::resizeGL(int w, int h)
 {
-//    if (w > 0 || h > 0) {
-//        glViewport(0, 0, w, h);
-//    }
-    update();
+    if (w > 0 || h > 0) {
+        glViewport(0, 0, w, h);
+    }
+    emit reqUpdate();
 //    raise();
 }
 }
