@@ -19,7 +19,7 @@ public:
         FindStreamInfo,
         Read
     };
-    HandlerInterupt(Demuxer *demuxer, qint64 timeout = 5000);
+    HandlerInterupt(Demuxer *demuxer, qint64 timeout = 10000);
     ~HandlerInterupt();
 
     void begin(Action action);

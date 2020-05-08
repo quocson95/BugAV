@@ -149,7 +149,7 @@ bool Demuxer::load()
     }
     if (infinityBuff < 0 && is->realtime)
         infinityBuff = 1;
-    infinityBuff = -1;
+//    infinityBuff = -1;
     return true;
 }
 
@@ -379,6 +379,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
             is->queue_attachments_req = 1;
             is->viddec.start();
             is->extclk.init(&is->extclk.serial);
+            is->audclk.serial = -1;
             break;
         }
     }

@@ -13,7 +13,7 @@ Grid::Grid(QWidget *parent) :
     setWindowTitle("Grid");
     ui->setupUi(this);
 //    file = "rtmp://61.28.233.149:1935/live/2bdd1370-e975-4eac-8bb8-12e07802e757_main_1588670960?ci=JDJiZGQxMzcwLWU5NzUtNGVhYy04YmI4LTEyZTA3ODAyZTc1NwIzOAAEbWFpbgN2Y2MbMWJUbmxBWkd4UWNYZ3JzRUFCQzQybUZyNm9mAAA=&sig=cc65438e8";
-    file = "rtsp://onvif:Admin123@192.168.0.3:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif";
+    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
     size = 1;
 
     start();

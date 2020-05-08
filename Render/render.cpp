@@ -323,8 +323,8 @@ void Render::process()
                 break;
             }
             if (remaining_time > 0.0) {
-    //            qDebug() << "Remain time " << remaining_time << " render need sleep";
-                thread->usleep(static_cast<unsigned long>(remaining_time * 1000000.0));
+//                qDebug() << "Remain time " << remaining_time << " render need sleep";
+                thread->usleep(static_cast<unsigned long>(remaining_time * 100000.0));
             }
             if (requestStop) {
                 break;
@@ -426,7 +426,7 @@ void Render::videoRefresh()
         videoDisplay();
     }
     is->force_refresh = 0;
-    if (0) {
+    if (1) {
             static int64_t last_time;
             int64_t cur_time;
             int aqsize, vqsize, sqsize;
@@ -451,7 +451,7 @@ void Render::videoRefresh()
                 else if (is->audio_st)
                     av_diff = is->getMasterClock() - is->audclk.get();
                 av_log(NULL, AV_LOG_INFO,
-                       "%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%" PRId64 "/%" PRId64 "   \r",
+                       "%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%" PRId64 "/%" PRId64 " %4d  \r",
                        is->getMasterClock(),
                        (is->audio_st && is->video_st) ? "A-V" : (is->video_st ? "M-V" : (is->audio_st ? "M-A" : "   ")),
                        av_diff,
@@ -460,7 +460,9 @@ void Render::videoRefresh()
                        vqsize / 1024,
                        sqsize,
                        is->video_st ? is->viddec.avctx->pts_correction_num_faulty_dts : 0,
-                       is->video_st ? is->viddec.avctx->pts_correction_num_faulty_pts : 0);
+                       is->video_st ? is->viddec.avctx->pts_correction_num_faulty_pts : 0,
+                       is->videoq->nb_packets);
+
                 fflush(stdout);
                 last_time = cur_time;
             }

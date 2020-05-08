@@ -59,7 +59,7 @@ void Clock::syncToSlave(Clock *slave)
 {
     double clock = this->get();
     double slave_clock = slave->get();
-    if (!qIsNaN(slave_clock) && (qIsNaN(clock) || qAbs(clock - slave_clock) > AV_NOSYNC_THRESHOLD)) {
+    if (!std::isnan(slave_clock) && (std::isnan(clock) || fabs(clock - slave_clock) > AV_NOSYNC_THRESHOLD)) {
         this->set(slave_clock, slave->serial);
     }
 }
