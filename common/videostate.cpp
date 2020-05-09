@@ -28,8 +28,8 @@ VideoState::VideoState()
 
     audio_stream = -1;
 
-    audio_clock = 1.0;
-    audio_clock_serial = -1;
+    audio_clock = 0.0;
+    audio_clock_serial = 0;
     audio_diff_cum = 0.0; /* used for AV difference average computation */
     audio_diff_avg_coef = 0.0;
     audio_diff_threshold = 0.0;
@@ -55,7 +55,7 @@ VideoState::VideoState()
     frame_last_returned_time = 0;
     frame_last_filter_delay = 0;
     video_stream = -1;
-    max_frame_duration = 10.0;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
+    max_frame_duration = 0.0;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
 
     eof = 0;
 
@@ -66,8 +66,9 @@ VideoState::VideoState()
     useAVFilter = false; // need avfilter avframe
 
     last_video_stream = last_audio_stream = last_subtitle_stream = -1;
-    framedrop = 0;
+    framedrop = -1;
     img_convert_ctx  = nullptr;
+    PacketQueue::mustInitOnce();
     init();
     reset();
 }
@@ -212,7 +213,7 @@ void VideoState::resetStream()
 void VideoState::reset()
 {
     resetStream();
-    framedrop = 1; // drop frame when cpu too slow.
+    framedrop = -1; // drop frame when cpu too slow.
 
     //init frame queue
     pictq.init(videoq, VIDEO_PICTURE_QUEUE_SIZE, 1);

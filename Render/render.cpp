@@ -151,7 +151,7 @@ double Render::compute_target_delay(VideoState *is, double delay)
            delay to compute the threshold. I still don't know
            if it is the best guess */
         sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
-        if (!isnan(diff) && fabs(diff) < is->max_frame_duration) {
+        if (!std::isnan(diff) && std::fabs(diff) < is->max_frame_duration) {
             if (diff <= -sync_threshold)
                 delay = FFMAX(0, delay + diff);
             else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD)
@@ -324,7 +324,7 @@ void Render::process()
             }
             if (remaining_time > 0.0) {
 //                qDebug() << "Remain time " << remaining_time << " render need sleep";
-                thread->usleep(static_cast<unsigned long>(remaining_time * 100000.0));
+                thread->usleep(static_cast<unsigned long>(remaining_time * 1000000.0));
             }
             if (requestStop) {
                 break;
@@ -362,10 +362,6 @@ void Render::videoRefresh()
         return;
     }
 
-    if (is->pictq.queueNbRemain() == 0 ) {
-        is->force_refresh = 0;
-        return;
-    }
     forever{
         if (is->pictq.queueNbRemain() > 0) {
             double last_duration, duration, delay;

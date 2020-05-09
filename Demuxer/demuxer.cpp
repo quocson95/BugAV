@@ -76,7 +76,7 @@ bool Demuxer::load()
     parseAvFormatOpts();
 
     handlerInterupt->begin(HandlerInterupt::Action::Open);
-    auto x = is->fileUrl.toUtf8().constData();
+//    auto x = is->fileUrl.toUtf8().constData();
     auto ret = avformat_open_input(&is->ic,
                                    is->fileUrl.toUtf8(),
                                    is->iformat, &formatOpts);
@@ -127,8 +127,10 @@ bool Demuxer::load()
     }
     is->realtime = is->isRealtime();
     for (unsigned int i = 0; i < is->ic->nb_streams; i++) {
+        AVStream *st = is->ic->streams[i];
         auto type = is->ic->streams[i]->codecpar->codec_type;
-        if (type != AVMEDIA_TYPE_UNKNOWN) {
+        st->discard = AVDISCARD_ALL;
+        if ( type != AVMEDIA_TYPE_UNKNOWN) {
             stIndex[type] = int(i);
 //            break;
         }
@@ -165,6 +167,7 @@ void Demuxer::unload()
     avctx = nullptr;
     handlerInterupt->setStatus(0);
     is->resetStream();
+    is->eof = 0;
 }
 
 int Demuxer::readFrame()

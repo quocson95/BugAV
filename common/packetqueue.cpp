@@ -43,7 +43,7 @@ bool PacketQueue::compareFlushPkt(AVPacket *pkt)
 }
 
 void PacketQueue::init()
-{
+{   
     abort_request = 1;
 }
 
@@ -113,7 +113,7 @@ int PacketQueue::putFlushPkt()
 
 int PacketQueue::get(AVPacket *pkt, int block, int *serial)
 {
-    MyAVPacketList *pkt1;
+    MyAVPacketList *pkt1 = nullptr;
     int ret;
 
     QMutexLocker lock(&mutex);
@@ -126,7 +126,7 @@ int PacketQueue::get(AVPacket *pkt, int block, int *serial)
         }
 
         pkt1 = first_pkt;
-        if (pkt1) {
+        if (pkt1 != nullptr) {
             first_pkt = pkt1->next;
             if (first_pkt == nullptr)
                 last_pkt = nullptr;
@@ -134,9 +134,10 @@ int PacketQueue::get(AVPacket *pkt, int block, int *serial)
             size -= pkt1->pkt.size + int(sizeof(*pkt1));
             duration -= pkt1->pkt.duration;
             *pkt = pkt1->pkt;
-            if (serial)
+            if (serial != nullptr) {
                 *serial = pkt1->serial;
-//            av_free(pkt1);
+            }
+//          av_free(pkt1);
             delete pkt1;
             ret = 1;
             break;

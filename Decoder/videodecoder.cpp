@@ -185,7 +185,7 @@ int VideoDecoder::getVideoFrame(AVFrame *frame)
         return -1;
     }
     if (gotPicture) {
-        double dpts = NAN;
+        double dpts = double(NAN);
         if (frame->pts != AV_NOPTS_VALUE) {
             dpts = av_q2d(is->video_st->time_base) * frame->pts;
         }

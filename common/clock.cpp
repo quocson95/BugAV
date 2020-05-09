@@ -13,7 +13,7 @@ Clock::Clock()
     ,speed{0}
     ,serial{0}
     ,paused{0}
-    ,queue_serial{0}
+    ,queue_serial{ nullptr }
 {
 }
 
@@ -59,7 +59,7 @@ void Clock::syncToSlave(Clock *slave)
 {
     double clock = this->get();
     double slave_clock = slave->get();
-    if (!std::isnan(slave_clock) && (std::isnan(clock) || fabs(clock - slave_clock) > AV_NOSYNC_THRESHOLD)) {
+    if (!std::isnan(slave_clock) && (std::isnan(clock) || std::fabs(clock - slave_clock) > AV_NOSYNC_THRESHOLD)) {
         this->set(slave_clock, slave->serial);
     }
 }
