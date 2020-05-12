@@ -1,7 +1,9 @@
 #include "clock.h"
+
 extern "C" {
-#include "libavutil/time.h"
+    #include "libavutil/time.h"
 }
+
 #include "QtMath"
 #include "define.h"
 
@@ -36,11 +38,17 @@ void Clock::set(double pts, int serial)
     setAt(pts, serial, time);
 }
 
+void Clock::setSpeed(double speed)
+{
+    set(get(), serial);
+    this->speed = speed;
+}
+
 void Clock::setAt(double pts, int serial, double time)
 {
     this->pts = pts;
-    last_updated = time;
-    pts_drift = this->pts - time;
+    this->last_updated = time;
+    this->pts_drift = this->pts - time;
     this->serial = serial;
 }
 

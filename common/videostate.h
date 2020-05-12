@@ -17,7 +17,7 @@ public:
     ~VideoState();
 
     void init();
-    ShowModeClock getMasterSyncType();
+    ShowModeClock getMasterSyncType() const;
     double getMasterClock();
 
     void checkExternalClockSpeed();
@@ -34,6 +34,9 @@ public:
     void resetStream();
 
     void reset();
+
+    bool isExternalClock() const;
+    bool isVideoClock() const;
 public:
 //    SDL_Thread *read_tid = nullptr;
     AVInputFormat *iformat  = nullptr;

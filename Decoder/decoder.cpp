@@ -118,9 +118,9 @@ int Decoder::decodeFrame(AVFrame *frame)
 //                } while(i == 0);
 //                if (i < 0)
 //                    return -1;
-            if (queue->get(&pkt, 1, &this->pkt_serial) < 0) {
-                return -1;
-            }
+                if (queue->get(&pkt, 1, &this->pkt_serial) < 0) {
+                    return -1;
+                }
             }
         } while (queue->serial != this->pkt_serial);
 
@@ -131,7 +131,7 @@ int Decoder::decodeFrame(AVFrame *frame)
            next_pts_tb = start_pts_tb;
         } else {
             if (avctx->codec_type == AVMEDIA_TYPE_SUBTITLE) {
-
+                ret = 0;
             } else {
 //                qDebug() << "avcodec_send_packet";
                 if (avcodec_send_packet(this->avctx, &pkt) == AVERROR(EAGAIN)) {

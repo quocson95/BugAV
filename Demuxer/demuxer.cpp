@@ -33,6 +33,8 @@ Demuxer::Demuxer(VideoState *is)
     startTime = AV_NOPTS_VALUE;
     pkt = &pkt1;
     isRun = false;
+    infinityBuff = -1;
+    loop = 1;
 
     if (handlerInterupt == nullptr) {
         handlerInterupt = new HandlerInterupt(this);
@@ -86,14 +88,14 @@ bool Demuxer::load()
         unload();
         return false;
     }
-    AVDictionaryEntry * tag;
+    AVDictionaryEntry *tag;
     while ((tag = av_dict_get(is->ic->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
         qDebug("%s=%s\n", tag->key, tag->value);
 
-    is->ic->flags |= AVFMT_FLAG_GENPTS;
+//    is->ic->flags |= AVFMT_FLAG_GENPTS;
     is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
     is->ic->flags |= AVFMT_FLAG_NOBUFFER;
-//    is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS; // flush avio context every packet (using for decrease buffer, flush old packet)
+    is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS; // flush avio context every packet (using for decrease buffer, flush old packet)
 
     av_format_inject_global_side_data(is->ic);
    // go to here ok
@@ -126,6 +128,10 @@ bool Demuxer::load()
         }
     }
     is->realtime = is->isRealtime();
+//    dump stream infomation
+    av_dump_format(is->ic, 0, is->fileUrl.toUtf8(), 0);
+    //    auto time = av_gettime_re
+
     for (unsigned int i = 0; i < is->ic->nb_streams; i++) {
         AVStream *st = is->ic->streams[i];
         auto type = is->ic->streams[i]->codecpar->codec_type;
@@ -205,7 +211,7 @@ int Demuxer::readFrame()
             || enoughtPkt) {
 //        qDebug() << "full queue";
         mutex.lock();
-        is->continue_read_thread->wait(&mutex, 1); // wait max 10ms
+        is->continue_read_thread->wait(&mutex, 10); // wait max 10ms
         mutex.unlock();
         return 0;
     }
@@ -213,7 +219,8 @@ int Demuxer::readFrame()
             (is->video_st != nullptr
              || (is->viddec.finished == is->videoq->serial
                  && is->pictq.queueNbRemain() == 0))) {
-        if (loop != 1 && (!loop || -- loop)) {
+        if (loop != 1 && (!loop || --loop)) {
+            qDebug() << "seek ";
             streamSeek(startTime != AV_NOPTS_VALUE ? startTime : 0, 0, 0);
         } else {
             // do nothing. play done file
@@ -304,7 +311,8 @@ int Demuxer::streamHasEnoughPackets(AVStream *st, int streamID, PacketQueue *que
     return streamID < 0 ||
                queue->abort_request ||
                (st->disposition & AV_DISPOSITION_ATTACHED_PIC) ||
-            queue->nb_packets > MIN_FRAMES && (!queue->duration || av_q2d(st->time_base) * queue->duration > 1.0);
+            ((queue->nb_packets > MIN_FRAMES) &&
+            (!queue->duration || av_q2d(st->time_base) * queue->duration > 1.0));
 }
 
 void Demuxer::parseAvFormatOpts()

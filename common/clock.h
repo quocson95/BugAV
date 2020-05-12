@@ -9,6 +9,7 @@ public:
     ~Clock();
     void init(int *queueSerial);
     void set(double pts, int serial);
+    void setSpeed(double speed);
     void setAt(double pts, int serial, double time);
     double get();
 

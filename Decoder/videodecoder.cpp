@@ -190,10 +190,10 @@ int VideoDecoder::getVideoFrame(AVFrame *frame)
             dpts = av_q2d(is->video_st->time_base) * frame->pts;
         }
         frame->sample_aspect_ratio = av_guess_sample_aspect_ratio(is->ic, is->video_st, frame);
-        if (is->framedrop>0 || (is->framedrop && is->getMasterSyncType() != ShowModeClock::AV_SYNC_VIDEO_MASTER)) {
+        if (is->framedrop > 0 || (is->framedrop && !is->isVideoClock())) {
             if (frame->pts != AV_NOPTS_VALUE) {
                 double diff = dpts - is->getMasterClock();
-                if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD &&
+                if (!std::isnan(diff) && std::fabs(diff) < AV_NOSYNC_THRESHOLD &&
                     diff - is->frame_last_filter_delay < 0 &&
                     is->viddec.pkt_serial == is->vidclk.serial &&
                     is->videoq->nb_packets)

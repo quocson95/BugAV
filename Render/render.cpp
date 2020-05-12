@@ -129,7 +129,7 @@ double Render::vp_duration(double maxFrameDuration, Frame *vp, Frame *nextvp)
 {
     if (vp->serial == nextvp->serial) {
         double duration = nextvp->pts - vp->pts;
-        if (isnan(duration) || duration <= 0 || duration > maxFrameDuration) {
+        if (isnan(duration) || duration <= 0.0 || duration > maxFrameDuration) {
             return vp->duration;
         } else {
             return duration;
@@ -140,9 +140,9 @@ double Render::vp_duration(double maxFrameDuration, Frame *vp, Frame *nextvp)
 
 double Render::compute_target_delay(VideoState *is, double delay)
 {
-    double sync_threshold, diff = 0;
+    double sync_threshold, diff = 0.0;
     /* update delay to follow master synchronisation source */
-    if (is->getMasterSyncType() != ShowModeClock::AV_SYNC_VIDEO_MASTER) {
+    if (!is->isVideoClock()) {
         /* if video is slave, we try to correct big delays by
            duplicating or deleting a frame */
         diff = is->vidclk.get() - is->getMasterClock();
@@ -346,7 +346,7 @@ void Render::videoRefresh()
 //    qDebug() << " video refresh";
 
 //    Frame *sp, *sp2;
-    if (!is->paused && is->getMasterSyncType() == ShowModeClock::AV_SYNC_EXTERNAL_CLOCK && is->realtime) {
+    if (!is->paused && is->isExternalClock() && is->realtime) {
             is->checkExternalClockSpeed();
     }
 
@@ -395,7 +395,7 @@ void Render::videoRefresh()
                 is->frame_timer = time;
             }
             is->pictq.mutex.lock();
-            if (!isnan(vp->pts)) {
+            if (!std::isnan(vp->pts)) {
                 updateVideoPts(vp->pts, vp->pos, vp->serial);
             }
             is->pictq.mutex.unlock();
@@ -403,7 +403,7 @@ void Render::videoRefresh()
             if (is->pictq.queueNbRemain() > 1) {
                 Frame *nextvp = is->pictq.peekNext();
                 duration = vp_duration(is->max_frame_duration, vp, nextvp);
-                if(!is->step && (is->framedrop>0 || (is->framedrop && is->getMasterSyncType() != ShowModeClock::AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
+                if(!is->step && (is->framedrop>0 || (is->framedrop && !is->isVideoClock())) && time > is->frame_timer + duration){
                     qDebug() << "Drop frame";
                    is->frame_drops_late++;
                    is->pictq.queueNext();
@@ -422,7 +422,7 @@ void Render::videoRefresh()
         videoDisplay();
     }
     is->force_refresh = 0;
-    if (1) {
+    if (0) {
             static int64_t last_time;
             int64_t cur_time;
             int aqsize, vqsize, sqsize;

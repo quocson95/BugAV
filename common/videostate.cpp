@@ -96,7 +96,7 @@ void VideoState::init()
     vidclk.init(&videoq->serial);
 }
 
-ShowModeClock VideoState::getMasterSyncType()
+ShowModeClock VideoState::getMasterSyncType() const
 {
     if (av_sync_type == ShowModeClock::AV_SYNC_VIDEO_MASTER) {
         if (video_st)
@@ -136,16 +136,18 @@ void VideoState::checkExternalClockSpeed()
     if ((this->video_stream >= 0 && this->videoq->nb_packets <= EXTERNAL_CLOCK_MIN_FRAMES) ||
            (this->audio_stream >= 0 && this->audioq.nb_packets <= EXTERNAL_CLOCK_MIN_FRAMES))
     {
-        setClockSpeed(&this->extclk, FFMAX(EXTERNAL_CLOCK_SPEED_MIN, this->extclk.speed - EXTERNAL_CLOCK_SPEED_STEP));
+//        setClockSpeed(&this->extclk, FFMAX(EXTERNAL_CLOCK_SPEED_MIN, this->extclk.speed - EXTERNAL_CLOCK_SPEED_STEP));
+        this->extclk.setSpeed(FFMAX(EXTERNAL_CLOCK_SPEED_MIN, this->extclk.speed - EXTERNAL_CLOCK_SPEED_STEP));
     } else if ((this->video_stream < 0 || this->videoq->nb_packets > EXTERNAL_CLOCK_MAX_FRAMES) &&
                   (this->audio_stream < 0 || this->audioq.nb_packets > EXTERNAL_CLOCK_MAX_FRAMES))
     {
-        setClockSpeed(&this->extclk, FFMIN(EXTERNAL_CLOCK_SPEED_MAX, this->extclk.speed + EXTERNAL_CLOCK_SPEED_STEP));
-    } else
-    {
+//        setClockSpeed(&this->extclk, FFMIN(EXTERNAL_CLOCK_SPEED_MAX, this->extclk.speed + EXTERNAL_CLOCK_SPEED_STEP));
+        this->extclk.setSpeed(FFMIN(EXTERNAL_CLOCK_SPEED_MAX, this->extclk.speed + EXTERNAL_CLOCK_SPEED_STEP));
+    } else {
        double speed = this->extclk.speed;
        if (speed != 1.0)
-           setClockSpeed(&this->extclk, speed + EXTERNAL_CLOCK_SPEED_STEP * (1.0 - speed) / fabs(1.0 - speed));
+//           setClockSpeed(&this->extclk, speed + EXTERNAL_CLOCK_SPEED_STEP * (1.0 - speed) / fabs(1.0 - speed));
+           this->extclk.setSpeed(speed + EXTERNAL_CLOCK_SPEED_STEP * (1.0 - speed) / fabs(1.0 - speed));
     }
 }
 
@@ -170,7 +172,7 @@ void VideoState::streamTogglePause()
 
 int VideoState::isRealtime()
 {
-    if (ic != nullptr && ic->iformat == nullptr) {
+    if (ic == nullptr || ic->iformat == nullptr) {
         return 0;
     }
     if(   !strcmp(ic->iformat->name, "rtp")
@@ -231,6 +233,16 @@ void VideoState::reset()
     step = 0;
     videoq->abort_request = 0;
     eof = 0;
+}
+
+bool VideoState::isExternalClock() const
+{
+    return getMasterSyncType() == ShowModeClock::AV_SYNC_EXTERNAL_CLOCK;
+}
+
+bool VideoState::isVideoClock() const
+{
+    return getMasterSyncType() == ShowModeClock::AV_SYNC_VIDEO_MASTER;
 }
 
 }
