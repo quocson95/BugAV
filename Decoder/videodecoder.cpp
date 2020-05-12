@@ -142,7 +142,7 @@ int VideoDecoder::getFrame()
     }
     duration = 0;
     if (frame_rate.num && frame_rate.den) {
-        auto av = AVRational{.num = frame_rate.den, .den = frame_rate.num};
+        auto av = AVRational{frame_rate.den, frame_rate.num};
         duration = av_q2d(av);
     }
 //    duration = ( ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
@@ -349,7 +349,7 @@ void VideoDecoder::process()
 //                }
 //            }
             if (frame_rate.num && frame_rate.den) {
-                auto av = AVRational{.num = frame_rate.den, .den =  frame_rate.num};
+                auto av = AVRational{frame_rate.den, frame_rate.num};
                 duration = av_q2d(av);
             } else {
                 duration = 0;
