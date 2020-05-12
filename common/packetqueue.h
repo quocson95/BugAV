@@ -49,8 +49,8 @@ public:
     int64_t duration;
     int abort_request;
     int serial;
-    QMutex mutex;
-    QWaitCondition cond;
+    QMutex *mutex;
+    QWaitCondition *cond;
 
 };
 }

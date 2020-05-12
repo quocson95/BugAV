@@ -23,11 +23,15 @@ PacketQueue::PacketQueue()
     ,abort_request{0}
     ,serial{-1}
 {
+     cond = new QWaitCondition;
+     mutex = new QMutex;
 }
 
 PacketQueue::~PacketQueue()
 {
     flush();
+    delete cond;
+    delete mutex;
 }
 
 void PacketQueue::mustInitOnce()
@@ -52,7 +56,7 @@ void PacketQueue::flush()
     MyAVPacketList *pkt, *pkt1;
     pkt = nullptr;
     pkt1 = nullptr;
-    QMutexLocker lock(&mutex);
+    QMutexLocker lock(mutex);
     Q_UNUSED(lock)
     for (pkt = first_pkt; pkt; pkt = pkt1) {
         pkt1 = pkt->next;
@@ -69,15 +73,15 @@ void PacketQueue::flush()
 
 void PacketQueue::abort()
 {
-    QMutexLocker lock(&mutex);
+    QMutexLocker lock(mutex);
     Q_UNUSED(lock)
     abort_request = 1;
-    cond.wakeOne();
+    cond->wakeOne();
 }
 
 void PacketQueue::start()
 {
-    QMutexLocker lock(&mutex);
+    QMutexLocker lock(mutex);
     Q_UNUSED(lock)
     abort_request = 0;
     putPrivate(&flushPkt);
@@ -87,9 +91,9 @@ int PacketQueue::put(AVPacket *pkt)
 {
     int ret;
 
-    mutex.lock();
+    mutex->lock();
     ret = putPrivate(pkt);
-    mutex.unlock();
+    mutex->unlock();
 
     if (pkt != &flushPkt && ret < 0)
         av_packet_unref(pkt);
@@ -116,7 +120,7 @@ int PacketQueue::get(AVPacket *pkt, int block, int *serial)
     MyAVPacketList *pkt1 = nullptr;
     int ret;
 
-    QMutexLocker lock(&mutex);
+    QMutexLocker lock(mutex);
     Q_UNUSED(lock)
 
     forever {
@@ -145,7 +149,7 @@ int PacketQueue::get(AVPacket *pkt, int block, int *serial)
             ret = 0;
             break;
         } else {
-            cond.wait(&mutex);
+            cond->wait(mutex);
         }
     }
     return ret;
@@ -178,7 +182,7 @@ int PacketQueue::putPrivate(AVPacket *pkt)
     size += pkt1->pkt.size + int(sizeof(*pkt1));
     duration += pkt1->pkt.duration;
     /* XXX: should duplicate packet data in DV case */
-    cond.wakeOne();
+    cond->wakeOne();
     return 0;
 }
 }

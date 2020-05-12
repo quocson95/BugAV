@@ -68,7 +68,7 @@ VideoState::VideoState()
     last_video_stream = last_audio_stream = last_subtitle_stream = -1;
     framedrop = -1;
     img_convert_ctx  = nullptr;
-    PacketQueue::mustInitOnce();
+//    PacketQueue::mustInitOnce();
     init();
     reset();
 }

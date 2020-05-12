@@ -142,7 +142,7 @@ int VideoDecoder::getFrame()
     }
     duration = 0;
     if (frame_rate.num && frame_rate.den) {
-        auto av = AVRational{frame_rate.den, frame_rate.num};
+        auto av = AVRational{.num = frame_rate.den, .den = frame_rate.num};
         duration = av_q2d(av);
     }
 //    duration = ( ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
@@ -348,9 +348,15 @@ void VideoDecoder::process()
 //                    }
 //                }
 //            }
-            auto av = AVRational{frame_rate.den, frame_rate.num};
-            duration = (frame_rate.num && frame_rate.den ? av_q2d(av) : 0);
+            if (frame_rate.num && frame_rate.den) {
+                auto av = AVRational{.num = frame_rate.den, .den =  frame_rate.num};
+                duration = av_q2d(av);
+            } else {
+                duration = 0;
+            }
+
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
+//            qDebug() <<  "duration " << duration << " pts " << pts;
             if (is->pictq.queueNbRemain() > 2) {
                 pts /= speed_rate;
             }

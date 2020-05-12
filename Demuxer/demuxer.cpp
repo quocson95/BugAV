@@ -216,7 +216,7 @@ int Demuxer::readFrame()
         return 0;
     }
     if (!is->paused &&
-            (is->video_st != nullptr
+            (is->video_st == nullptr
              || (is->viddec.finished == is->videoq->serial
                  && is->pictq.queueNbRemain() == 0))) {
         if (loop != 1 && (!loop || --loop)) {

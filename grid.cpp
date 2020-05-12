@@ -6,6 +6,8 @@
 
 #include <RenderOuput/ibugavdefaultrenderer.h>
 
+#include <common/packetqueue.h>
+
 Grid::Grid(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::Grid)
@@ -17,6 +19,7 @@ Grid::Grid(QWidget *parent) :
     size = 1;
 
     start();
+    BugAV::PacketQueue::mustInitOnce();
 
 }
 

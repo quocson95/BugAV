@@ -363,7 +363,9 @@ void Render::videoRefresh()
     }
 
     forever{
-        if (is->pictq.queueNbRemain() > 0) {
+        if (is->pictq.queueNbRemain() == 0) {
+            // nothing to do, no picture to display in the queue
+        } else {
             double last_duration, duration, delay;
             Frame *vp, *lastvp;
             lastvp = is->pictq.peekLast();
@@ -403,7 +405,7 @@ void Render::videoRefresh()
             if (is->pictq.queueNbRemain() > 1) {
                 Frame *nextvp = is->pictq.peekNext();
                 duration = vp_duration(is->max_frame_duration, vp, nextvp);
-                if(!is->step && (is->framedrop>0 || (is->framedrop && !is->isVideoClock())) && time > is->frame_timer + duration){
+                if(!is->step && (is->framedrop > 0 || (is->framedrop && !is->isVideoClock())) && time > is->frame_timer + duration){
                     qDebug() << "Drop frame";
                    is->frame_drops_late++;
                    is->pictq.queueNext();
