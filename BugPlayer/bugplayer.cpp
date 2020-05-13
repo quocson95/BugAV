@@ -275,7 +275,7 @@ void BugPlayer::streamLoaded()
         vDecoder->start();
 //        TaskScheduler::instance().addTask(render);
 //        TaskScheduler::instance().addTask(vDecoder);
-        emit stateChanged(AVState::PlayingState);
+        emit stateChanged(AVState::LoadingState);
     }
 }
 
@@ -293,12 +293,14 @@ void BugPlayer::demuxerStopped()
 void BugPlayer::readFrameError()
 {
     stop();
+    emit stateChanged(AVState::StoppedState);
     emit error(QLatin1String("Read frame error"));
 }
 
 void BugPlayer::firstFrameComming()
 {
     emit mediaStatusChanged(MediaStatus::FirstFrameComing);
+    emit stateChanged(AVState::PlayingState);
 }
 
 void BugPlayer::timerEvent(QTimerEvent *event)
