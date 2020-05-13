@@ -15,12 +15,36 @@ Grid::Grid(QWidget *parent) :
     setWindowTitle("Grid");
     ui->setupUi(this);
 //    file = "rtmp://61.28.233.149:1935/live/2bdd1370-e975-4eac-8bb8-12e07802e757_main_1588670960?ci=JDJiZGQxMzcwLWU5NzUtNGVhYy04YmI4LTEyZTA3ODAyZTc1NwIzOAAEbWFpbgN2Y2MbMWJUbmxBWkd4UWNYZ3JzRUFCQzQybUZyNm9mAAA=&sig=cc65438e8";
-    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
-    size = 1;
+//    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
+    size = 5;
+    files << "rtsp://admin:Admin123@192.168.0.9:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
+             files << "rtsp://admin:Admin123@vcloudcam.ddns.net:8556/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
+             files << "rtsp://admin:Admin123@192.168.0.12:554/profile3";
+             files << "rtsp://admin:Admin123@192.168.0.50:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_1";
+             files << "rtsp://admin:Admin123@192.168.0.52:554/cam/realmonitor?channel=1&subtype=2&unicast=true&proto=Onvif";
+             files << "rtsp://admin:Admin123@192.168.1.11:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
+             files << "rtsp://admin:admin123@192.168.1.12:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif";
+             files << "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/602";
+             files << "rtsp://admin:Admin123@192.168.0.11:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
+             files << "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/402";
+             files << "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/502";
+             files << "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/302";
+             files << "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/202";
+             files << "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/102";
+             files << "rtsp://admin:Admin123@192.168.0.7/onvif-media/media.amp?profile=profile_1_h264&sessiontimeout=60&streamtype=unicast";
+             files << "rtsp://admin:Admin123@192.168.0.111:554/user=admin_password=v0CilGW3_channel=1_stream=1.sdp?real_stream";
+             files << "rtsp://admin:Admin123@192.168.0.6:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
+             files << "rtsp://admin:Admin123@192.168.0.10:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
+             files << "rtsp://admin:Admin123@192.168.0.13:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif";
+             files << "rtsp://admin:Admin123@192.168.0.4:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif";
+             files << "rtsp://onvif:Admin123@192.168.0.3:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif";
+             files << "rtsp://admin:Admin123@192.168.0.2:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
+             files << "rtsp://admin:Admin123@192.168.0.50:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1";
+             files << "rtsp://admin:Admin123@192.168.0.12:554/profile3";
+
 
     start();
     BugAV::PacketQueue::mustInitOnce();
-
 }
 
 Grid::~Grid()
@@ -63,7 +87,9 @@ void Grid::addPlayer(int i, int j)
     avformat["rtsp_flags"] = "prefer_tcp";
     player->setRenderer(renderer);
     player->setOptionsForFormat(avformat);
-    player->play(file);
+    if (i*size + j < files.size()) {
+        player->play(files.at(i*size + j));
+    }
     ui->g->addWidget(renderer, i, j);
     players.push_back(player);
     renderers.push_back(renderer);

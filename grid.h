@@ -28,6 +28,7 @@ private:
     Ui::Grid *ui;
 
     QString file;
+    QVector<QString> files;
     QVector<BugAV::BugPlayer *> players;
     QVector<BugAV::IBugAVRenderer *> renderers;
 //    BugAV::TaskScheduler taskS`cheduler;

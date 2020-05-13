@@ -215,7 +215,7 @@ void VideoState::resetStream()
 void VideoState::reset()
 {
     resetStream();
-    framedrop = -1; // drop frame when cpu too slow.
+    framedrop = 0; // drop frame when cpu too slow.
 
     //init frame queue
     pictq.init(videoq, VIDEO_PICTURE_QUEUE_SIZE, 1);
