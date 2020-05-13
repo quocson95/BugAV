@@ -3778,6 +3778,7 @@
 
 #include "form.h"
 #include "grid.h"
+#include "statckwidget.h"
 
 #include <QApplication>
 #include <QWidget>
@@ -3815,6 +3816,7 @@ int main(int argc, char *argv[])
 //    bplayer.setFile(file);
 //    bplayer.play();
 //    bplayer.show();
+//    StatckWidget w;
     Grid w;
     w.show();
     a.exec();
