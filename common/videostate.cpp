@@ -66,8 +66,9 @@ VideoState::VideoState()
     useAVFilter = false; // need avfilter avframe
 
     last_video_stream = last_audio_stream = last_subtitle_stream = -1;
-    framedrop = -1;
     img_convert_ctx  = nullptr;
+
+    framedrop = 0;
 //    PacketQueue::mustInitOnce();
     init();
     reset();
@@ -215,7 +216,7 @@ void VideoState::resetStream()
 void VideoState::reset()
 {
     resetStream();
-    framedrop = 0; // drop frame when cpu too slow.
+//    framedrop = 0; // drop frame when cpu too slow.
 
     //init frame queue
     pictq.init(videoq, VIDEO_PICTURE_QUEUE_SIZE, 1);
