@@ -21,6 +21,10 @@ MAKE_LIB {
     TEMPLATE = lib
 }
 
+QMAKE_LFLAGS_RELEASE += /MAP
+QMAKE_CFLAGS_RELEASE += /Zi
+QMAKE_LFLAGS_RELEASE += /debug /opt:ref
+
 LIBS +=-L$$PWD/ffmpeg/lib -lavutil -lavformat -lavcodec -lswscale -lswresample -lavfilter
 
 INCLUDEPATH += $$PWD/ffmpeg/include
@@ -30,7 +34,8 @@ DISTFILES += \
 
 FORMS += \
     form.ui \
-    grid.ui
+    grid.ui \
+    statckwidget.ui
 
 HEADERS += \
     BugPlayer/bugplayer.h \
@@ -52,6 +57,7 @@ HEADERS += \
     form.h \
     grid.h \
     marco.h \
+    statckwidget.h \
     taskscheduler.h
 
 SOURCES += \
@@ -72,6 +78,7 @@ SOURCES += \
     form.cpp \
     grid.cpp \
     main.cpp \
+    statckwidget.cpp \
     taskscheduler.cpp
 
 
