@@ -30,7 +30,8 @@ DISTFILES += \
 
 FORMS += \
     form.ui \
-    grid.ui
+    grid.ui \
+    statckwidget.ui
 
 HEADERS += \
     BugPlayer/bugplayer.h \
@@ -52,6 +53,7 @@ HEADERS += \
     form.h \
     grid.h \
     marco.h \
+    statckwidget.h \
     taskscheduler.h
 
 SOURCES += \
@@ -72,6 +74,7 @@ SOURCES += \
     form.cpp \
     grid.cpp \
     main.cpp \
+    statckwidget.cpp \
     taskscheduler.cpp
 
 

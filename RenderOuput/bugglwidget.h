@@ -111,6 +111,7 @@ private:
     int kUpdate;
 
     QRect realRoi;  
+
 };
 }
 #endif // BugGLWidget_H

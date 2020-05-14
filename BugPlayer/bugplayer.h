@@ -66,7 +66,11 @@ public:
     QString statistic();
 
     bool setSaveRawImage(bool save = false);
-public: Q_SIGNALS:
+
+
+    void setEnableFramedrop(bool value = true);
+
+Q_SIGNALS:
     void stateChanged(BugAV::BugPlayer::AVState state);
     void mediaStatusChanged(BugAV::BugPlayer::MediaStatus state);
     void error(QString err);
@@ -101,6 +105,8 @@ private:
     bool renderRunning;
 
     int kUpdateStatistic;
+
+    bool enableFramedrop;
 
 //    TaskScheduler *taskScheduler;
 

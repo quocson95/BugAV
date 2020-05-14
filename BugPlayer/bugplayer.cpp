@@ -43,6 +43,7 @@ BugPlayer::BugPlayer(QObject *parent)
     demuxer->setAvformat(avformat);
 
     kUpdateStatistic = 0;
+    enableFramedrop = true;
     //    if (kUpdateStatistic <= 0 ) {
     //        kUpdateStatistic = startTimer(2000);
     //    }
@@ -191,9 +192,11 @@ bool BugPlayer::setSaveRawImage(bool save)
     return true;
 }
 
+
 void BugPlayer::initPriv()
 {
     is->reset();
+    is->framedrop = enableFramedrop;
 }
 
 void BugPlayer::playPriv()
@@ -301,6 +304,11 @@ void BugPlayer::firstFrameComming()
 {
     emit mediaStatusChanged(MediaStatus::FirstFrameComing);
     emit stateChanged(AVState::PlayingState);
+}
+
+void BugPlayer::setEnableFramedrop(bool value)
+{
+    enableFramedrop = value; // set before play, if not it will effect when player refresh
 }
 
 void BugPlayer::timerEvent(QTimerEvent *event)

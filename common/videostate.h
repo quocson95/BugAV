@@ -141,7 +141,7 @@ public:
     int last_video_stream, last_audio_stream, last_subtitle_stream;
 
     QWaitCondition *continue_read_thread = nullptr;
-    int framedrop = 1;
+    int framedrop; // drop frame when cpu too slow.
 };
 }
 #endif // VIDEOSTATE_H

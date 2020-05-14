@@ -522,7 +522,7 @@ void BugGLWidget::paintGL()
 
 void BugGLWidget::setTransparent(bool transparent)
 {
-    setAttribute(Qt::WA_TransparentForMouseEvents);
+//    setAttribute(Qt::WA_TransparentForMouseEvents);
 //    setAttribute(Qt::WA_AlwaysStackOnTop, transparent);
     m_transparent = transparent;
     // Call update() on the top-level window after toggling AlwayStackOnTop to make sure
@@ -532,10 +532,10 @@ void BugGLWidget::setTransparent(bool transparent)
 
 void BugGLWidget::resizeGL(int w, int h)
 {
-    if (w > 0 || h > 0) {
-        glViewport(0, 0, w, h);
-    }
-    emit reqUpdate();
+//    if (w > 0 || h > 0) {
+//        glViewport(0, 0, w, h);
+//    }
+//    emit reqUpdate();
 //    raise();
 }
 }
