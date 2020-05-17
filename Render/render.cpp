@@ -406,7 +406,7 @@ void Render::videoRefresh()
                 Frame *nextvp = is->pictq.peekNext();
                 duration = vp_duration(is->max_frame_duration, vp, nextvp);
                 if(!is->step && (is->framedrop > 0 || (is->framedrop && !is->isVideoClock())) && time > is->frame_timer + duration){
-                    qDebug() << "Drop frame";
+//                    qDebug() << "Drop frame";
                    is->frame_drops_late++;
                    is->pictq.queueNext();
                    continue;

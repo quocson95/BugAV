@@ -196,7 +196,11 @@ bool BugPlayer::setSaveRawImage(bool save)
 void BugPlayer::initPriv()
 {
     is->reset();
-    is->framedrop = enableFramedrop;
+    if (enableFramedrop) {
+        is->framedrop = -1;
+    } else {
+        is->framedrop = 0;
+    }
 }
 
 void BugPlayer::playPriv()
