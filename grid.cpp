@@ -3,7 +3,6 @@
 #include "ui_grid.h"
 
 #include <BugPlayer/bugplayer.h>
-
 #include <RenderOuput/ibugavdefaultrenderer.h>
 
 #include <common/packetqueue.h>

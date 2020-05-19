@@ -39,6 +39,7 @@ FORMS += \
 
 HEADERS += \
     BugPlayer/bugplayer.h \
+    BugPlayer/bugplayer_p.h \
     Decoder/decoder.h \
     Decoder/videodecoder.h \
     Demuxer/demuxer.h \
@@ -46,7 +47,7 @@ HEADERS += \
     Render/bugfilter.h \
     Render/render.h \
     RenderOuput/IBugAVRenderer.h \
-    RenderOuput/bugglwidget.h \
+    RenderOuput/bugglwidget.h \    
     RenderOuput/ibugavdefaultrenderer.h \
     common/clock.h \
     common/common.h \
@@ -62,6 +63,7 @@ HEADERS += \
 
 SOURCES += \
     BugPlayer/bugplayer.cpp \
+    BugPlayer/bugplayer_p.cpp \
     Decoder/decoder.cpp \
     Decoder/videodecoder.cpp \
     Demuxer/demuxer.cpp \
@@ -69,7 +71,7 @@ SOURCES += \
     Render/bugfilter.cpp \
     Render/render.cpp \
     RenderOuput/IBugAVRenderer.cpp \
-    RenderOuput/bugglwidget.cpp \
+    RenderOuput/bugglwidget.cpp \    
     RenderOuput/ibugavdefaultrenderer.cpp \
     common/clock.cpp \
     common/framequeue.cpp \
