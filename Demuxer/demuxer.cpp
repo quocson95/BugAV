@@ -129,7 +129,7 @@ bool Demuxer::load()
     }
     is->realtime = is->isRealtime();
 //    dump stream infomation
-    av_dump_format(is->ic, 0, is->fileUrl.toUtf8(), 0);
+//    av_dump_format(is->ic, 0, is->fileUrl.toUtf8(), 0);
     //    auto time = av_gettime_re
 
     for (unsigned int i = 0; i < is->ic->nb_streams; i++) {
@@ -350,7 +350,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
     }
 
     if (!codec) {
-        qDebug() << "No decoder could be found for codec";
+        qDebug() << "No decoder could be found for codec id " << avctx->codec_id;
         ret = AVERROR(EINVAL);
         avcodec_free_context(&avctx);
         return ret;

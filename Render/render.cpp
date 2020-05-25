@@ -19,6 +19,8 @@ extern "C" {
 #include "RenderOuput/IBugAVRenderer.h"
 #include <RenderOuput/ibugavdefaultrenderer.h>
 #include <QTime>
+#include <QTimer>
+#include <QTimerEvent>
 
 #define RNDTO2(X) ( ( (X) & 0xFFFFFFFE ))
 #define RNDTO32(X) ( ( (X) % 32 ) ? ( ( (X) + 32 ) & 0xFFFFFFE0 ) : (X) )
@@ -50,6 +52,16 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
     moveToThread(thread);
     connect(thread, SIGNAL (started()), this, SLOT (process()));
 //    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
+    timerCheckNoFrameRender = new QTimer{};
+    connect(timerCheckNoFrameRender, &QTimer::timeout, [=]()->void {
+        if (this->lastUpdateFrame == 0) {
+            return;
+        }
+        auto now = QDateTime::currentMSecsSinceEpoch();
+        if (now - this->lastUpdateFrame > 10000) {
+            emit noRenderNewFrameLongTime();
+        }
+    });
     img = nullptr;
 }
 
@@ -72,6 +84,7 @@ Render::~Render()
         delete img;
     }
     thread->deleteLater();
+    timerCheckNoFrameRender->deleteLater();
 //    delete thread;
 
 }
@@ -87,6 +100,7 @@ void Render::start()
     privState = PrivState::WaitingFirstFrame;
     lastVideoRefresh = 0;
     remaining_time = 0;
+    timerCheckNoFrameRender->start(2000);
 //    if (isRun) {
 //        return;
 //    }
@@ -111,6 +125,7 @@ void Render::start()
 void Render::stop()
 {
 //    qDebug() << "!!!Render Thread stop";
+    timerCheckNoFrameRender->stop();
     requestStop = true;   
     isRun = false;
     privState = PrivState::Stop;
@@ -676,7 +691,6 @@ int Render::handlerFrameState3()
 //    is->force_refresh = 0;
     return 1;
 }
-
 
 bool Render::getRequestStop() const
 {

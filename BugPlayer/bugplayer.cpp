@@ -17,6 +17,7 @@ BugPlayer::BugPlayer(QObject *parent)
     connect(d_ptr->demuxer, &Demuxer::loadFailed, this, &BugPlayer::streamLoadedFailed);
     connect(d_ptr->demuxer, &Demuxer::readFrameError, this, &BugPlayer::readFrameError);
     connect(d_ptr->render, &Render::firstFrameComming, this, &BugPlayer::firstFrameComming);
+    connect(d_ptr->render, &Render::noRenderNewFrameLongTime, this, &BugPlayer::noRenderNewFrameLongTime);
 }
 
 BugPlayer::BugPlayer(BugPlayerPrivate &d, QObject *parent)
@@ -55,6 +56,11 @@ void BugPlayer::firstFrameComming()
 {
     emit mediaStatusChanged(BugAV::BugPlayer::MediaStatus::FirstFrameComing);
     emit stateChanged(BugAV::BugPlayer::AVState::PlayingState);
+}
+
+void BugPlayer::noRenderNewFrameLongTime()
+{
+    emit mediaStatusChanged(BugAV::BugPlayer::MediaStatus::NoFrameRenderTooLong);
 }
 
 BugPlayer::~BugPlayer()

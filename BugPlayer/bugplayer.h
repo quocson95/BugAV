@@ -24,6 +24,7 @@ public:
 
     enum class MediaStatus {
         FirstFrameComing,
+        NoFrameRenderTooLong,
     };
     explicit BugPlayer(QObject *parent = nullptr);
     ~BugPlayer();
@@ -81,6 +82,8 @@ private:
     void readFrameError();
 
     void firstFrameComming();
+
+    void noRenderNewFrameLongTime();
 
 private:
     //Q_DECLARE_PRIVATE(BugPlayer);

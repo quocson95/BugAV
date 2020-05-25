@@ -42,6 +42,7 @@ public:
     QString statistic();
 public: signals:
     void firstFrameComming();
+    void noRenderNewFrameLongTime();
 private:
     bool initPriv();
 
@@ -51,8 +52,6 @@ private:
     bool handlerFrameState2();
     int handlerFrameState3();
 
-//    void started();
-//    void stopped();
 private:
     static double vp_duration(double maxFrameDuration, Frame *vp, Frame *nextvp);
     static double compute_target_delay (VideoState *is, double delay);
@@ -104,6 +103,8 @@ private:
 
 
     qint64 lastVideoRefresh;
+
+    QTimer *timerCheckNoFrameRender;
 
 
     // QRunnable interface
