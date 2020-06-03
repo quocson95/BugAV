@@ -8,6 +8,7 @@ extern "C" {
 #include "common.h"
 #include "Decoder/decoder.h"
 #include "framequeue.h"
+struct SwsContext;
 
 namespace BugAV {
 
@@ -119,7 +120,7 @@ public:
     AVStream *video_st = nullptr;
     PacketQueue *videoq;
     double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
-    struct SwsContext *img_convert_ctx = 0;
+    SwsContext *img_convert_ctx;
     struct SwsContext *sub_convert_ctx;
     int eof;
 

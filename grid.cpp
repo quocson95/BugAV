@@ -3,6 +3,7 @@
 #include "ui_grid.h"
 
 #include <BugPlayer/bugplayer.h>
+#include <RenderOuput/bugglrgb.h>
 #include <RenderOuput/ibugavdefaultrenderer.h>
 
 #include <common/packetqueue.h>
@@ -15,7 +16,10 @@ Grid::Grid(QWidget *parent) :
     ui->setupUi(this);
 //    file = "rtmp://61.28.233.149:1935/live/2bdd1370-e975-4eac-8bb8-12e07802e757_main_1588670960?ci=JDJiZGQxMzcwLWU5NzUtNGVhYy04YmI4LTEyZTA3ODAyZTc1NwIzOAAEbWFpbgN2Y2MbMWJUbmxBWkd4UWNYZ3JzRUFCQzQybUZyNm9mAAA=&sig=cc65438e8";
 //    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
-    size = 5;
+    size = 1;
+    // camera fish eye
+    files << "rtmp://61.28.233.149:1935/live/65fb8e90-a8fe-4b89-b962-156225d2948a_sub_1590374369?ci=JDY1ZmI4ZTkwLWE4ZmUtNGI4OS1iOTYyLTE1NjIyNWQyOTQ4YQIzOAADc3ViA3ZjYxsxY1I5WHV4dlBadVhxaTk2MHREejVPd1I4dXcAAA==&sig=139cf46fc";
+
     files << "rtsp://admin:Admin123@192.168.0.9:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
              files << "rtsp://admin:Admin123@vcloudcam.ddns.net:8556/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
              files << "rtsp://admin:Admin123@192.168.0.12:554/profile3";
@@ -47,9 +51,7 @@ Grid::Grid(QWidget *parent) :
 }
 
 Grid::~Grid()
-{
-    killTimer(kStatistic);
-//    taskScheduler.stop();
+{   
     foreach (auto player, players) {
         player->setRenderer(nullptr);
         player->stop();
@@ -80,6 +82,7 @@ void Grid::addPlayer(int i, int j)
 {
     auto player = new BugAV::BugPlayer(this);
     auto renderer = new BugAV::BugGLWidget;
+    player->enableSupportFisheye(true);
     QVariantHash avformat;
     avformat["probesize"] = 4096000;
     avformat["analyzeduration"] = 1000000;
@@ -97,12 +100,6 @@ void Grid::addPlayer(int i, int j)
 //        }
 }
 
-void Grid::timerEvent(QTimerEvent *event)
-{
-//    if (event->timerId() == kStatistic) {
-//        qDebug() << players.at(0)->statistic();
-//    }
-}
 
 void Grid::on_reCreateGrid_clicked()
 {

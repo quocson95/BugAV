@@ -167,5 +167,14 @@ void BugPlayer::setEnableFramedrop(bool value)
     d_ptr->setEnableFramedrop(value);
 }
 
+void BugPlayer::enableSupportFisheye(bool value)
+{
+    if (value) {
+        d_ptr->render->setPreferPixFmt(AVPixelFormat::AV_PIX_FMT_RGB32);
+    } else {
+        d_ptr->render->setPreferPixFmt(AVPixelFormat::AV_PIX_FMT_NONE);
+    }
+}
+
 
 }

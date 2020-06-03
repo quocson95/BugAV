@@ -20,6 +20,7 @@ public:
 
     void setQuality(int quality) override;
     void setOutAspectRatioMode(int ratioMode) override;
+    QImage receiveFrame(const QImage &frame);
 };
 }
 #endif // IBUGAVDEFAULTRENDERER_H

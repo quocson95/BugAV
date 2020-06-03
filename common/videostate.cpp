@@ -234,6 +234,10 @@ void VideoState::reset()
     step = 0;
     videoq->abort_request = 0;
     eof = 0;
+    if (img_convert_ctx != nullptr) {
+        sws_freeContext(img_convert_ctx);
+        img_convert_ctx = nullptr;
+    }
 }
 
 bool VideoState::isExternalClock() const

@@ -45,7 +45,7 @@ int HandlerInterupt::handleTimeout(void *opaque)
     }
     if (handler->reqStop) {
         // request stop
-        return -1;
+        return 1;
     }
 
     if (handler->status < 0) {

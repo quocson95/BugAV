@@ -66,6 +66,8 @@ public:
 
     void setEnableFramedrop(bool value = true);
 
+    void enableSupportFisheye(bool value = true);
+
 Q_SIGNALS:
     void stateChanged(BugAV::BugPlayer::AVState state);
     void mediaStatusChanged(BugAV::BugPlayer::MediaStatus state);

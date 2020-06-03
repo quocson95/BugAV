@@ -6,6 +6,7 @@
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
 #include <QOpenGLBuffer>
+#include <QOpenGLShaderProgram>
 #include <QVector3D>
 #include <QMatrix4x4>
 #include <QTime>
@@ -13,9 +14,10 @@
 #include <QOpenGLTexture>
 #include <QMutex>
 
-QT_FORWARD_DECLARE_CLASS(QOpenGLTexture)
-QT_FORWARD_DECLARE_CLASS(QOpenGLShader)
-QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
+
+extern "C" {
+    #include <libavutil/pixfmt.h>
+}
 
 namespace BugAV {
 #define BUF_SIZE 2
@@ -30,13 +32,15 @@ public:
     void updateData(AVFrame *frame) override;
 
     void setRegionOfInterest(int x, int y, int w, int h) override;
+    void setRegionOfInterest(int x, int y, int w, int h, bool emitUpdate);
 
     QSize videoFrameSize() const override;
-    void initShader(int w,int h, int *linesize);
+    void initShader(int w,int h);
 //    QObject *widget() override;
 
     void setQuality(int quality) override;
     void setOutAspectRatioMode(int ratioMode) override;
+    QImage receiveFrame(const QImage& frame) override;
 
 public slots:
 
@@ -46,7 +50,6 @@ protected:
     void resizeGL(int w, int h) Q_DECL_OVERRIDE;
     void paintGL() Q_DECL_OVERRIDE;
     void initializeGL() Q_DECL_OVERRIDE;
-//    void loadBackGroundImage();
 
 private: signals:
     void reqUpdate();
@@ -54,14 +57,24 @@ private slots:
     void callUpdate();
 private:
      void initializeTexture( GLuint id, int frameW, int frameH);
-     void freeBuffer();
-     void initBuffer(int *linesize, int h);
+     void freeBufferYUV();
+     void initBufferYUV(int *linesize, int h);
 
-     void initYUV();
+     void initBufferRGB(int w, int h );
+     void freeBufferRGB();
+
+     void initializeYUVGL();
 
      int fastUp16(int x);
 
      void copyData();
+
+     void prepareYUV(AVFrame *frame);
+     void prepareRGB(AVFrame *frame);
+
+     void drawYUV();
+     void drawRGB();
+     void reDraw();
 private:
 //    QTimer *timer;
     bool init;
@@ -88,6 +101,8 @@ private:
     size_t renderWxH;
     size_t renderWxH_4;
 
+    QSize picSize;
+
     int offsetX, offsetY;
 
     struct YUVBuff {
@@ -105,12 +120,21 @@ private:
 
     YUVBuff yuvBuffer[BUF_SIZE];
 
+    QVector<QImage> images;
+
     int bufIndex;   
     QMutex mutex;
 
     int kUpdate;
 
-    QRect realRoi;  
+    QRect realRoi;
+
+    bool hasInitYUV;
+    bool hasInitRGB;
+
+    AVPixelFormat pixFmt;
+
+    unsigned char* dataRGB;
 
 };
 }

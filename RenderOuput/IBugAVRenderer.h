@@ -2,6 +2,7 @@
 #define IRENDERER_H
 #include "marco.h"
 
+#include <QImage>
 #include <QSize>
 
 struct AVFrame;
@@ -18,6 +19,8 @@ public:
     virtual QSize videoFrameSize() const = 0;
     virtual void setQuality(int quality) = 0;
     virtual void setOutAspectRatioMode(int ratioMode) = 0;
+
+    virtual QImage receiveFrame(const QImage& frame) = 0;
 
 };
 

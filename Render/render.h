@@ -48,6 +48,8 @@ private:
 
     bool isAvailFirstFrame();
 
+    void freeSwsBuff();
+
     bool handlerFrameState1();
     bool handlerFrameState2();
     int handlerFrameState3();
@@ -106,11 +108,22 @@ private:
 
     QTimer *timerCheckNoFrameRender;
 
+    uint8_t *dst_data[4];
+    bool initSwsBuff = false;
+    int dst_linesize[4];
+
+    // prefer pixel format for render
+    // default will using AV_PIX_FMT_YUV420P for render
+    // else force to rgb AV_PIX_FMT_RGB32
+    // todo allow another format
+    AVPixelFormat preferPixFmt;
+
 
     // QRunnable interface
 public:
     void run();
     void setSaveRawImage(bool value);
+    void setPreferPixFmt(const AVPixelFormat &value);
 };
 }
 #endif // RENDER_H

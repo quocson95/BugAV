@@ -30,7 +30,8 @@ LIBS +=-L$$PWD/ffmpeg/lib -lavutil -lavformat -lavcodec -lswscale -lswresample -
 INCLUDEPATH += $$PWD/ffmpeg/include
 
 DISTFILES += \
-    logo.png
+    logo.png \
+    rgb2yuv_document.txt
 
 FORMS += \
     form.ui \
@@ -47,8 +48,11 @@ HEADERS += \
     Render/bugfilter.h \
     Render/render.h \
     RenderOuput/IBugAVRenderer.h \
-    RenderOuput/bugglwidget.h \    
+    RenderOuput/bugglrgb.h \
+    RenderOuput/bugglwidget.h \     \
+    RenderOuput/glvideowidget.h \
     RenderOuput/ibugavdefaultrenderer.h \
+    RenderOuput/yuv_rgb.h \
     common/clock.h \
     common/common.h \
     common/define.h \
@@ -59,7 +63,6 @@ HEADERS += \
     grid.h \
     marco.h \
     statckwidget.h \
-    taskscheduler.h
 
 SOURCES += \
     BugPlayer/bugplayer.cpp \
@@ -71,8 +74,11 @@ SOURCES += \
     Render/bugfilter.cpp \
     Render/render.cpp \
     RenderOuput/IBugAVRenderer.cpp \
-    RenderOuput/bugglwidget.cpp \    
+    RenderOuput/bugglrgb.cpp \
+    RenderOuput/bugglwidget.cpp \
+    RenderOuput/glvideowidget.cpp \
     RenderOuput/ibugavdefaultrenderer.cpp \
+    RenderOuput/yuv_rgb.c \
     common/clock.cpp \
     common/framequeue.cpp \
     common/packetqueue.cpp \
@@ -81,7 +87,3 @@ SOURCES += \
     grid.cpp \
     main.cpp \
     statckwidget.cpp \
-    taskscheduler.cpp
-
-
-

@@ -34,6 +34,7 @@ Render::Render()
     hasInit = false;
     isRun = false;
     privState = PrivState::Stop;
+
 }
 
 
@@ -62,6 +63,7 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
             emit noRenderNewFrameLongTime();
         }
     });
+    preferPixFmt = AVPixelFormat::AV_PIX_FMT_NONE;
     img = nullptr;
 }
 
@@ -100,6 +102,7 @@ void Render::start()
     privState = PrivState::WaitingFirstFrame;
     lastVideoRefresh = 0;
     remaining_time = 0;
+    freeSwsBuff();
     timerCheckNoFrameRender->start(2000);
 //    if (isRun) {
 //        return;
@@ -254,41 +257,46 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
         return;
     }
 
+    if (!initSwsBuff) {
+        initSwsBuff = true;
+        auto ret = av_image_alloc(dst_data, dst_linesize, frame->width, frame->height, AV_PIX_FMT_RGB32, 1);
+        if (ret < 0) {
+            qDebug() << "Init sws data error ";
+            initSwsBuff =  false;
+        }
+    }
 
     auto fmt = fixDeprecatedPixelFormat(AVPixelFormat(is->viddec.avctx->pix_fmt));
+    frame->format = fmt;
     auto ret = 0;
-    if (fmt != AVPixelFormat::AV_PIX_FMT_YUV420P) {
-        // todo native renderer non yuv 420p    
+    AVFrame *dstFrame = frame;
+    if (this->preferPixFmt == AVPixelFormat::AV_PIX_FMT_NONE && fmt == AVPixelFormat::AV_PIX_FMT_YUV420P) {
+//        // do nothing.
+//        // native render yuv420p
+    } else if (fmt != AVPixelFormat::AV_PIX_FMT_RGB32) {
+//         todo native renderer non yuv 420p
         *img_convert_ctx = sws_getCachedContext(*img_convert_ctx,
                     is->viddec.avctx->width, is->viddec.avctx->height, fmt,
-                    is->viddec.avctx->width, is->viddec.avctx->height, AV_PIX_FMT_YUV420P,
+                    is->viddec.avctx->width, is->viddec.avctx->height, AV_PIX_FMT_RGB32,
                     sws_flags,nullptr, nullptr, nullptr);
 
         if (*img_convert_ctx) {
             ret = sws_scale(*img_convert_ctx  ,frame->data, frame->linesize, 0,
-                            is->viddec.avctx->height, frame->data, frame->linesize);
+                            is->viddec.avctx->height, dst_data, dst_linesize);
 
         }
+        for (auto i = 0; i < 3; i++) {
+            dstFrame->data[i] = dst_data[i];
+            dstFrame->linesize[i] = dst_linesize[i];
+        }
+        dstFrame->width = frame->width;
+        dstFrame->height = frame->height;
+        dstFrame->format = AV_PIX_FMT_RGB32;
     }
-    if (ret >=0) {
-        if (renderer != nullptr ) {            
-            renderer->updateData(frame);
-//            QImage image = QImage(frame->width, frame->height, QImage::Format::Format_ARGB32);
-//            for (int y = 0; y < frame->height; y++) {
-//            for (int x = 0; x < frame->width; x++) {
-//            const int xx = x >> 1;
-//            const int yy = y >> 1;
-//            const int Y = frame->data[0][y * frame->linesize[0] + x] - 16;
-//            const int U = frame->data[1][yy * frame->linesize[1] + xx] - 128;
-//            const int V = frame->data[2][yy * frame->linesize[2] + xx] - 128;
-//            const int r = qBound(0, (298 * Y + 409 * V + 128) >> 8, 255);
-//            const int g = qBound(0, (298 * Y - 100 * U - 208 * V + 128) >> 8, 255);
-//            const int b = qBound(0, (298 * Y + 516 * U + 128) >> 8, 255);
-//                image.setPixel(x, y, qRgb(r, g, b));
-//            }
 
-//            }
-//            image.save("/home/sondq/Downloads/test/" + QString::number(lastUpdateFrame )+ ".png");
+    if (ret >=0) {
+        if (renderer != nullptr ) {
+            renderer->updateData(dstFrame);
         }
     }
     av_frame_unref(frame);
@@ -494,6 +502,11 @@ void Render::videoDisplay()
 
 }
 
+void Render::setPreferPixFmt(const AVPixelFormat &value)
+{
+    preferPixFmt = value;
+}
+
 void Render::setSaveRawImage(bool value)
 {
     saveRawImage = value;
@@ -583,6 +596,14 @@ bool Render::isAvailFirstFrame()
 {
      auto avail = (is->pictq.queueNbRemain() > 0);
      return  avail;
+}
+
+void Render::freeSwsBuff()
+{
+    if (initSwsBuff == true) {
+        av_freep(dst_data);
+        initSwsBuff = false;
+    }
 }
 
 bool Render::handlerFrameState1()

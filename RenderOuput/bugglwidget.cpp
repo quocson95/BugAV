@@ -2,6 +2,8 @@
 
 extern "C" {
 #include <libavutil/frame.h>
+#include "yuv_rgb.h"
+
 }
 #include <QPainter>
 #include <QPaintEngine>
@@ -11,8 +13,9 @@ extern "C" {
 #include <math.h>
 #include "QTimer"
 
-namespace BugAV {
+#include <x86intrin.h>
 
+namespace BugAV {
 
 //-------------------------------------
 const char g_indices[] = { 0, 3, 2, 0, 2, 1 };
@@ -23,18 +26,22 @@ const char g_vertextShader[] = { "attribute vec4 aPosition;\n"
                                  "  gl_Position = aPosition;\n"
                                  "  vTextureCoord = aTextureCoord;\n"
                                  "}\n" };
+
 const char g_fragmentShader[] = {
     "uniform sampler2D Ytex,Utex,Vtex;\n"
     "varying vec2 vTextureCoord;\n"
     "void main(void) {\n"
     "vec3 yuv;\n"
     "vec3 rgb;\n"
-    "yuv.x = texture2D(Ytex, vTextureCoord).r;\n"
-    "yuv.y = texture2D(Utex, vTextureCoord).r - 0.5;\n"
-    "yuv.z = texture2D(Vtex, vTextureCoord).r - 0.5;\n"
-    "rgb = mat3(1,1,1,\n"
-    "0,-0.39465,2.03211,\n"
-    "1.13983, -0.58060,  0) * yuv;\n"
+    "yuv.x = texture2D(Ytex, vTextureCoord).r - 0.0625;\n" // -16
+    "yuv.y = texture2D(Utex, vTextureCoord).r - 0.5;\n"   // -128
+    "yuv.z = texture2D(Vtex, vTextureCoord).r - 0.5;\n"  // -128
+//    "rgb = mat3(1,1,1,\n"
+//    "0,-0.39465,2.03211,\n"
+//    "1.13983, -0.58060,  0) * yuv;\n"
+    "rgb = mat3(1.164,1.164,1.164,\n"
+    "0,-0.392,2.017,\n"
+    "1.596, -0.813,  0) * yuv;\n"
     "gl_FragColor = vec4(rgb, 1);\n"
     "}\n" };
 const GLfloat m_verticesA[20] = { 1, 1, 0, 1, 0, -1, 1, 0, 0, 0, -1, -1, 0, 0,
@@ -65,15 +72,8 @@ void BugGLWidget::initializeTexture( GLuint  id, int width, int height) {
                  GL_UNSIGNED_BYTE, nullptr);
 }
 
-void BugGLWidget::freeBuffer()
+void BugGLWidget::freeBufferYUV()
 {
-//    for(int i=0;i<BUF_SIZE;i++)
-//    {
-//       if (buffer[i] != nullptr) {
-//           free (buffer[i]);
-//           buffer[i] = nullptr;
-//       }
-//    }
     for(int i=0;i<BUF_SIZE;i++) {
         if (yuvBuffer[i].y != nullptr) {
             free (yuvBuffer[i].y);
@@ -97,13 +97,10 @@ void BugGLWidget::freeBuffer()
      }
 }
 
-void BugGLWidget::initBuffer(int *linesize, int h)
+void BugGLWidget::initBufferYUV(int *linesize, int h)
 {
-    freeBuffer();
-//    for(int i=0;i<BUF_SIZE;i++)
-//    {
-//       buffer[i]= static_cast<unsigned char*>(malloc(size));
-//    }
+    hasInitYUV = true;
+    freeBufferYUV();
 
     for(auto i = 0; i < 3; i++) {
         originFrame.linesize[i] = linesize[i];
@@ -117,7 +114,27 @@ void BugGLWidget::initBuffer(int *linesize, int h)
     }
 }
 
-void BugGLWidget::initYUV()
+void BugGLWidget::initBufferRGB(int w, int h)
+{
+    hasInitRGB = true;
+    freeBufferRGB();
+    for(auto i = 0; i < BUF_SIZE; i++) {
+        images.push_back(QImage(w, h, QImage::Format_RGB32));
+    }
+    const size_t rgb_stride = w*3 +(16-(3*w)%16)%16;
+    dataRGB = static_cast<unsigned char*>(_mm_malloc(rgb_stride * h, 16));
+}
+
+void BugGLWidget::freeBufferRGB()
+{
+    images.clear();
+    if (dataRGB != nullptr) {
+        _mm_free(dataRGB);
+        dataRGB = nullptr;
+    }
+}
+
+void BugGLWidget::initializeYUVGL()
 {
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
@@ -177,11 +194,7 @@ int BugGLWidget::fastUp16(int x)
 
 void BugGLWidget::copyData()
 {
-//    QMutexLocker lock(&mutex);
-//    Q_UNUSED(lock)
-
-
-    mutex.lock();
+    mutex.lock();   
     auto index = bufIndex + 1;
     if(index>=BUF_SIZE)
         index=0;
@@ -205,176 +218,19 @@ void BugGLWidget::copyData()
                originFrame.data[2] + originFrame.linesize[2] * (i + offsetY_2) + offsetX_2,
                 static_cast<size_t>(renderW / 2));
     }
-//    if (firstBuff) {
-//        auto idx = index - 1;
-//        if (idx < 0) {
-//            idx = BUF_SIZE - 1;
-//        }
-//        yuvBuffer[idx].y = yuvBuffer[index].y;
-//        yuvBuffer[idx].u = yuvBuffer[index].u;
-//        yuvBuffer[idx].v = yuvBuffer[index].v;
-//        index
-//    }
     bufIndex = index;
     mutex.unlock();
     emit reqUpdate();
 }
 
-BugGLWidget::BugGLWidget(QWidget *parent)
-    :QOpenGLWidget{parent}
-    ,m_vshaderA{nullptr}
-    ,m_fshaderA{nullptr}
-    ,m_programA{nullptr}
-    ,m_texture(nullptr)
-    ,m_transparent(false)
-    ,m_background(Qt::white)
+void BugGLWidget::prepareYUV(AVFrame *frame)
 {
-//    moveToThread(qApp->thread());
-    frameW=0;
-    frameH=0;
-    frameWxH = 0;
-    FrameWxH_4 = 0;
-
-    renderH = 0;
-    renderW = 0;
-    renderWxH = 0;
-    renderWxH_4 = 0;
-    offsetX = offsetY = 0;
-
-    bufIndex=0;
-    memset(m_textureIds, 0, 3);
-    for(auto i = 0; i < 3; i++) {        
-        originFrame.data[i] = nullptr;
-    }
-    yuvBuffer[0].y = yuvBuffer[0].u = yuvBuffer[0].v = nullptr;
-    yuvBuffer[1].y = yuvBuffer[1].u = yuvBuffer[1].v = nullptr;
-    isShaderInited=false;
-    connect(this, &BugGLWidget::reqUpdate, this, &BugGLWidget::callUpdate);
-//    setROI(100, 100,100, 100);
-//    setGeometry(100, 200, 200,100);
-    init = false;
-    setTransparent(true);
-}
-
-BugGLWidget::~BugGLWidget()
-{
-    qDebug() << " BugGLWidget destroy";
-    disconnect(this, &BugGLWidget::reqUpdate, this, &BugGLWidget::callUpdate);
-    // And now release all OpenGL resources.
-    makeCurrent();
-
-    freeBuffer();
-
-    if (m_vshaderA != nullptr) {
-        delete m_vshaderA;
-    }
-    if (m_fshaderA != nullptr) {
-        delete m_fshaderA;
-    }
-    if (m_texture != nullptr) {
-        delete m_texture;
-    }
-    if (m_programA) {
-        delete m_programA;
-    }
-
-    doneCurrent();    
-}
-
-void BugGLWidget::initializeGL()
-{
-    initializeOpenGLFunctions();
-    initYUV();
-}
-
-void BugGLWidget::callUpdate()
-{
-    this->update();
-    window()->update();
-}
-
-//void BugGLWidget::loadBackGroundImage()
-//{
-//    QImage img("/home/sondq/Documents/dev/BugAV/logo.png", "png");
-////    auto i = QImage::Format(5);
-//    uchar* out_buffer = (uchar*)av_malloc((int)ceil(img.height() * img.width() * 1.5));
-//    //allocate ffmpeg frame structures
-//    AVFrame* inpic = av_frame_alloc();
-//    backgroundImage = av_frame_alloc();
-
-//    avpicture_fill((AVPicture*)inpic,
-//                   img.bits(),
-//                   AV_PIX_FMT_RGB0,
-//                   img.width(),
-//                   img.height());
-
-//    avpicture_fill((AVPicture*)backgroundImage,
-//                   out_buffer,
-//                   AV_PIX_FMT_YUV420P,
-//                   img.width(),
-//                   img.height());
-
-//    SwsContext* ctx = sws_getContext(img.width(),
-//                                     img.height(),
-//                                     AV_PIX_FMT_RGB0,
-//                                     img.width(),
-//                                     img.height(),
-//                                     AV_PIX_FMT_YUV420P,
-//                                     SWS_BICUBIC,
-//                                     NULL, NULL, NULL);
-//    sws_scale(ctx,
-//              inpic->data,
-//              inpic->linesize,
-//              0,
-//              img.height(),
-//              backgroundImage->data,
-//              backgroundImage->linesize);
-
-//    //free memory
-//    av_free(inpic);
-//    //free output buffer when done with it
-//    av_free(out_buffer);
-//}
-
-
-void BugGLWidget::initShader(int w, int h, int *linesize)
-{
-    if(frameW != w || frameH != h)
-    {
-        this->frameW = w;
-        this->frameH = h;
-
-        frameWxH = size_t(frameW) * size_t(frameH);
-        FrameWxH_4 = frameWxH / 4;
-        initBuffer(linesize, h);
-        isShaderInited=false;
-        setRegionOfInterest(0, 0, frameW, frameH);
-    }
-}
-
-void BugGLWidget::setQuality(int quality)
-{
-
-}
-
-void BugGLWidget::setOutAspectRatioMode(int ratioMode)
-{
-
-}
-
-void BugGLWidget::updateData(AVFrame *frame)
-{
-    if (frame->linesize[0] < 0) {
-        qDebug() << "Current buggl render not support frame linesize < 0";        
-        return;
-    }
-
-
     if (frame->width != frameW
-            || frame->height != frameH)
+            || frame->height != frameH || !hasInitYUV)
     {
-        initShader(frame->width, frame->height, frame->linesize);        
-    }    
+        initBufferYUV(frame->linesize, frame->height);
+        initShader(frame->width, frame->height);        
+    }
     mutex.lock();
     memcpy(originFrame.data[0], frame->data[0], frame->linesize[0] * frame->height);
     memcpy(originFrame.data[1], frame->data[1], frame->linesize[1] * frame->height/2);
@@ -383,75 +239,40 @@ void BugGLWidget::updateData(AVFrame *frame)
     copyData();
 }
 
-void BugGLWidget::setRegionOfInterest(int x, int y, int w, int h)
+void BugGLWidget::prepareRGB(AVFrame *frame)
 {
-//    QMutexLocker lock(&mutex);
-//    Q_UNUSED(lock)
-    if (x <= 0) {
-        x = 0;
+    if (frame->width != frameW
+            || frame->height != frameH || !hasInitRGB)
+    {
+        initShader(frame->width, frame->height);
+        initBufferRGB(frame->width, frame->height);
     }
-    if (y <= 0) {
-        y = 0;
+    auto index = bufIndex + 1;
+    if (index >= BUF_SIZE) {
+        index = 0;
     }
-    if (w <= 0) {
-        w = frameW;
-    }
-    if (h <= 0) {
-        h = frameH;
-    }
-    if (w == frameW && h == frameH) {
-        renderW = frameW;
-        renderH = frameH;
-        offsetX = 0;
-        offsetY = 0;
-    } else {
-        renderW = fastUp16(w);
-        renderH = fastUp16(h);
-        if (renderW > frameW) {
-            renderW = frameW;
-        }
-        if (renderH > frameH) {
-            renderH = frameH;
-        }
-        offsetX = x;
-        offsetY = y;
-        if (renderW + offsetX > frameW ) {
-            offsetX = frameW - renderW;
-        }
-        if (renderH +offsetY > frameH) {
-            offsetY = frameH - renderH;
-        }
+    auto img = QImage(frame->data[0], frame->width, frame->height, QImage::Format_RGB32);
+//    const size_t rgb_stride = frame->width*3 +(16-(3*frame->width)%16)%16;
+//    yuv420_rgb24_sse(frame->width, frame->height,
+//                     frame->data[0], frame->data[1], frame->data[2],
+//                     frame->linesize[0], frame->linesize[1],
+//                     dataRGB, rgb_stride, YCBCR_JPEG);
+//    yuv420_2_rgb8888(dataRGB,
+//                       frame->data[0], frame->data[1], frame->data[2],
+//                       frame->width, frame->height,
+//                        frame->linesize[0], frame->linesize[1],
+//                        frame->width <<2,
+//                        yuv2bgr565_table,
+//                        0);
 
-        if (offsetX < 0) {
-            offsetX = 0;
-        }
-        if (offsetY < 0) {
-            offsetY = 0;
-        }
-    }
-
-//    qDebug() << "w " << renderW << " h " << renderH;
-    renderWxH = size_t(renderW) * size_t(renderH);
-    renderWxH_4 = renderWxH / 4;
-    isShaderInited=false;
-    copyData();
+//    auto img = QImage(dataRGB, frame->width, frame->height, QImage::Format_RGB888);
+    images.replace(index, img);
+    bufIndex = index;
+    emit reqUpdate();
 }
 
-QSize BugGLWidget::videoFrameSize() const
+void BugGLWidget::drawYUV()
 {
-    return QSize(frameW, frameH);
-}
-
-
-
-void BugGLWidget::paintGL()
-{
-    //return;
-
-//    if (!init) {
-//        initYUV();
-//        init = true;
-//    }
     if(!isShaderInited)
     {
         isShaderInited=true;
@@ -511,11 +332,243 @@ void BugGLWidget::paintGL()
     //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     m_programA->release();
+}
 
+void BugGLWidget::drawRGB()
+{
+    if (images.count() == 0) {
+        return;
+    }    
+    auto img = images.at(bufIndex);
+    img = receiveFrame(img);
+    // update picture size, update roi
+    if (picSize.width() != img.size().width() || picSize.height() != img.size().height()) {
+        picSize = img.size();
+        setRegionOfInterest(0, 0, picSize.width(), picSize.height());
+    }
+    if (renderW != picSize.width() || renderH != picSize.height()) {
+        img = img.copy(QRect(offsetX, offsetY, renderW, renderH));
+    }
+    QPainter painter{this};
+    painter.beginNativePainting();
+    painter.setRenderHints(QPainter::SmoothPixmapTransform);
+    painter.drawImage(rect(), img);
+    painter.endNativePainting();
+}
 
-    //   p.endNativePainting();
-    //   p.end();
+void BugGLWidget::reDraw()
+{
+    if (pixFmt == AVPixelFormat::AV_PIX_FMT_NONE) {
+        return;
+    }
+    if (pixFmt == AVPixelFormat::AV_PIX_FMT_YUV420P) {
+        copyData();
+    } else {
+        emit reqUpdate();
+    }
+}
 
+BugGLWidget::BugGLWidget(QWidget *parent)
+    :QOpenGLWidget{parent}
+    ,m_vshaderA{nullptr}
+    ,m_fshaderA{nullptr}
+    ,m_programA{nullptr}
+    ,m_texture(nullptr)
+    ,m_transparent(false)
+    ,m_background(Qt::white)
+    ,hasInitYUV{false}
+    ,hasInitRGB{false}
+{
+//    moveToThread(qApp->thread());
+    frameW=0;
+    frameH=0;
+    frameWxH = 0;
+    FrameWxH_4 = 0;
+
+    renderH = 0;
+    renderW = 0;
+    renderWxH = 0;
+    renderWxH_4 = 0;
+    offsetX = offsetY = 0;
+
+    bufIndex=0;
+    memset(m_textureIds, 0, 3);
+    for(auto i = 0; i < 3; i++) {        
+        originFrame.data[i] = nullptr;
+    }
+    yuvBuffer[0].y = yuvBuffer[0].u = yuvBuffer[0].v = nullptr;
+    yuvBuffer[1].y = yuvBuffer[1].u = yuvBuffer[1].v = nullptr;
+    isShaderInited=false;
+
+    pixFmt = AVPixelFormat::AV_PIX_FMT_NONE;
+
+    dataRGB = nullptr;
+    connect(this, &BugGLWidget::reqUpdate, this, &BugGLWidget::callUpdate);
+//    setROI(100, 100,100, 100);
+//    setGeometry(100, 200, 200,100);
+    init = false;
+    setTransparent(true);
+}
+
+BugGLWidget::~BugGLWidget()
+{
+    qDebug() << " BugGLWidget destroy";
+    disconnect(this, &BugGLWidget::reqUpdate, this, &BugGLWidget::callUpdate);
+    // And now release all OpenGL resources.
+    makeCurrent();
+
+    freeBufferYUV();
+
+    if (m_vshaderA != nullptr) {
+        delete m_vshaderA;
+    }
+    if (m_fshaderA != nullptr) {
+        delete m_fshaderA;
+    }
+    if (m_texture != nullptr) {
+        delete m_texture;
+    }
+    if (m_programA) {
+        delete m_programA;
+    }
+
+    doneCurrent();    
+}
+
+void BugGLWidget::initializeGL()
+{
+    initializeOpenGLFunctions();
+    initializeYUVGL();
+}
+
+void BugGLWidget::callUpdate()
+{
+    this->update();
+//    window()->update();
+}
+
+void BugGLWidget::initShader(int w, int h)
+{
+    if(frameW != w || frameH != h)
+    {
+        this->frameW = w;
+        this->frameH = h;        
+
+        picSize = QSize(w, h);
+
+        frameWxH = size_t(frameW) * size_t(frameH);
+        FrameWxH_4 = frameWxH / 4;       
+        isShaderInited=false;
+        setRegionOfInterest(0, 0, frameW, frameH, false);
+    }
+}
+
+void BugGLWidget::setQuality(int quality)
+{
+
+}
+
+void BugGLWidget::setOutAspectRatioMode(int ratioMode)
+{
+
+}
+
+QImage BugGLWidget::receiveFrame(const QImage &frame)
+{
+    return frame;
+}
+
+void BugGLWidget::updateData(AVFrame *frame)
+{
+//    return;
+    if (frame->linesize[0] < 0) {
+        qDebug() << "Current buggl render not support frame linesize < 0";        
+        return;
+    }
+
+    pixFmt = (AVPixelFormat)frame->format;
+    if (frame->format == AVPixelFormat::AV_PIX_FMT_YUV420P) {
+        // prepare for yuv
+        prepareYUV(frame);
+    } else if (frame->format == AVPixelFormat::AV_PIX_FMT_RGB32) {
+        // prepare for rgb
+        prepareRGB(frame);
+    }
+    // no support another type
+    return;
+}
+
+void BugGLWidget::setRegionOfInterest(int x, int y, int w, int h)
+{
+    setRegionOfInterest(x, y, w, h, true);
+}
+
+void BugGLWidget::setRegionOfInterest(int x, int y, int w, int h, bool emitUpdate)
+{
+    if (x <= 0) {
+        x = 0;
+    }
+    if (y <= 0) {
+        y = 0;
+    }
+    if (w <= 0) {
+        w = picSize.width();
+    }
+    if (h <= 0) {
+        h = picSize.height();
+    }
+    if (w == picSize.width() && h == picSize.height()) {
+        renderW = picSize.width();
+        renderH = picSize.height();
+        offsetX = 0;
+        offsetY = 0;
+    } else {
+        renderW = fastUp16(w);
+        renderH = fastUp16(h);
+        if (renderW > picSize.width()) {
+            renderW = picSize.width();
+        }
+        if (renderH > picSize.height()) {
+            renderH = picSize.height();
+        }
+        offsetX = x;
+        offsetY = y;
+        if (renderW + offsetX >  picSize.width() ) {
+            offsetX =  picSize.width() - renderW;
+        }
+        if (renderH +offsetY >  picSize.height()) {
+            offsetY =  picSize.height() - renderH;
+        }
+
+        if (offsetX < 0) {
+            offsetX = 0;
+        }
+        if (offsetY < 0) {
+            offsetY = 0;
+        }
+    }
+
+//    qDebug() << "w " << renderW << " h " << renderH;
+    renderWxH = size_t(renderW) * size_t(renderH);
+    renderWxH_4 = renderWxH / 4;
+    isShaderInited=false;
+    if (emitUpdate) {
+        reDraw();
+    }
+}
+
+QSize BugGLWidget::videoFrameSize() const
+{
+    return picSize;
+}
+
+void BugGLWidget::paintGL()
+{    
+    if (pixFmt == AVPixelFormat::AV_PIX_FMT_YUV420P) {
+        drawYUV();
+    } else if (pixFmt == AVPixelFormat::AV_PIX_FMT_RGB32) {
+        drawRGB();
+    }
 }
 
 

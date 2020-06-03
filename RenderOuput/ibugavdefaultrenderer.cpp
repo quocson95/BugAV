@@ -36,12 +36,17 @@ QSize IBugAVDefaultRenderer::videoFrameSize() const
 
 void IBugAVDefaultRenderer::setQuality(int quality)
 {
-
+    Q_UNUSED(quality)
 }
 
 void IBugAVDefaultRenderer::setOutAspectRatioMode(int ratioMode)
 {
+    Q_UNUSED(ratioMode)
+}
 
+QImage IBugAVDefaultRenderer::receiveFrame(const QImage &frame)
+{
+    return frame;
 }
 
 }
