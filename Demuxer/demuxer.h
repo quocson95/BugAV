@@ -15,13 +15,14 @@ class Clock;
 class StreamInfo;
 class VideoState;
 class HandlerInterupt;
+class Define;
 
 class Demuxer: public QObject
 {
     Q_OBJECT
 public:
     Demuxer();
-    Demuxer(VideoState *is);
+    Demuxer(VideoState *is, Define *def);
     ~Demuxer();
     void setAvformat(QVariantHash avformat);
 
@@ -61,6 +62,8 @@ private slots:
     void process();
 private:
     VideoState *is;
+    Define *def;
+
     QThread *curThread;
     QMutex mutex;
     QWaitCondition cond;

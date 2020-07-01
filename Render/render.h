@@ -118,7 +118,6 @@ private:
     // todo allow another format
     AVPixelFormat preferPixFmt;
 
-
     // QRunnable interface
 public:
     void run();

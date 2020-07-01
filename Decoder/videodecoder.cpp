@@ -25,7 +25,7 @@ VideoDecoder::VideoDecoder(VideoState *is)
     isRun = false;
     privState = PrivateState::StopState;
     requetsStop = false;
-    speed_rate = 2.0;
+    speedRate = 1.0;
     frame = nullptr;
     thread = new QThread{this};
     moveToThread(thread);
@@ -102,6 +102,11 @@ bool VideoDecoder::isRunning() const
     return thread->isRunning();
 }
 
+void VideoDecoder::setSpeedRate(double speedRate)
+{
+    this->speedRate = speedRate;
+}
+
 int VideoDecoder::initPriv()
 {
     if (frame == nullptr) {
@@ -147,9 +152,9 @@ int VideoDecoder::getFrame()
     }
 //    duration = ( ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
     pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
-    if (is->realtime && is->pictq.queueNbRemain() > 1) {
-        pts /= speed_rate;
-    }
+//    if (is->realtime && is->pictq->queueNbRemain() > 1) {
+//        pts /= speed_rate;
+//    }
     return 1;
 
 }
@@ -157,7 +162,7 @@ int VideoDecoder::getFrame()
 int VideoDecoder::addQueuFrame()
 {
     // check writeable
-//    if (!is->pictq.isWriteable()) {
+//    if (!is->pictq->isWriteable()) {
 ////        qDebug() << "picture queue not allow write";
 //        return -1;
 //    }
@@ -243,7 +248,7 @@ AVFrame *VideoDecoder::filterFrame(AVFrame *frame)
 int VideoDecoder::queuePicture(AVFrame *src_frame, double pts, double duration, int64_t pos, int serial)
 {
     Frame *vp;
-    vp = is->pictq.peekWriteable();
+    vp = is->pictq->peekWriteable();
     if (vp == nullptr) {
         return 0;
     }
@@ -260,14 +265,14 @@ int VideoDecoder::queuePicture(AVFrame *src_frame, double pts, double duration, 
     vp->pos = pos;
     vp->serial = serial;
     av_frame_move_ref(vp->frame, src_frame);
-    is->pictq.queuePush();
+    is->pictq->queuePush();
     return 1;
 }
 
 void VideoDecoder::process()
 {
     emit started();
-    speed_rate = 1.0;
+//    speed_rate = 64.0;
     qDebug() << "!!!Video decoder Thread start";
     isRun = true;
     if (frame == nullptr) {
@@ -335,7 +340,7 @@ void VideoDecoder::process()
 
 //                        duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
 //                        pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
-//                        if (is->pictq.queueNbRemain() > 1) {
+//                        if (is->pictq->queueNbRemain() > 1) {
 //                            pts /= speed_rate;
 //                        }
 
@@ -357,8 +362,8 @@ void VideoDecoder::process()
 
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
 //            qDebug() <<  "duration " << duration << " pts " << pts;
-            if (is->pictq.queueNbRemain() > 2) {
-                pts /= speed_rate;
+            if (is->pictq->queueNbRemain() > 2 && speedRate != 1.0) {
+                pts /= speedRate;
             }
 
 //            qDebug() << "queuePicture";

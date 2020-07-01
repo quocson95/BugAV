@@ -1,10 +1,13 @@
 #ifndef DEFINE_H
 #define DEFINE_H
+#include <QtGlobal>
 
 const char program_name[] = "ffplay";
 const int program_birth_year = 2003;
 
-#define MAX_QUEUE_SIZE (15 * 1024 * 1024)
+#define MAX_QUEUE_SIZE (150 * 1024 * 1024)
+#define MAX_QUEUE_SIZE_VOD (300 * 1024 * 1024) // 300Mb
+
 #define MIN_FRAMES 25
 #define EXTERNAL_CLOCK_MIN_FRAMES 2
 #define EXTERNAL_CLOCK_MAX_FRAMES 10
@@ -48,13 +51,31 @@ const int program_birth_year = 2003;
 
 #define USE_ONEPASS_SUBTITLE_RENDER 1
 
-#define VIDEO_PICTURE_QUEUE_SIZE 3 // ~2s
+#define VIDEO_PICTURE_QUEUE_SIZE 3
+#define VIDEO_PICTURE_QUEUE_SIZE_VOD 120
+
 #define SUBPICTURE_QUEUE_SIZE 16
 #define SAMPLE_QUEUE_SIZE 9
+
 #define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, FFMAX(VIDEO_PICTURE_QUEUE_SIZE, SUBPICTURE_QUEUE_SIZE))
 
 #define AVCODEC_STATIC_REGISTER FFMPEG_MODULE_CHECK(LIBAVCODEC, 58, 10, 100)
 #define AVFORMAT_STATIC_REGISTER FFMPEG_MODULE_CHECK(LIBAVFORMAT, 58, 9, 100)
 
+
+namespace BugAV {
+class Define {
+public:
+    Define();
+    ~Define() = default;
+
+    void setModeLive(bool modeLive);
+    qint64 MaxQueueSize();
+    int VideoPictureQueueSize();
+    qint64 FrameQueueSize();
+private:
+    int liveMode;
+};
+}
 #endif // DEFINE_H
 

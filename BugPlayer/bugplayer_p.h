@@ -11,12 +11,13 @@ class VideoDecoder;
 class Render;
 class IBugAVRenderer;
 class BugPlayer;
+class Define;
 
 class BugPlayerPrivate
 {
 public:
 
-    explicit BugPlayerPrivate(BugPlayer *q);
+    explicit BugPlayerPrivate(BugPlayer *q, bool modeLive = true);
     ~BugPlayerPrivate();
 //    static void setLog();
 
@@ -57,6 +58,8 @@ public:
 
     void setEnableFramedrop(bool value = true);
 
+    void setSpeed(double speed);
+
 
     BugPlayer *q_ptr;
     VideoState *is;
@@ -70,6 +73,10 @@ public:
     bool vDecoderRunning;
     bool renderRunning;
     bool enableFramedrop;
+
+    float speed;
+
+    Define *def;
 
 
 private:

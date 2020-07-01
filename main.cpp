@@ -1642,10 +1642,10 @@
 //            if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX)
 //                is->frame_timer = time;
 
-//            SDL_LockMutex(is->pictq.mutex);
+//            SDL_LockMutex(is->pictq->mutex);
 //            if (!isnan(vp->pts))
 //                update_video_pts(is, vp->pts, vp->pos, vp->serial);
-//            SDL_UnlockMutex(is->pictq.mutex);
+//            SDL_UnlockMutex(is->pictq->mutex);
 
 //            if (frame_queue_nb_remaining(&is->pictq) > 1) {
 //                Frame *nextvp = frame_queue_peek_next(&is->pictq);
@@ -1699,7 +1699,7 @@
 //        }
 //display:
 //        /* display picture */
-//        if (!display_disable && is->force_refresh && is->show_mode == SHOW_MODE_VIDEO && is->pictq.rindex_shown)
+//        if (!display_disable && is->force_refresh && is->show_mode == SHOW_MODE_VIDEO && is->pictq->rindex_shown)
 //            video_display(is);
 //    }
 //    is->force_refresh = 0;

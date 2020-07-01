@@ -26,7 +26,7 @@ public:
         FirstFrameComing,
         NoFrameRenderTooLong,
     };
-    explicit BugPlayer(QObject *parent = nullptr);
+    explicit BugPlayer(QObject *parent = nullptr, bool modeLive = true);
     ~BugPlayer();
 
     void setFile(const QString &file);
@@ -67,6 +67,8 @@ public:
     void setEnableFramedrop(bool value = true);
 
     void enableSupportFisheye(bool value = true);
+
+    void setSpeed(double speed);
 
 Q_SIGNALS:
     void stateChanged(BugAV::BugPlayer::AVState state);

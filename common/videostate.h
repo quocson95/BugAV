@@ -14,7 +14,7 @@ namespace BugAV {
 
 class VideoState {
 public:
-    VideoState();
+    VideoState(Define *def);
     ~VideoState();
 
     void init();
@@ -58,9 +58,9 @@ public:
     Clock vidclk;
     Clock extclk;
 
-    FrameQueue pictq;
-    FrameQueue subpq;
-    FrameQueue sampq;
+    FrameQueue *pictq;
+//    FrameQueue subpq;
+//    FrameQueue sampq;
 
 //    Decoder auddec;
     Decoder viddec;
@@ -143,6 +143,9 @@ public:
 
     QWaitCondition *continue_read_thread = nullptr;
     int framedrop; // drop frame when cpu too slow.
+
+private:
+    Define *def;
 };
 }
 #endif // VIDEOSTATE_H

@@ -4,14 +4,18 @@
 #include "Decoder/videodecoder.h"
 #include "Demuxer/demuxer.h"
 #include "Render/render.h"
+#include <common/define.h>
 
 namespace BugAV {
-BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q)  
+BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, bool modeLive)
     : q_ptr{q}
 {
 //    moveToThread(QThreadPool::globalInstance());
-    is = new VideoState;
-    demuxer = new Demuxer{is};
+    def = new Define;
+    def->setModeLive(modeLive);
+
+    is = new VideoState{def};
+    demuxer = new Demuxer{is, def};
     vDecoder = new VideoDecoder{is};
     render = new Render{is};
 
@@ -19,6 +23,8 @@ BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q)
     vDecoderRunning = false;
     renderRunning = false;
     enableFramedrop = true;
+
+    speed = 1.0;
 }
 
 BugPlayerPrivate::~BugPlayerPrivate()
@@ -98,7 +104,7 @@ void BugPlayerPrivate::stop()
     is->abort_request = 1;
     demuxer->stop();
     is->videoq->abort();
-    is->pictq.wakeSignal();
+    is->pictq->wakeSignal();
     vDecoder->stop();
     render->stop();   
 }
@@ -124,12 +130,12 @@ bool BugPlayerPrivate::isSourceChange() const
 
 qint64 BugPlayerPrivate::buffered() const
 {
-    return qint64(is->pictq.queueNbRemain());
+    return qint64(is->pictq->queueNbRemain());
 }
 
 qreal BugPlayerPrivate::bufferPercent() const
 {
-    return is->pictq.bufferPercent();
+    return is->pictq->bufferPercent();
 }
 
 void BugPlayerPrivate::setRenderer(IBugAVRenderer *renderer)
@@ -190,6 +196,12 @@ void BugPlayerPrivate::playPriv()
 void BugPlayerPrivate::setEnableFramedrop(bool value)
 {
     enableFramedrop = value; // set before play, if not it will effect when player refresh
+}
+
+void BugPlayerPrivate::setSpeed(double speed)
+{
+    this->speed = speed;
+    this->vDecoder->setSpeedRate(speed);
 }
 
 } // namespace

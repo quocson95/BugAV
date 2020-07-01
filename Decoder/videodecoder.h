@@ -29,6 +29,8 @@ public:
 
     bool isRunning() const;
 
+    void setSpeedRate(double speedRate);
+
 signals:
     void started();
     void stopped();
@@ -62,7 +64,7 @@ private:
     int ret;
     AVRational tb;
     AVRational frame_rate;    
-    double speed_rate;
+    double speedRate;
 
     bool isRun;
 

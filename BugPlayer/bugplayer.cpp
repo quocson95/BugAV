@@ -9,9 +9,9 @@
 
 namespace BugAV {
 
-BugPlayer::BugPlayer(QObject *parent)
+BugPlayer::BugPlayer(QObject *parent, bool modeLive)
     :QObject(parent)
-    ,d_ptr{new BugPlayerPrivate{this}}
+    ,d_ptr{new BugPlayerPrivate{this, modeLive}}
 {
     connect(d_ptr->demuxer, &Demuxer::loadDone, this, &BugPlayer::streamLoaded);
     connect(d_ptr->demuxer, &Demuxer::loadFailed, this, &BugPlayer::streamLoadedFailed);
@@ -174,6 +174,11 @@ void BugPlayer::enableSupportFisheye(bool value)
     } else {
         d_ptr->render->setPreferPixFmt(AVPixelFormat::AV_PIX_FMT_NONE);
     }
+}
+
+void BugPlayer::setSpeed(double speed)
+{
+    d_ptr->setSpeed(speed);
 }
 
 

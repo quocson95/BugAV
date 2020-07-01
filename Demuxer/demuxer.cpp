@@ -16,16 +16,11 @@ extern "C" {
 #include "handlerinterupt.h"
 
 namespace BugAV {
-Demuxer::Demuxer()
-    : Demuxer(nullptr)
 
-{
-
-}
-
-Demuxer::Demuxer(VideoState *is)
+Demuxer::Demuxer(VideoState *is, Define *def)
     :QObject(nullptr)
     ,is{is}
+    ,def{def}
     ,formatOpts{nullptr}
     ,handlerInterupt{nullptr}
     ,avctx{nullptr}
@@ -74,7 +69,6 @@ bool Demuxer::load()
     // todo: set interrupt
     is->ic->interrupt_callback = *handlerInterupt;
     // set avformat    
-
     parseAvFormatOpts();
 
     handlerInterupt->begin(HandlerInterupt::Action::Open);
@@ -207,7 +201,7 @@ int Demuxer::readFrame()
         }
     }
     auto enoughtPkt = streamHasEnoughPackets(is->video_st, is->video_stream, is->videoq);
-    if ((infinityBuff < 1 && is->videoq->size > MAX_QUEUE_SIZE)
+    if ((infinityBuff < 1 && is->videoq->size > def->MaxQueueSize())
             || enoughtPkt) {
 //        qDebug() << "full queue";
         mutex.lock();
@@ -218,7 +212,7 @@ int Demuxer::readFrame()
     if (!is->paused &&
             (is->video_st == nullptr
              || (is->viddec.finished == is->videoq->serial
-                 && is->pictq.queueNbRemain() == 0))) {
+                 && is->pictq->queueNbRemain() == 0))) {
         if (loop != 1 && (!loop || --loop)) {
             qDebug() << "seek ";
             streamSeek(startTime != AV_NOPTS_VALUE ? startTime : 0, 0, 0);

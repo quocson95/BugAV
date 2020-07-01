@@ -18,7 +18,7 @@ Grid::Grid(QWidget *parent) :
 //    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
     size = 1;
     // camera fish eye
-    files << "rtmp://61.28.233.149:1935/live/65fb8e90-a8fe-4b89-b962-156225d2948a_sub_1590374369?ci=JDY1ZmI4ZTkwLWE4ZmUtNGI4OS1iOTYyLTE1NjIyNWQyOTQ4YQIzOAADc3ViA3ZjYxsxY1I5WHV4dlBadVhxaTk2MHREejVPd1I4dXcAAA==&sig=139cf46fc";
+    files << "https://api.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1593672812&id=80e64d63810cf26dd44a2f825649f9514dafc730&tk=239b19e65230b298f2a292d5c68bd84b26cfa2b4&noRedirect=true";
 
     files << "rtsp://admin:Admin123@192.168.0.9:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
              files << "rtsp://admin:Admin123@vcloudcam.ddns.net:8556/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
@@ -80,7 +80,7 @@ void Grid::start()
 
 void Grid::addPlayer(int i, int j)
 {
-    auto player = new BugAV::BugPlayer(this);
+    auto player = new BugAV::BugPlayer(this, false);
     auto renderer = new BugAV::BugGLWidget;
     player->enableSupportFisheye(true);
     QVariantHash avformat;
@@ -91,7 +91,8 @@ void Grid::addPlayer(int i, int j)
     player->setOptionsForFormat(avformat);
     if (i*size + j < files.size()) {
         player->play(files.at(i*size + j));
-    }
+    }    
+    player->setSpeed(64);
     ui->g->addWidget(renderer, i, j);
     players.push_back(player);
     renderers.push_back(renderer);

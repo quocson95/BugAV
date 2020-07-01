@@ -3,8 +3,9 @@
 #include "QDebug"
 
 namespace BugAV {
-FrameQueue::FrameQueue()
+FrameQueue::FrameQueue(Define *def)
 {
+    this->def = def;
     waitForRead = false;
     rindex = 0;
     windex = 0;
@@ -14,6 +15,7 @@ FrameQueue::FrameQueue()
     rindex_shown = 0;
     pktq = nullptr;
     waitForRead  =false;
+    queue = new Frame[def->FrameQueueSize()];
 }
 
 FrameQueue::~FrameQueue()
@@ -24,12 +26,13 @@ FrameQueue::~FrameQueue()
         unrefItem(vp);
         av_frame_free(&vp->frame);
     }
+    delete []queue;
 }
 
 int FrameQueue::init(PacketQueue *pktq, int maxSize, int keepLast)
 {
     this->pktq = pktq;
-    this->max_size = FFMIN(maxSize, FRAME_QUEUE_SIZE);
+    this->max_size = FFMIN(maxSize, def->FrameQueueSize());
     this->keep_last = !!keepLast;
     for (auto i = 0; i < max_size; i++) {
         if (!(queue[i].frame = av_frame_alloc())) {
@@ -149,7 +152,7 @@ int64_t FrameQueue::queueLastPos()
 
 qreal FrameQueue::bufferPercent()
 {
-    return (queueNbRemain() / FRAME_QUEUE_SIZE) * 100;
+    return (queueNbRemain() / def->FrameQueueSize()) * 100;
 }
 
 bool FrameQueue::isWriteable()

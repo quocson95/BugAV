@@ -35,7 +35,7 @@ public:
 
 class FrameQueue {
 public:
-    FrameQueue();
+    FrameQueue(Define *def);
     ~FrameQueue();
 
     int init(PacketQueue *pktq, int maxSize, int keepLast);
@@ -57,7 +57,7 @@ public:
     bool isWriteable();
 
 public:
-    Frame queue[FRAME_QUEUE_SIZE];
+    Frame *queue;
     int rindex;
     int windex;
     int size;
@@ -69,6 +69,9 @@ public:
     PacketQueue *pktq;
 
     bool waitForRead;
+
+private:
+    Define *def;
 //    bool
 };
 }

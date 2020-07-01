@@ -34,7 +34,6 @@ Render::Render()
     hasInit = false;
     isRun = false;
     privState = PrivState::Stop;
-
 }
 
 
@@ -104,23 +103,6 @@ void Render::start()
     remaining_time = 0;
     freeSwsBuff();
     timerCheckNoFrameRender->start(2000);
-//    if (isRun) {
-//        return;
-//    }
-//    isRun = true;
-//    class RenderRun: public QRunnable {
-//    public:
-//        RenderRun(Render *render) {
-//            this->render = render;
-//        }
-//        void run() {
-//            render->process();
-//        }
-//    private:
-//        Render *render;
-//    };
-
-//    QThreadPool::globalInstance()->start(new RenderRun(this));
 
     thread->start();
 }
@@ -327,7 +309,7 @@ void Render::process()
 //            emit stopped();
             break;
         }
-        if (is->pictq.queueNbRemain() == 0) {
+        if (is->pictq->queueNbRemain() == 0) {
             thread->msleep(50);
             continue;
         } else {
@@ -386,16 +368,16 @@ void Render::videoRefresh()
     }
 
     forever{
-        if (is->pictq.queueNbRemain() == 0) {
+        if (is->pictq->queueNbRemain() == 0) {
             // nothing to do, no picture to display in the queue
         } else {
             double last_duration, duration, delay;
             Frame *vp, *lastvp;
-            lastvp = is->pictq.peekLast();
-            vp = is->pictq.peek();
+            lastvp = is->pictq->peekLast();
+            vp = is->pictq->peek();
 
             if (vp->serial != is->videoq->serial) {
-                is->pictq.queueNext();
+                is->pictq-> queueNext();
                 continue;
             }
 
@@ -419,23 +401,23 @@ void Render::videoRefresh()
             if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX) {
                 is->frame_timer = time;
             }
-            is->pictq.mutex.lock();
+            is->pictq->mutex.lock();
             if (!std::isnan(vp->pts)) {
                 updateVideoPts(vp->pts, vp->pos, vp->serial);
             }
-            is->pictq.mutex.unlock();
+            is->pictq->mutex.unlock();
 
-            if (is->pictq.queueNbRemain() > 1) {
-                Frame *nextvp = is->pictq.peekNext();
+            if (is->pictq->queueNbRemain() > 1) {
+                Frame *nextvp = is->pictq->peekNext();
                 duration = vp_duration(is->max_frame_duration, vp, nextvp);
                 if(!is->step && (is->framedrop > 0 || (is->framedrop && !is->isVideoClock())) && time > is->frame_timer + duration){
 //                    qDebug() << "Drop frame";
                    is->frame_drops_late++;
-                   is->pictq.queueNext();
+                   is->pictq->queueNext();
                    continue;
                 }
             }
-            is->pictq.queueNext();
+            is->pictq->queueNext();
             is->force_refresh = 1;
             if (is->step && !is->paused) {
                 is->streamTogglePause();
@@ -443,7 +425,7 @@ void Render::videoRefresh()
         }
         break;
     }
-    if (is->force_refresh && is->show_mode == ShowMode::SHOW_MODE_VIDEO && is->pictq.rindex_shown) {
+    if (is->force_refresh && is->show_mode == ShowMode::SHOW_MODE_VIDEO && is->pictq->rindex_shown) {
         videoDisplay();
     }
     is->force_refresh = 0;
@@ -493,7 +475,7 @@ void Render::videoRefresh()
 void Render::videoDisplay()
 {
 //    qDebug() << "video display";
-    Frame *vp = is->pictq.peekLast();
+    Frame *vp = is->pictq->peekLast();
     if (!vp->uploaded) {
         uploadTexture(vp, &is->img_convert_ctx);
         vp->uploaded = 1;
@@ -552,7 +534,7 @@ void Render::run()
     case PrivState::HandleFrameState3: {
        auto ret = handlerFrameState3();
         if (ret > 0 ) {
-            if (is->force_refresh && is->show_mode == ShowMode::SHOW_MODE_VIDEO && is->pictq.rindex_shown) {
+            if (is->force_refresh && is->show_mode == ShowMode::SHOW_MODE_VIDEO && is->pictq->rindex_shown) {
                 videoDisplay();
             }
             privState = PrivState::HandleFrameState1;
@@ -594,7 +576,7 @@ bool Render::initPriv()
 
 bool Render::isAvailFirstFrame()
 {
-     auto avail = (is->pictq.queueNbRemain() > 0);
+     auto avail = (is->pictq->queueNbRemain() > 0);
      return  avail;
 }
 
@@ -654,17 +636,17 @@ bool Render::handlerFrameState2()
 
 int Render::handlerFrameState3()
 {
-    if (is->pictq.queueNbRemain() == 0 ) {
+    if (is->pictq->queueNbRemain() == 0 ) {
         return 1;
     }    
-    if (is->pictq.queueNbRemain() > 0) {
+    if (is->pictq->queueNbRemain() > 0) {
         double last_duration, duration, delay;
         Frame *vp, *lastvp;
-        lastvp = is->pictq.peekLast();
-        vp = is->pictq.peek();
+        lastvp = is->pictq->peekLast();
+        vp = is->pictq->peek();
 
         if (vp->serial != is->videoq->serial) {
-            is->pictq.queueNext();
+            is->pictq->queueNext();
             return  0;
         }
 
@@ -688,22 +670,22 @@ int Render::handlerFrameState3()
         if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX) {
             is->frame_timer = time;
         }
-        is->pictq.mutex.lock();
+        is->pictq->mutex.lock();
         if (!isnan(vp->pts)) {
             updateVideoPts(vp->pts, vp->pos, vp->serial);
         }
-        is->pictq.mutex.unlock();
-        if (is->pictq.queueNbRemain() > 1) {
-            Frame *nextvp = is->pictq.peekNext();
+        is->pictq->mutex.unlock();
+        if (is->pictq->queueNbRemain() > 1) {
+            Frame *nextvp = is->pictq->peekNext();
             duration = vp_duration(is->max_frame_duration, vp, nextvp);
             if(!is->step && (is->framedrop>0 || (is->framedrop && is->getMasterSyncType() != ShowModeClock::AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
                 qDebug() << "drop frame";
                is->frame_drops_late++;
-               is->pictq.queueNext();
+               is->pictq->queueNext();
                return 0;
             }
         }
-        is->pictq.queueNext();
+        is->pictq->queueNext();
         is->force_refresh = 1;
         if (is->step && !is->paused) {
             is->streamTogglePause();

@@ -4,8 +4,11 @@ extern "C" {
 }
 
 namespace BugAV {
-VideoState::VideoState()
+VideoState::VideoState(Define *def)
 {    
+    this->def = def;
+    pictq = new FrameQueue{def};
+
     continue_read_thread = new QWaitCondition;
     show_mode = ShowMode::SHOW_MODE_VIDEO;    
     av_sync_type = ShowModeClock::AV_SYNC_EXTERNAL_CLOCK;
@@ -87,13 +90,14 @@ VideoState::~VideoState()
 
     viddec.clear();
     delete ic;
+    delete pictq;
     delete videoq;
 }
 
 void VideoState::init()
 {
     viddec.init(videoq, nullptr, continue_read_thread);
-    pictq.init(videoq, VIDEO_PICTURE_QUEUE_SIZE, 1);
+    pictq->init(videoq, def->VideoPictureQueueSize(), 1);
     vidclk.init(&videoq->serial);
 }
 
@@ -199,7 +203,7 @@ void VideoState::decoderAbort(Decoder *d, FrameQueue *fq)
 
 void VideoState::vidDecoderAbort()
 {
-    decoderAbort(&viddec, &pictq);
+    decoderAbort(&viddec, pictq);
 }
 
 void VideoState::flush()
@@ -219,7 +223,7 @@ void VideoState::reset()
 //    framedrop = 0; // drop frame when cpu too slow.
 
     //init frame queue
-    pictq.init(videoq, VIDEO_PICTURE_QUEUE_SIZE, 1);
+    pictq->init(videoq, def->VideoPictureQueueSize(), 1);
 
     //init package queue
     videoq->init();
