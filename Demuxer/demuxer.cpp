@@ -52,6 +52,9 @@ Demuxer::~Demuxer()
 
 void Demuxer::setAvformat(QVariantHash avformat)
 {
+    if (avformat.contains("probesize") && avformat["probesize"].toInt() <= 0) {
+        avformat.remove("probesize");
+    }
     this->avformat = avformat;
 //    av_dict_set(&formatOpts, "probesize", QByteArray::number(40960), 0);
 

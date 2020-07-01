@@ -30,8 +30,8 @@ int Define::VideoPictureQueueSize()
 qint64 Define::FrameQueueSize()
 {
     if (liveMode) {
-        return int(VIDEO_PICTURE_QUEUE_SIZE);
+        return qint64(VIDEO_PICTURE_QUEUE_SIZE);
     }
-    return int(VIDEO_PICTURE_QUEUE_SIZE_VOD);
+    return qint64(VIDEO_PICTURE_QUEUE_SIZE_VOD);
 }
 }

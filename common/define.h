@@ -5,7 +5,7 @@
 const char program_name[] = "ffplay";
 const int program_birth_year = 2003;
 
-#define MAX_QUEUE_SIZE (150 * 1024 * 1024)
+#define MAX_QUEUE_SIZE (15 * 1024 * 1024)
 #define MAX_QUEUE_SIZE_VOD (300 * 1024 * 1024) // 300Mb
 
 #define MIN_FRAMES 25
@@ -52,7 +52,7 @@ const int program_birth_year = 2003;
 #define USE_ONEPASS_SUBTITLE_RENDER 1
 
 #define VIDEO_PICTURE_QUEUE_SIZE 3
-#define VIDEO_PICTURE_QUEUE_SIZE_VOD 120
+#define VIDEO_PICTURE_QUEUE_SIZE_VOD 240
 
 #define SUBPICTURE_QUEUE_SIZE 16
 #define SAMPLE_QUEUE_SIZE 9

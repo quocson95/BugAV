@@ -26,7 +26,7 @@ FrameQueue::~FrameQueue()
         unrefItem(vp);
         av_frame_free(&vp->frame);
     }
-    delete []queue;
+    delete[] queue;
 }
 
 int FrameQueue::init(PacketQueue *pktq, int maxSize, int keepLast)
