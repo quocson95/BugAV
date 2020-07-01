@@ -80,6 +80,7 @@ SOURCES += \
     RenderOuput/ibugavdefaultrenderer.cpp \
     RenderOuput/yuv_rgb.c \
     common/clock.cpp \
+    common/define.cpp \
     common/framequeue.cpp \
     common/packetqueue.cpp \
     common/videostate.cpp \
