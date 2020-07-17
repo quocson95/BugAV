@@ -177,6 +177,9 @@ int VideoDecoder::addQueuFrame()
 
 int VideoDecoder::getVideoFrame(AVFrame *frame)
 {
+    if (is->abort_request) {
+        return  -1;
+    }
     auto gotPicture = is->viddec.decodeFrame(frame);
     if (gotPicture < 0) {
         qDebug() << "got picture error";
@@ -316,43 +319,7 @@ void VideoDecoder::process()
             if (!ret) {
                 continue;
             }
-            // check using filter
-//            if (filter != nullptr) {
-//                if (filter->getStatusInit() < 0) {
-//                    filter->init(frame, is);
-//                }
-//                if (filter->getStatusInit()  > 0) {
-//                    ret = filter->pushFrame(frame);
-//                    while (ret >= 0) {
-//                        is->frame_last_returned_time = av_gettime_relative() / 1000000.0;
-//                        ret = filter->pullFrame(frame);
-//                        if (ret < 0) {
-//                            if (ret == AVERROR_EOF) {
-//                                is->viddec.finished = is->viddec.pkt_serial;
-//                            }
-//                            ret = 0;
-//                            break;
-//                        }
-//                        is->frame_last_filter_delay = av_gettime_relative() / 1000000.0 - is->frame_last_returned_time;
-//                        if (fabs(is->frame_last_filter_delay) > AV_NOSYNC_THRESHOLD / 10.0)
-//                            is->frame_last_filter_delay = 0;
-//                        tb = filter->getTimeBase();
 
-//                        duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
-//                        pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
-//                        if (is->pictq->queueNbRemain() > 1) {
-//                            pts /= speed_rate;
-//                        }
-
-////                        frame->linesize[0] = frame->width;
-////                        frame->linesize[1] = frame->linesize[2] = frame->width / 2;
-//                        ret = queuePicture(frame, pts, duration, frame->pkt_pos, is->viddec.pkt_serial);
-//                        av_frame_unref(frame);
-//                        if (is->videoq->serial != is->viddec.pkt_serial)
-//                            break;
-//                    }
-//                }
-//            }
             if (frame_rate.num && frame_rate.den) {
                 auto av = AVRational{frame_rate.den, frame_rate.num};
                 duration = av_q2d(av);
@@ -387,7 +354,7 @@ void VideoDecoder::process()
 
     emit stopped();
     qDebug() << "!!!Video decoder Thread exit";    
-    thread->quit();
+    thread->terminate();
 }
 
 void VideoDecoder::threadFinised()

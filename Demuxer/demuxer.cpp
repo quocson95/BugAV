@@ -554,7 +554,6 @@ void Demuxer::process()
         }
     }
 
-    unload();
     isRun = false;
 //    if (elTimer != nullptr) {
 //        elTimer->invalidate();

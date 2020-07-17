@@ -25,6 +25,7 @@ BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
     enableFramedrop = true;
 
     speed = 1.0;
+    av_log_set_level(AV_LOG_QUIET);
 }
 
 BugPlayerPrivate::~BugPlayerPrivate()
@@ -101,12 +102,14 @@ void BugPlayerPrivate::togglePause()
 
 void BugPlayerPrivate::stop()
 {
-    is->abort_request = 1;
-    demuxer->stop();
+    is->abort_request = 1;    
+    demuxer->stop();   
     is->videoq->abort();
     is->pictq->wakeSignal();
+    is->viddec.stop();
     vDecoder->stop();
-    render->stop();   
+    render->stop();
+    demuxer->unload();
 }
 
 void BugPlayerPrivate::refresh()
@@ -186,6 +189,9 @@ void BugPlayerPrivate::playPriv()
 //    render->stop();
 //    vDecoder->stop();
     is->fileUrl = curFile;
+    if (is->fileUrl.isEmpty()) {
+        return;
+    }
     demuxer->start();
 
 //    render->start();
