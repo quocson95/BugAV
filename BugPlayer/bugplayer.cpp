@@ -16,10 +16,11 @@ BugPlayer::BugPlayer(QObject *parent, ModePlayer mode)
     connect(d_ptr->demuxer, &Demuxer::loadDone, this, &BugPlayer::streamLoaded);
     connect(d_ptr->demuxer, &Demuxer::loadFailed, this, &BugPlayer::streamLoadedFailed);
     connect(d_ptr->demuxer, &Demuxer::readFrameError, this, &BugPlayer::readFrameError);
-    connect(d_ptr->demuxer, &Demuxer::positionChanged, this, &BugPlayer::positionChanged);
     connect(d_ptr->demuxer, &Demuxer::seekFinished, this, &BugPlayer::seekFinished);
+
     connect(d_ptr->render, &Render::firstFrameComming, this, &BugPlayer::firstFrameComming);
     connect(d_ptr->render, &Render::noRenderNewFrameLongTime, this, &BugPlayer::noRenderNewFrameLongTime);
+    connect(d_ptr->render, &Render::positionChanged, this, &BugPlayer::positionChanged);
 
 }
 

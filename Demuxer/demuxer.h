@@ -54,13 +54,14 @@ signals:
     void loadFailed();
     void readFrameError();
 
-    void positionChanged(qint64 time);
+//    void positionChanged(qint64 time);
 
     void seekFinished(qint64 position);
 private:    
     static int findBestStream(AVFormatContext *ic, AVMediaType type, int index);
     static int streamHasEnoughPackets(AVStream *st, int streamID, PacketQueue *queue);
 
+    void freeAvctx();
     void parseAvFormatOpts();
     int streamOpenCompnent(int streamIndex);
     void seek();
@@ -72,7 +73,7 @@ private:
 private slots:
     void process();
 
-    void onUpdatePositionChanged();
+//    void onUpdatePositionChanged();
 private:
     VideoState *is;
     Define *def;
@@ -99,9 +100,9 @@ private:
 
     AVCodecContext *avctx;
 
-    QElapsedTimer *elTimer;
-    bool isAllowUpdatePosition;
-    qint64 currentPos;    
+//    QElapsedTimer *elTimer;
+//    bool isAllowUpdatePosition;
+//    qint64 currentPos;
 //    qint64 lastUpdatePos;
 };
 }

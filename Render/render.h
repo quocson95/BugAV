@@ -44,6 +44,8 @@ public:
 public: signals:
     void firstFrameComming();
     void noRenderNewFrameLongTime();
+
+    void positionChanged(qint64 time);
 private:
     bool initPriv();
 
@@ -71,6 +73,8 @@ private slots:
     void process();
     void videoRefresh();
     void videoDisplay();
+
+    void updatePositionChanged();
 private:
 
     enum class PrivState {
@@ -120,6 +124,8 @@ private:
     AVPixelFormat preferPixFmt;
 
     QElapsedTimer *elPrevFrame;
+
+    QElapsedTimer *elTimer;
 
     // QRunnable interface
 public:

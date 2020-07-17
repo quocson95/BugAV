@@ -16,6 +16,9 @@ FrameQueue::FrameQueue(Define *def)
     pktq = nullptr;
     waitForRead  =false;
     queue = new Frame[def->FrameQueueSize()];
+    for (auto i = 0; i < def->FrameQueueSize(); i++) {
+        queue[i].frame = nullptr;
+    }
 }
 
 FrameQueue::~FrameQueue()
@@ -25,6 +28,7 @@ FrameQueue::~FrameQueue()
         Frame *vp = &queue[i];        
         unrefItem(vp);
         av_frame_free(&vp->frame);
+        vp->frame = nullptr;
     }
     delete[] queue;
 }
@@ -32,6 +36,11 @@ FrameQueue::~FrameQueue()
 int FrameQueue::init(PacketQueue *pktq, int maxSize, int keepLast)
 {
     this->pktq = pktq;
+    for (auto i = 0; i < max_size; i++) {
+        Frame *vp = &queue[i];
+        unrefItem(vp);
+        av_frame_free(&vp->frame);
+    }
     this->max_size = FFMIN(maxSize, def->FrameQueueSize());
     this->keep_last = !!keepLast;
     for (auto i = 0; i < max_size; i++) {

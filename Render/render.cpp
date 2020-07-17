@@ -47,6 +47,8 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
 //    ,picture{nullptr}
 {    
     defaultRenderer = new IBugAVDefaultRenderer;
+    elTimer = nullptr;
+
     if (renderer == nullptr) {
         renderer = defaultRenderer;
     }
@@ -65,7 +67,7 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
         }
     });
     preferPixFmt = AVPixelFormat::AV_PIX_FMT_NONE;
-    img = nullptr;
+    img = nullptr;    
 }
 
 Render::~Render()
@@ -333,6 +335,10 @@ void Render::process()
     }
     remaining_time = 0.0;
 
+    if (elTimer == nullptr) {
+        elTimer = new QElapsedTimer;
+        elTimer->start();
+    }
     if (!requestStop) {
         forever {
             if (requestStop) {
@@ -351,6 +357,8 @@ void Render::process()
             }
         }
     }
+    delete elTimer;
+    elTimer = nullptr;
 //    emit stopped();
     elPrevFrame->invalidate();
     delete  elPrevFrame;
@@ -418,6 +426,7 @@ void Render::videoRefresh()
             is->pictq->mutex.lock();
             if (!std::isnan(vp->pts)) {   
                 updateVideoPts(vp->pts, vp->pos, vp->serial);
+                updatePositionChanged();
             }
             is->pictq->mutex.unlock();
 
@@ -496,6 +505,18 @@ void Render::videoDisplay()
         vp->flip_v = vp->frame->linesize[0] < 0;
     }
 
+}
+
+void Render::updatePositionChanged()
+{
+    if (elTimer->hasExpired(1000)) {
+        if (is->seek_req) {
+            return;
+        }
+        auto ts = is->getMasterClock() * AV_TIME_BASE * is->speed - is->ic->start_time;
+        emit positionChanged(ts);        
+        elTimer->restart();
+    }
 }
 
 void Render::setPreferPixFmt(const AVPixelFormat &value)
@@ -749,4 +770,5 @@ IBugAVRenderer *Render::getRenderer()
     }
     return nullptr;
 }
+
 }
