@@ -365,7 +365,7 @@ void Render::process()
     elPrevFrame = nullptr;
     isRun = false;
     qDebug() << "!!!Render Thread exit";
-    thread->quit();
+    thread->terminate();
 }
 
 void Render::videoRefresh()

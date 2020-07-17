@@ -182,8 +182,9 @@ bool Demuxer::load()
 void Demuxer::unload()
 {        
 //    currentPos = 0;
-    if (is->ic != nullptr) {
+    if (is->ic != nullptr) {        
         avformat_close_input(&is->ic);
+        avformat_free_context(is->ic);
         is->ic = nullptr;
     }
     freeAvctx();
@@ -371,6 +372,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
     auto ret = avcodec_parameters_to_context(avctx, is->ic->streams[stream_index]->codecpar);
     if (ret < 0) {
         avcodec_free_context(&avctx);
+        avctx = nullptr;
         return AVERROR(ret);
     }
     // go to here ok
@@ -387,6 +389,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
         qDebug() << "No decoder could be found for codec id " << avctx->codec_id;
         ret = AVERROR(EINVAL);
         avcodec_free_context(&avctx);
+        avctx = nullptr;
         return ret;
     }
 
@@ -410,6 +413,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
         av_dict_set(&opts, "refcounted_frames", "1", 0);
     if ((ret = avcodec_open2(avctx, codec, &opts)) < 0) {
         avcodec_free_context(&avctx);
+        avctx = nullptr;
         av_dict_free(&opts);
         return ret;
     }    
