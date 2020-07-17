@@ -144,6 +144,11 @@ public:
     QWaitCondition *continue_read_thread = nullptr;
     int framedrop; // drop frame when cpu too slow.
 
+    qint64 duration;
+    double speed;
+
+    void setIformat(AVInputFormat *value);
+
 private:
     Define *def;
 };

@@ -7,12 +7,12 @@
 #include <common/define.h>
 
 namespace BugAV {
-BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, bool modeLive)
+BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
     : q_ptr{q}
 {
 //    moveToThread(QThreadPool::globalInstance());
     def = new Define;
-    def->setModeLive(modeLive);
+    def->setModePlayer(mode);
 
     is = new VideoState{def};
     demuxer = new Demuxer{is, def};
@@ -198,10 +198,35 @@ void BugPlayerPrivate::setEnableFramedrop(bool value)
     enableFramedrop = value; // set before play, if not it will effect when player refresh
 }
 
-void BugPlayerPrivate::setSpeed(double speed)
+void BugPlayerPrivate::setSpeed(const double & speed)
 {
-    this->speed = speed;
-    this->vDecoder->setSpeedRate(speed);
+    auto oldSpeed = this->speed;
+    this->is->speed = speed;
+//    this->vDecoder->setSpeedRate(speed);
+    if (isPlaying()) {
+        this->is->pictq->syncAllFrameToNewPts(oldSpeed, speed);
+    }
 }
+
+void BugPlayerPrivate::setStartPosition(const qint64 &time)
+{
+    demuxer->setStartTime(time);
+}
+
+qint64 BugPlayerPrivate::getStartPosition() const
+{
+    return demuxer->getStartTime();
+}
+
+qint64 BugPlayerPrivate::getDuration() const
+{
+    return is->duration;
+}
+
+void BugPlayerPrivate::seek(const double &position)
+{       
+    demuxer->doSeek(position);
+}
+
 
 } // namespace

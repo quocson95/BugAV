@@ -22,7 +22,7 @@ VideoState::VideoState(Define *def)
     last_paused = 0;
     queue_attachments_req = 0;
     seek_req = 0;
-    seek_flags = 0;
+    seek_flags = 0 ;
     seek_pos = 0;
     seek_rel = 0;
     read_pause_return = 0;
@@ -72,6 +72,7 @@ VideoState::VideoState(Define *def)
     img_convert_ctx  = nullptr;
 
     framedrop = 0;
+    speed = 1.0;
 //    PacketQueue::mustInitOnce();
     init();
     reset();
@@ -238,6 +239,8 @@ void VideoState::reset()
     step = 0;
     videoq->abort_request = 0;
     eof = 0;
+    duration = 0;
+//    speed = 1.0;
     if (img_convert_ctx != nullptr) {
         sws_freeContext(img_convert_ctx);
         img_convert_ctx = nullptr;
@@ -252,6 +255,12 @@ bool VideoState::isExternalClock() const
 bool VideoState::isVideoClock() const
 {
     return getMasterSyncType() == ShowModeClock::AV_SYNC_VIDEO_MASTER;
+}
+
+void VideoState::setIformat(AVInputFormat *value)
+{
+    iformat = value;
+    realtime = isRealtime();
 }
 
 }

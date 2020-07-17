@@ -1,11 +1,13 @@
 #include "demuxer.h"
 extern "C" {
 #include "libavutil/time.h"
+#include "libavformat/avformat.h"
 }
 #include "common/define.h"
 #include "QDebug"
 #include <QThread>
 #include <QThreadPool>
+#include <QTimer>
 
 #include "common/packetqueue.h"
 #include "common/clock.h"
@@ -24,12 +26,15 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     ,formatOpts{nullptr}
     ,handlerInterupt{nullptr}
     ,avctx{nullptr}
+    ,elTimer{nullptr}
 {
     startTime = AV_NOPTS_VALUE;
+//    startTime = 50000 * 1000;
     pkt = &pkt1;
     isRun = false;
     infinityBuff = -1;
     loop = 1;
+    isAllowUpdatePosition = def->getModePlayer() == ModePlayer::VOD;
 
     if (handlerInterupt == nullptr) {
         handlerInterupt = new HandlerInterupt(this);
@@ -37,12 +42,14 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     curThread = new QThread(this);
     moveToThread(curThread);
     connect(curThread, SIGNAL (started()), this, SLOT (process()));
-//    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));    
+
+//    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
 }
 
 Demuxer::~Demuxer()
 {
     qDebug() << "Destroy Demuxer";
+    stop();
     unload();
     handlerInterupt->setReqStop(true);
     av_dict_free(&formatOpts);
@@ -62,9 +69,12 @@ void Demuxer::setAvformat(QVariantHash avformat)
 
 bool Demuxer::load()
 {
+    currentPos = 0;
+    currentPos = 0;
     qDebug() << "start load stream input";
     unload();
-    is->iformat = av_find_input_format(is->fileUrl.toUtf8().constData());
+    is->setIformat(av_find_input_format(is->fileUrl.toUtf8().constData()));
+//    is->iformat = av_find_input_format(is->fileUrl.toUtf8().constData());
     is->ic = avformat_alloc_context();
     if (is->ic == nullptr) {
         return AVERROR(ENOMEM);
@@ -89,10 +99,17 @@ bool Demuxer::load()
     while ((tag = av_dict_get(is->ic->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
         qDebug("%s=%s\n", tag->key, tag->value);
 
-//    is->ic->flags |= AVFMT_FLAG_GENPTS;
-    is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
-    is->ic->flags |= AVFMT_FLAG_NOBUFFER;
-    is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS; // flush avio context every packet (using for decrease buffer, flush old packet)
+//    is->ic->flags |= AVFMT_FLAG_IGNDTS;
+    if (is->realtime) {
+        is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
+        is->ic->flags |= AVFMT_FLAG_NOBUFFER;
+        is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS; // flush avio context every packet (using for decrease buffer, flush old packet)
+    } else {
+        is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
+        is->ic->flags |= AVFMT_FLAG_GENPTS;
+        is->ic->flags |= AVFMT_FLAG_IGNDTS;
+        is->ic->flags |= AVFMT_FLAG_FAST_SEEK;
+    }
 
     av_format_inject_global_side_data(is->ic);
    // go to here ok
@@ -106,6 +123,7 @@ bool Demuxer::load()
         qDebug() << "could not find codec parameters";
         return  ret;
     }
+
     if (is->ic->pb) {
         is->ic->pb->eof_reached = 0;
     }
@@ -124,9 +142,9 @@ bool Demuxer::load()
             qDebug() << is->fileUrl << " could not seek to position " << timestamp / AV_TIME_BASE;
         }
     }
-    is->realtime = is->isRealtime();
+//    is->realtime = is->isRealtime();
 //    dump stream infomation
-//    av_dump_format(is->ic, 0, is->fileUrl.toUtf8(), 0);
+    //av_dump_format(is->ic, 0, is->fileUrl.toUtf8(), 0);
     //    auto time = av_gettime_re
 
     for (unsigned int i = 0; i < is->ic->nb_streams; i++) {
@@ -152,6 +170,9 @@ bool Demuxer::load()
         unload();
         return -1;
     }
+    auto duration = is->ic->duration + (is->ic->duration <= INT64_MAX - 5000 ? 5000 : 0);
+    is->duration = duration; // ns    
+
     if (infinityBuff < 0 && is->realtime)
         infinityBuff = 1;
 //    infinityBuff = -1;
@@ -159,12 +180,14 @@ bool Demuxer::load()
 }
 
 void Demuxer::unload()
-{    
+{        
+    currentPos = 0;
     if (is->ic != nullptr) {
         avformat_close_input(&is->ic);
         is->ic = nullptr;
     }
     if (avctx != nullptr) {
+        avcodec_close(avctx);
         avcodec_free_context(&avctx);
     }
     avctx = nullptr;
@@ -247,6 +270,14 @@ int Demuxer::readFrame()
     if (pkt->stream_index == is->video_stream
             && !(is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
         is->videoq->put(pkt);
+//        qDebug() << pkt->pos;
+//        currentPos = pkt->pos;
+//        if (is->speed < 8.0) {
+//            is->videoq->put(pkt);
+//        } else {
+//            if (pkt->flags & AV_PKT_FLAG_KEY )
+//                is->videoq->put(pkt);
+//        }
     } else {
         av_packet_unref(pkt);
     }
@@ -309,7 +340,7 @@ int Demuxer::streamHasEnoughPackets(AVStream *st, int streamID, PacketQueue *que
                queue->abort_request ||
                (st->disposition & AV_DISPOSITION_ATTACHED_PIC) ||
             ((queue->nb_packets > MIN_FRAMES) &&
-            (!queue->duration || av_q2d(st->time_base) * queue->duration > 1.0));
+            (!queue->duration || av_q2d(st->time_base) * queue->duration > 30.0));
 }
 
 void Demuxer::parseAvFormatOpts()
@@ -335,6 +366,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
     auto ret = avcodec_parameters_to_context(avctx, is->ic->streams[stream_index]->codecpar);
     if (ret < 0) {
         avcodec_free_context(&avctx);
+        return AVERROR(ret);
     }
     // go to here ok
     avctx->pkt_timebase = is->ic->streams[stream_index]->time_base;
@@ -364,7 +396,9 @@ int Demuxer::streamOpenCompnent(int stream_index)
     avctx->flags2 |= AV_CODEC_FLAG2_FAST;
     AVDictionary *opts;
     opts = nullptr;
-//    av_dict_set(&opts, "threads", "auto", 0);
+    if (def->isInModeVOD()) {
+        av_dict_set(&opts, "threads", "2", 0);
+    }
     if (stream_lowres)
         av_dict_set_int(&opts, "lowres", stream_lowres, 0);
     if (avctx->codec_type == AVMEDIA_TYPE_VIDEO || avctx->codec_type == AVMEDIA_TYPE_AUDIO)
@@ -373,7 +407,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
         avcodec_free_context(&avctx);
         av_dict_free(&opts);
         return ret;
-    }
+    }    
     av_dict_free(&opts);
     is->eof = 0;
     is->ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
@@ -390,6 +424,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
             is->audclk.serial = -1;
             break;
         }
+        default:{}
     }
     return 0;
 }
@@ -400,8 +435,9 @@ void Demuxer::seek()
     int64_t seek_min    = is->seek_rel > 0 ? seek_target - is->seek_rel + 2: INT64_MIN;
     int64_t seek_max    = is->seek_rel < 0 ? seek_target - is->seek_rel - 2: INT64_MAX;
     auto ret = avformat_seek_file(is->ic, -1, seek_min, seek_target, seek_max, is->seek_flags);
+//    auto ret = avformat_seek_file(is->ic, -1, INT64_MIN, 10 * AV_TIME_BASE, INT64_MAX,  0);
     if (ret < 0 ) {
-        qDebug() << is->ic->url << " error while seeking";
+        qDebug() << is->ic->url << " error while seeking " << AVERROR(ret);
     } else {
         // todo add flush for audio queue, subs queue
         is->videoq->flush();
@@ -417,7 +453,13 @@ void Demuxer::seek()
     is->eof = 0;
     if (is->paused) {
         stepToNextFrame();
-    }    
+    }
+    if (ret >= 0) {
+        emit seekFinished(seek_target);
+    } else {
+        // trick in case seek failed. Emit current position of file
+        emit seekFinished(is->getMasterClock() * AV_TIME_BASE);
+    }
 }
 
 int Demuxer::doQueueAttachReq()
@@ -450,9 +492,9 @@ void Demuxer::stepToNextFrame()
 
 void Demuxer::streamSeek(int64_t pos, int64_t rel, int seek_by_bytes)
 {
-    if (is->seek_req) {
-        is->seek_pos = int(pos);
-        is->seek_rel = int(rel);
+    if (!is->seek_req) {
+        is->seek_pos = pos;
+        is->seek_rel = rel  ;
         is->seek_flags &= ~AVSEEK_FLAG_BYTE;
         if (seek_by_bytes)
             is->seek_flags |= AVSEEK_FLAG_BYTE;
@@ -463,42 +505,9 @@ void Demuxer::streamSeek(int64_t pos, int64_t rel, int seek_by_bytes)
 
 void Demuxer::process()
 {
-//    forever {
-//        if (!is->abort_request) {
-//            thread->msleep(1);
-//        } else {
-//            break;
-//        }
-//    }
-//    return;
-
-    isRun = true;    
+    isRun = true;
     emit  started();
     qDebug() << "!!!Demuxer Thread start";
-    int countSleed = -1; // count sleep 3s
-    int numTry = 0;
-//    forever     {
-//        if (is->abort_request) {
-//            break;
-//        }
-//        if (countSleed > 0) {
-//            thread->msleep(100);
-//            countSleed--;
-//            continue;
-//        }
-//        if (load()) {
-////            emit loadFailed();
-////            return;
-//            break;
-//        } else {
-//            if (numTry < 15) {
-//                numTry++;
-//            }
-//            countSleed = 10 * numTry;
-//            qDebug() << "Try open input after " << countSleed * 100 << "ms";
-//            continue;
-//        }
-//    }
     if (!load() && !reqStop) {
         emit loadFailed();
         isRun = false;
@@ -506,9 +515,18 @@ void Demuxer::process()
         return;
     }
 
+    if (isAllowUpdatePosition) {
+        elTimer = new QElapsedTimer;
+        elTimer->start();
+    }
+    if (elTimer != nullptr) {
+        elTimer->start();
+    }
+
     if (!reqStop) {
         qDebug() << "Start read frame";
         emit loadDone();
+
         int ret = 0;
         forever{
             if (reqStop) {
@@ -520,16 +538,53 @@ void Demuxer::process()
                 emit readFrameError(); // read frame error
                 break;
             }
+            if (elTimer != nullptr && elTimer->hasExpired(1000)) {
+                onUpdatePositionChanged();
+                elTimer->restart();
+            }
         }
     }
-//    if (is->ic && is->ic != nullptr) {
-//        avformat_close_input(&is->ic);
-//        is->ic = nullptr;
-//    }
+
     isRun = false;
+    if (elTimer != nullptr) {
+        elTimer->invalidate();
+        delete elTimer;
+    }
     emit stopped();
     qDebug() << "!!!Demuxer Thread exit";
     curThread->terminate();
+}
+
+void Demuxer::onUpdatePositionChanged()
+{
+    auto lastPos = is->getMasterClock();
+    if (currentPos != lastPos) {
+        currentPos = lastPos;
+        auto ts = currentPos * AV_TIME_BASE - is->ic->start_time;
+        emit positionChanged(ts);
+    }
+}
+
+qint64 Demuxer::getStartTime() const
+{
+    return startTime;
+}
+
+void Demuxer::setStartTime(const qint64 &value)
+{
+    startTime = value;
+}
+
+void Demuxer::doSeek(const double &position)
+{   
+    auto pos = position;
+    if (pos > is->duration) {
+        pos = is->duration;
+    }
+    pos += is->ic->start_time;
+    auto curPos = is->getMasterClock() * AV_TIME_BASE;
+    auto incr = pos - curPos;    
+    streamSeek(pos, incr, seek_by_bytes);
 }
 
 void Demuxer::setIs(VideoState *value)
@@ -539,8 +594,8 @@ void Demuxer::setIs(VideoState *value)
 
 bool Demuxer::isRunning() const
 {
-//    return isRun;
-//    return thread()->isRunning();
+    //    return isRun;
+    //    return thread()->isRunning();
     return curThread->isRunning();
 }
 }

@@ -56,6 +56,8 @@ public:
 
     bool isWriteable();
 
+    void syncAllFrameToNewPts(const double& oldSpeed, const double &newSpeed);
+
 public:
     Frame *queue;
     int rindex;

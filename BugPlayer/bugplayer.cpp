@@ -5,19 +5,22 @@
 #include <Render/render.h>
 #include "common/videostate.h"
 #include <Decoder/videodecoder.h>
-
+#include <QDebug>
 
 namespace BugAV {
 
-BugPlayer::BugPlayer(QObject *parent, bool modeLive)
+BugPlayer::BugPlayer(QObject *parent, ModePlayer mode)
     :QObject(parent)
-    ,d_ptr{new BugPlayerPrivate{this, modeLive}}
+    ,d_ptr{new BugPlayerPrivate{this, mode}}
 {
     connect(d_ptr->demuxer, &Demuxer::loadDone, this, &BugPlayer::streamLoaded);
     connect(d_ptr->demuxer, &Demuxer::loadFailed, this, &BugPlayer::streamLoadedFailed);
     connect(d_ptr->demuxer, &Demuxer::readFrameError, this, &BugPlayer::readFrameError);
+    connect(d_ptr->demuxer, &Demuxer::positionChanged, this, &BugPlayer::positionChanged);
+    connect(d_ptr->demuxer, &Demuxer::seekFinished, this, &BugPlayer::seekFinished);
     connect(d_ptr->render, &Render::firstFrameComming, this, &BugPlayer::firstFrameComming);
     connect(d_ptr->render, &Render::noRenderNewFrameLongTime, this, &BugPlayer::noRenderNewFrameLongTime);
+
 }
 
 BugPlayer::BugPlayer(BugPlayerPrivate &d, QObject *parent)
@@ -35,32 +38,32 @@ void BugPlayer::streamLoaded()
     if (!d_ptr->is->abort_request) {
         d_ptr->render->start();
         d_ptr->vDecoder->start();
-        emit stateChanged(BugAV::BugPlayer::AVState::LoadingState);
+        emit stateChanged(BugAV::AVState::LoadingState);
     }
 }
 
 void BugPlayer::streamLoadedFailed()
 {
-    emit stateChanged(BugAV::BugPlayer::AVState::StoppedState);
+    emit stateChanged(BugAV::AVState::StoppedState);
     emit error(QLatin1String("load failed"));
 }
 
 void BugPlayer::readFrameError()
 {
     stop();
-    emit stateChanged(BugAV::BugPlayer::AVState::StoppedState);
+    emit stateChanged(BugAV::AVState::StoppedState);
     emit error(QLatin1String("Read frame error"));
 }
 
 void BugPlayer::firstFrameComming()
 {
-    emit mediaStatusChanged(BugAV::BugPlayer::MediaStatus::FirstFrameComing);
-    emit stateChanged(BugAV::BugPlayer::AVState::PlayingState);
+    emit mediaStatusChanged(BugAV::MediaStatus::FirstFrameComing);
+    emit stateChanged(BugAV::AVState::PlayingState);
 }
 
 void BugPlayer::noRenderNewFrameLongTime()
 {
-    emit mediaStatusChanged(BugAV::BugPlayer::MediaStatus::NoFrameRenderTooLong);
+    emit mediaStatusChanged(BugAV::MediaStatus::NoFrameRenderTooLong);
 }
 
 BugPlayer::~BugPlayer()
@@ -81,7 +84,7 @@ void BugPlayer::play()
 {
     auto status = d_ptr->play();
     if (status > 0) {
-        emit stateChanged(BugAV::BugPlayer::AVState::LoadingState);
+        emit stateChanged(BugAV::AVState::LoadingState);
     }
 
 }
@@ -90,7 +93,7 @@ void BugPlayer::play(const QString &file)
 {
     auto status  = d_ptr->play(file);
     if (status > 0) {
-        emit stateChanged(BugAV::BugPlayer::AVState::LoadingState);
+        emit stateChanged(BugAV::AVState::LoadingState);
     }
 }
 
@@ -98,7 +101,7 @@ void BugPlayer::pause()
 {
     auto status = d_ptr->pause();
     if (status > 0) {
-        emit stateChanged(BugAV::BugPlayer::AVState::PausedState);
+        emit stateChanged(BugAV::AVState::PausedState);
     }
 }
 
@@ -176,10 +179,34 @@ void BugPlayer::enableSupportFisheye(bool value)
     }
 }
 
-void BugPlayer::setSpeed(double speed)
+void BugPlayer::setSpeed(const double & speed)
 {
     d_ptr->setSpeed(speed);
 }
 
+void BugPlayer::setStartPosition(const qint64 & time)
+{
+    d_ptr->setStartPosition(time);
+}
+
+qint64 BugPlayer::getStartPosition() const
+{
+    return d_ptr->getStartPosition();
+}
+
+qint64 BugPlayer::getDuration() const
+{
+    return d_ptr->getDuration();
+}
+
+void BugPlayer::seek(const double &position)
+{
+    d_ptr->seek(position);
+}
+
+//void BugPlayer::positionChanged(qint64 posi)
+//{
+//    qDebug() << posi;
+//}
 
 }

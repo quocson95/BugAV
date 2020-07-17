@@ -1,12 +1,13 @@
 #ifndef DEFINE_H
 #define DEFINE_H
 #include <QtGlobal>
+#include "common/global.h"
 
 const char program_name[] = "ffplay";
 const int program_birth_year = 2003;
 
 #define MAX_QUEUE_SIZE (15 * 1024 * 1024)
-#define MAX_QUEUE_SIZE_VOD (300 * 1024 * 1024) // 300Mb
+#define MAX_QUEUE_SIZE_VOD (45 * 1024 * 1024) // 45Mb
 
 #define MIN_FRAMES 25
 #define EXTERNAL_CLOCK_MIN_FRAMES 2
@@ -52,7 +53,7 @@ const int program_birth_year = 2003;
 #define USE_ONEPASS_SUBTITLE_RENDER 1
 
 #define VIDEO_PICTURE_QUEUE_SIZE 3
-#define VIDEO_PICTURE_QUEUE_SIZE_VOD 240
+#define VIDEO_PICTURE_QUEUE_SIZE_VOD 96
 
 #define SUBPICTURE_QUEUE_SIZE 16
 #define SAMPLE_QUEUE_SIZE 9
@@ -69,12 +70,19 @@ public:
     Define();
     ~Define() = default;
 
-    void setModeLive(bool modeLive);
+    void setModePlayer(ModePlayer mode);
+    ModePlayer getModePlayer() const;
+
+    bool isInModeRealTime() const;
+    bool isInModeVOD() const;
+
     qint64 MaxQueueSize();
     int VideoPictureQueueSize();
     qint64 FrameQueueSize();
+
 private:
-    int liveMode;
+    //    int liveMode;
+    ModePlayer modePlayer;
 };
 }
 #endif // DEFINE_H

@@ -31,7 +31,8 @@ private:
     int size;
 private slots:
     void on_reCreateGrid_clicked();
-    void on_create_clicked();
+    void on_create_clicked();    
+    void on_slider_valueChanged(int value);
 };
 
 #endif // GRID_H

@@ -161,6 +161,15 @@ bool FrameQueue::isWriteable()
     return allowWrite;
 }
 
+void FrameQueue::syncAllFrameToNewPts(const double &oldSpeed, const double &newSpeed)
+{
+    QMutexLocker lock(&mutex);
+    for (auto i = 0; i < max_size; i++) {
+       queue[i].pts = (queue[i].pts * oldSpeed) / newSpeed;
+    }
+    return;
+}
+
 Frame::Frame()
 {
     uploaded = 0;

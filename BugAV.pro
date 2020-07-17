@@ -57,6 +57,7 @@ HEADERS += \
     common/common.h \
     common/define.h \
     common/framequeue.h \
+    common/global.h \
     common/packetqueue.h \
     common/videostate.h \
     form.h \

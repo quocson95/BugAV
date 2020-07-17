@@ -8,6 +8,8 @@ extern "C" {
 #include <QVariantHash>
 #include <QWaitCondition>
 
+class QElapsedTimer;
+
 namespace BugAV {
 
 class PacketQueue;
@@ -24,7 +26,7 @@ public:
     Demuxer();
     Demuxer(VideoState *is, Define *def);
     ~Demuxer();
-    void setAvformat(QVariantHash avformat);
+    void setAvformat(QVariantHash avformat);      
 
     bool load();
     void unload();
@@ -40,12 +42,21 @@ public:
 
     bool isRunning() const;
 
+    qint64 getStartTime() const;
+    void setStartTime(const qint64 &value);
+
+    void doSeek(const double& position);    
+
 signals:
     void started();
     void stopped();
     void loadDone();
     void loadFailed();
     void readFrameError();
+
+    void positionChanged(qint64 time);
+
+    void seekFinished(qint64 position);
 private:    
     static int findBestStream(AVFormatContext *ic, AVMediaType type, int index);
     static int streamHasEnoughPackets(AVStream *st, int streamID, PacketQueue *queue);
@@ -60,6 +71,8 @@ private:
 
 private slots:
     void process();
+
+    void onUpdatePositionChanged();
 private:
     VideoState *is;
     Define *def;
@@ -70,7 +83,7 @@ private:
 
     AVDictionary *formatOpts;
     QVariantHash avformat;
-    int64_t startTime; // using for seek begin
+    qint64 startTime; // using for seek begin
     int stIndex[AVMEDIA_TYPE_NB];
     int infinityBuff = -1;
     int loop;
@@ -80,41 +93,16 @@ private:
 
     bool reqStop;
 
-//    AVCodecContext *avctx;
-    /*AVInputFormat *input_format;
-    PacketQueue *videoq;
-    AVFormatContext *ic;
-    Clock *audclk;
-    Clock *vidclk;
-    Clock *extclk;
-
-    QString fileUrl;
-    int eof;
-    int maxFrameDuration;
-    int64_t startTime; // using for seek begin
-    bool realtime;
-    int stIndex[AVMEDIA_TYPE_NB];
-    int infinityBuff;
-    bool abortRequest;
-    bool paused;
-    bool lastPaused;
-    int readPausedReturn;
-    bool seekReq;
-    int seekPos, seekRel, seekTarget;
-    int seek_flags;
-    int queueAttachmentsReq;
-    int step;
-    double frame_timer;
-    int read_pause_return;
-
-    StreamInfo *vStreamInfo;
-    int loop;
-    QWaitCondition continueReadThread; */// must set to decoder
     AVPacket pkt1, *pkt;
     HandlerInterupt *handlerInterupt;
     friend HandlerInterupt;
 
     AVCodecContext *avctx;
+
+    QElapsedTimer *elTimer;
+    bool isAllowUpdatePosition;
+    qint64 currentPos;    
+//    qint64 lastUpdatePos;
 };
 }
 #endif // DEMUXER_H

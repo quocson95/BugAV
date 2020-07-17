@@ -11,6 +11,7 @@ extern "C" {
 
 class QThread;
 struct SwsContext;
+class QElapsedTimer;
 
 namespace BugAV {
 
@@ -117,6 +118,8 @@ private:
     // else force to rgb AV_PIX_FMT_RGB32
     // todo allow another format
     AVPixelFormat preferPixFmt;
+
+    QElapsedTimer *elPrevFrame;
 
     // QRunnable interface
 public:

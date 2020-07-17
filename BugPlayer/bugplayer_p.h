@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QVariantHash>
+#include "common/global.h"
 
 namespace BugAV {
 class VideoState;
@@ -17,7 +18,7 @@ class BugPlayerPrivate
 {
 public:
 
-    explicit BugPlayerPrivate(BugPlayer *q, bool modeLive = true);
+    explicit BugPlayerPrivate(BugPlayer *q, ModePlayer mode);
     ~BugPlayerPrivate();
 //    static void setLog();
 
@@ -58,8 +59,14 @@ public:
 
     void setEnableFramedrop(bool value = true);
 
-    void setSpeed(double speed);
+    void setSpeed(const double & speed);
 
+    void setStartPosition(const qint64 & time);
+    qint64 getStartPosition() const;
+
+    qint64 getDuration() const;
+
+    void seek(const double& position);
 
     BugPlayer *q_ptr;
     VideoState *is;

@@ -25,7 +25,7 @@ VideoDecoder::VideoDecoder(VideoState *is)
     isRun = false;
     privState = PrivateState::StopState;
     requetsStop = false;
-    speedRate = 1.0;
+//    speedRate = 1.0;
     frame = nullptr;
     thread = new QThread{this};
     moveToThread(thread);
@@ -102,10 +102,10 @@ bool VideoDecoder::isRunning() const
     return thread->isRunning();
 }
 
-void VideoDecoder::setSpeedRate(double speedRate)
-{
-    this->speedRate = speedRate;
-}
+//void VideoDecoder::setSpeedRate(const double & speedRate)
+//{
+//    this->speedRate = speedRate;
+//}
 
 int VideoDecoder::initPriv()
 {
@@ -362,8 +362,8 @@ void VideoDecoder::process()
 
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
 //            qDebug() <<  "duration " << duration << " pts " << pts;
-            if (is->pictq->queueNbRemain() > 2 && speedRate != 1.0) {
-                pts /= speedRate;
+            if (is->speed != 1.0) {
+                pts /= is->speed;
             }
 
 //            qDebug() << "queuePicture";

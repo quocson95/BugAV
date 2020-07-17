@@ -18,7 +18,7 @@ Grid::Grid(QWidget *parent) :
 //    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
     size = 1;
     // camera fish eye
-    files << "https://api.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1593672812&id=80e64d63810cf26dd44a2f825649f9514dafc730&tk=239b19e65230b298f2a292d5c68bd84b26cfa2b4&noRedirect=true";
+    files << "https://api.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1594954132&id=5652f0a46bf69136a15eb49f500ce8685671722f&tk=9cd83bcade0ad1ef123711f834d3b88c4b27c818&noRedirect=true";
 
     files << "rtsp://admin:Admin123@192.168.0.9:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
              files << "rtsp://admin:Admin123@vcloudcam.ddns.net:8556/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
@@ -80,19 +80,19 @@ void Grid::start()
 
 void Grid::addPlayer(int i, int j)
 {
-    auto player = new BugAV::BugPlayer(this, false);
+    auto player = new BugAV::BugPlayer(this, BugAV::    ModePlayer::VOD);
     auto renderer = new BugAV::BugGLWidget;
     player->enableSupportFisheye(true);
     QVariantHash avformat;
-    avformat["probesize"] = 4096000;
-    avformat["analyzeduration"] = 1000000;
-    avformat["rtsp_flags"] = "prefer_tcp";
+//    avformat["probesize"] = 4096000;
+//    avformat["analyzeduration"] = 1000000;
+//    avformat["rtsp_flags"] = "prefer_tcp";
     player->setRenderer(renderer);
     player->setOptionsForFormat(avformat);
     if (i*size + j < files.size()) {
         player->play(files.at(i*size + j));
     }    
-    player->setSpeed(64);
+    player->setSpeed(32);
     ui->g->addWidget(renderer, i, j);
     players.push_back(player);
     renderers.push_back(renderer);
@@ -122,4 +122,11 @@ void Grid::on_reCreateGrid_clicked()
 void Grid::on_create_clicked()
 {
     start();
+}
+
+void Grid::on_slider_valueChanged(int value)
+{
+    auto d = players[0]->getDuration();
+    auto v = (value / 100.0 )* d;
+    players[0]->seek(v);
 }

@@ -21,6 +21,7 @@ extern "C" {
 #include <QTime>
 #include <QTimer>
 #include <QTimerEvent>
+#include <QElapsedTimer>
 
 #define RNDTO2(X) ( ( (X) & 0xFFFFFFFE ))
 #define RNDTO32(X) ( ( (X) % 32 ) ? ( ( (X) + 32 ) & 0xFFFFFFE0 ) : (X) )
@@ -42,6 +43,7 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
 //    ,QRunnable()
     ,renderer{renderer}
     ,is{is}
+    ,elPrevFrame{nullptr}
 //    ,picture{nullptr}
 {    
     defaultRenderer = new IBugAVDefaultRenderer;
@@ -238,6 +240,12 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
     if (renderer == nullptr || renderer == defaultRenderer) {
         return;
     }
+    // reduce using too much gpu, limit maximum at 100fps
+    if (!elPrevFrame->hasExpired(10)) {
+//        qDebug() << "update img too fast. ignore";
+        return;
+    }
+    elPrevFrame->restart();
 
     if (!initSwsBuff) {
         initSwsBuff = true;
@@ -304,6 +312,8 @@ void Render::process()
     qDebug() << "!!!Render Thread start";
 //    emit started();
 
+    elPrevFrame = new QElapsedTimer;
+    elPrevFrame->start();
     forever {
         if (requestStop) {
 //            emit stopped();
@@ -322,6 +332,7 @@ void Render::process()
         }
     }
     remaining_time = 0.0;
+
     if (!requestStop) {
         forever {
             if (requestStop) {
@@ -341,6 +352,9 @@ void Render::process()
         }
     }
 //    emit stopped();
+    elPrevFrame->invalidate();
+    delete  elPrevFrame;
+    elPrevFrame = nullptr;
     isRun = false;
     qDebug() << "!!!Render Thread exit";
     thread->quit();
@@ -402,7 +416,7 @@ void Render::videoRefresh()
                 is->frame_timer = time;
             }
             is->pictq->mutex.lock();
-            if (!std::isnan(vp->pts)) {
+            if (!std::isnan(vp->pts)) {   
                 updateVideoPts(vp->pts, vp->pos, vp->serial);
             }
             is->pictq->mutex.unlock();

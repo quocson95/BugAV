@@ -2,7 +2,7 @@
 #define BUGPLAYER_H
 #include "marco.h"
 #include <QObject>
-
+#include "common/global.h"
 
 namespace BugAV {
 
@@ -13,20 +13,8 @@ class LIB_EXPORT BugPlayer: public QObject
 {
     Q_OBJECT
 public:
-    enum class AVState {
-        StoppedState,
-        LoadingState,
-        PlayingState,
-        PausedState,
-        PlayingNoRenderState,
 
-    };
-
-    enum class MediaStatus {
-        FirstFrameComing,
-        NoFrameRenderTooLong,
-    };
-    explicit BugPlayer(QObject *parent = nullptr, bool modeLive = true);
+    explicit BugPlayer(QObject *parent = nullptr, ModePlayer mode = ModePlayer::RealTime);
     ~BugPlayer();
 
     void setFile(const QString &file);
@@ -68,12 +56,26 @@ public:
 
     void enableSupportFisheye(bool value = true);
 
-    void setSpeed(double speed);
+    // set speed, can set anytime
+    void setSpeed(const double & speed);
+
+    void setStartPosition(const qint64 & time);
+    qint64 getStartPosition() const;
+
+    qint64 getDuration() const;
+
+    void seek(const double& position);
 
 Q_SIGNALS:
-    void stateChanged(BugAV::BugPlayer::AVState state);
-    void mediaStatusChanged(BugAV::BugPlayer::MediaStatus state);
+    void stateChanged(BugAV::AVState state);
+    void mediaStatusChanged(BugAV::MediaStatus state);
     void error(QString err);
+
+    void seekFinished(qint64 timestamp);
+
+    void positionChanged(qint64);
+private slots:
+//    void positionChanged(qint64);
 protected:
     explicit BugPlayer(BugPlayerPrivate &d, QObject *parent = nullptr);
 private:
@@ -94,6 +96,6 @@ private:
     QScopedPointer<BugPlayerPrivate> d_ptr;
 };
 }
-Q_DECLARE_METATYPE(BugAV::BugPlayer::AVState);
-Q_DECLARE_METATYPE(BugAV::BugPlayer::MediaStatus);
+Q_DECLARE_METATYPE(BugAV::AVState);
+Q_DECLARE_METATYPE(BugAV::MediaStatus);
 #endif // BUGPLAYER_H
