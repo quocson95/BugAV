@@ -145,12 +145,18 @@ public:
     int framedrop; // drop frame when cpu too slow.
 
     qint64 duration;
-    double speed;
+
 
     void setIformat(AVInputFormat *value);
 
+    void setSpeed(double value);
+
+    double getSpeed() const;
+
 private:
     Define *def;
+    double speed;
+
 };
 }
 #endif // VIDEOSTATE_H

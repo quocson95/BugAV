@@ -72,7 +72,8 @@ VideoState::VideoState(Define *def)
     img_convert_ctx  = nullptr;
 
     framedrop = 0;
-    speed = 1.0;
+    setSpeed(1.0);
+
 //    PacketQueue::mustInitOnce();
     init();
     reset();
@@ -263,4 +264,14 @@ void VideoState::setIformat(AVInputFormat *value)
     realtime = isRealtime();
 }
 
+void VideoState::setSpeed(double value)
+{
+    pictq->speed = value;
+    speed = value;
+}
+
+double VideoState::getSpeed() const
+{
+    return speed;
+}
 }

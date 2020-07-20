@@ -18,6 +18,7 @@ FrameQueue::FrameQueue(Define *def)
     queue = new Frame[def->FrameQueueSize()];
     for (auto i = 0; i < def->FrameQueueSize(); i++) {
         queue[i].frame = nullptr;
+        queue[i].speed = &speed;
     }
 }
 
@@ -170,14 +171,14 @@ bool FrameQueue::isWriteable()
     return allowWrite;
 }
 
-void FrameQueue::syncAllFrameToNewPts(const double &oldSpeed, const double &newSpeed)
-{
-    QMutexLocker lock(&mutex);
-    for (auto i = 0; i < max_size; i++) {
-       queue[i].pts = (queue[i].pts * oldSpeed) / newSpeed;
-    }
-    return;
-}
+//void FrameQueue::syncAllFrameToNewPts(const double &oldSpeed, const double &newSpeed)
+//{
+//    QMutexLocker lock(&mutex);
+//    for (auto i = 0; i < max_size; i++) {
+//       queue[i].pts = (queue[i].pts * oldSpeed) / newSpeed;
+//    }
+//    return;
+//}
 
 Frame::Frame()
 {
@@ -196,5 +197,19 @@ Frame::Frame()
 Frame::~Frame()
 {
 
+}
+
+double Frame::getPts() const
+{
+    if (*speed == 1.0) {
+        return pts;
+    }
+    auto a = pts / (*speed);
+    return a;
+}
+
+void Frame::setPts(double value)
+{
+    pts = value;
 }
 }

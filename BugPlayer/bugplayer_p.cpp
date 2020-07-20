@@ -106,7 +106,7 @@ void BugPlayerPrivate::stop()
     demuxer->stop();   
     is->videoq->abort();
     is->pictq->wakeSignal();
-    is->viddec.stop();
+//    is->viddec.stop();
     vDecoder->stop();
     render->stop();
     demuxer->unload();
@@ -207,10 +207,11 @@ void BugPlayerPrivate::setEnableFramedrop(bool value)
 void BugPlayerPrivate::setSpeed(const double & speed)
 {
     auto oldSpeed = this->speed;
-    this->is->speed = speed;
+//    this->is->speed = speed;
+    is->setSpeed(speed);
 //    this->vDecoder->setSpeedRate(speed);
     if (isPlaying()) {
-        this->is->pictq->syncAllFrameToNewPts(oldSpeed, speed);
+        // this->is->pictq->syncAllFrameToNewPts(oldSpeed, speed);
     }
 }
 

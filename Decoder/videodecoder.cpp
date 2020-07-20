@@ -263,7 +263,7 @@ int VideoDecoder::queuePicture(AVFrame *src_frame, double pts, double duration, 
     vp->height = src_frame->height;
     vp->format = src_frame->format;
 
-    vp->pts = pts;
+    vp->setPts(pts);
     vp->duration = duration;
     vp->pos = pos;
     vp->serial = serial;
@@ -329,9 +329,9 @@ void VideoDecoder::process()
 
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : (frame->pts * av_q2d(tb));
 //            qDebug() <<  "duration " << duration << " pts " << pts;
-            if (is->speed != 1.0) {
-                pts /= is->speed;
-            }
+//            if (is->speed != 1.0) {
+//                pts /= is->speed;
+//            }
 
 //            qDebug() << "queuePicture";
             ret = queuePicture((frame), pts, duration, frame->pkt_pos, is->viddec.pkt_serial);

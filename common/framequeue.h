@@ -21,8 +21,7 @@ public:
 public:
     AVFrame *frame;
     AVSubtitle sub;
-    int serial;
-    double pts;           /* presentation timestamp for the frame */
+    int serial;               /* presentation timestamp for the frame */
     double duration;      /* estimated duration of the frame */
     int64_t pos;          /* byte position of the frame in the input file */
     int width;
@@ -30,7 +29,15 @@ public:
     int format;
     AVRational sar;
     int uploaded;
-    int flip_v;
+    int flip_v;  
+
+    double *speed;
+    double getPts() const;
+    void setPts(double value);
+
+private:
+    double pts;
+
 };
 
 class FrameQueue {
@@ -56,7 +63,7 @@ public:
 
     bool isWriteable();
 
-    void syncAllFrameToNewPts(const double& oldSpeed, const double &newSpeed);
+//    void syncAllFrameToNewPts(const double& oldSpeed, const double &newSpeed);
 
 public:
     Frame *queue;
@@ -71,6 +78,8 @@ public:
     PacketQueue *pktq;
 
     bool waitForRead;
+
+    double speed;
 
 private:
     Define *def;

@@ -132,7 +132,7 @@ void Render::setIs(VideoState *value)
 double Render::vp_duration(double maxFrameDuration, Frame *vp, Frame *nextvp)
 {
     if (vp->serial == nextvp->serial) {
-        double duration = nextvp->pts - vp->pts;
+        double duration = nextvp->getPts() - vp->getPts();
         if (isnan(duration) || duration <= 0.0 || duration > maxFrameDuration) {
             return vp->duration;
         } else {
@@ -424,8 +424,8 @@ void Render::videoRefresh()
                 is->frame_timer = time;
             }
             is->pictq->mutex.lock();
-            if (!std::isnan(vp->pts)) {   
-                updateVideoPts(vp->pts, vp->pos, vp->serial);
+            if (!std::isnan(vp->getPts())) {
+                updateVideoPts(vp->getPts(), vp->pos, vp->serial);
                 updatePositionChanged();
             }
             is->pictq->mutex.unlock();
@@ -513,8 +513,10 @@ void Render::updatePositionChanged()
         if (is->seek_req) {
             return;
         }
-        auto ts = is->getMasterClock() * AV_TIME_BASE * is->speed - is->ic->start_time;
-        emit positionChanged(ts);        
+        auto ts = is->getMasterClock() * AV_TIME_BASE * is->getSpeed() - is->ic->start_time;
+        if (ts  > 0) {
+            emit positionChanged(ts);
+        }
         elTimer->restart();
     }
 }
@@ -706,8 +708,8 @@ int Render::handlerFrameState3()
             is->frame_timer = time;
         }
         is->pictq->mutex.lock();
-        if (!isnan(vp->pts)) {
-            updateVideoPts(vp->pts, vp->pos, vp->serial);
+        if (!isnan(vp->getPts())) {
+            updateVideoPts(vp->getPts(), vp->pos, vp->serial);
         }
         is->pictq->mutex.unlock();
         if (is->pictq->queueNbRemain() > 1) {

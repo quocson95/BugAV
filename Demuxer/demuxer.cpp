@@ -106,8 +106,8 @@ bool Demuxer::load()
         is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS; // flush avio context every packet (using for decrease buffer, flush old packet)
     } else {
         is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
-        is->ic->flags |= AVFMT_FLAG_GENPTS;
-        is->ic->flags |= AVFMT_FLAG_IGNDTS;
+//        is->ic->flags |= AVFMT_FLAG_GENPTS;
+//        is->ic->flags |= AVFMT_FLAG_IGNDTS;
         is->ic->flags |= AVFMT_FLAG_FAST_SEEK;
     }
 
@@ -555,10 +555,6 @@ void Demuxer::process()
     }
 
     isRun = false;
-//    if (elTimer != nullptr) {
-//        elTimer->invalidate();
-//        delete elTimer;
-//    }
     emit stopped();
     qDebug() << "!!!Demuxer Thread exit";
     curThread->terminate();
