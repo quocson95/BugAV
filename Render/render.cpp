@@ -517,9 +517,10 @@ void Render::updatePositionChanged(Frame *vp)
             return;
         }
 
-        qint64 ts = vp->frame->pts;
-        if (ts  > 0) {
-            ts = av_rescale_q(ts, is->video_st->time_base, AV_TIME_BASE_Q) - is->ic->start_time;
+        if (vp->frame->pts  > 0) {
+            auto q = AVRational{1, AV_TIME_BASE};
+            auto ts_rescale = qint64(av_rescale_q(vp->frame->pts, is->video_st->time_base, q));
+            auto ts = ts_rescale - is->ic->start_time;
 //            qDebug() << "ts " << ts << " " << is->ic->start_time << " \r\n";
             emit positionChanged(ts);
         }
