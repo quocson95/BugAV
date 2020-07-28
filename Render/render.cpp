@@ -426,7 +426,7 @@ void Render::videoRefresh()
             is->pictq->mutex.lock();
             if (!std::isnan(vp->getPts())) {
                 updateVideoPts(vp->getPts(), vp->pos, vp->serial);
-                updatePositionChanged();
+                updatePositionChanged(vp);
             }
             is->pictq->mutex.unlock();
 
@@ -507,14 +507,20 @@ void Render::videoDisplay()
 
 }
 
-void Render::updatePositionChanged()
+void Render::updatePositionChanged(Frame *vp)
 {
     if (elTimer->hasExpired(1000)) {
         if (is->seek_req) {
             return;
+        }       
+        if (vp == nullptr || vp->frame == nullptr) {
+            return;
         }
-        auto ts = is->getMasterClock() * AV_TIME_BASE * is->getSpeed() - is->ic->start_time;
+
+        qint64 ts = vp->frame->pts;
         if (ts  > 0) {
+            ts = av_rescale_q(ts, is->video_st->time_base, AV_TIME_BASE_Q) - is->ic->start_time;
+//            qDebug() << "ts " << ts << " " << is->ic->start_time << " \r\n";
             emit positionChanged(ts);
         }
         elTimer->restart();

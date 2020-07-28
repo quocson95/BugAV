@@ -54,6 +54,9 @@ void Clock::setAt(double pts, int serial, double time)
 
 double Clock::get()
 {
+    if (queue_serial == nullptr) {
+        return double(NAN);
+    }
     if (*this->queue_serial != this->serial)
         return double(NAN);
     if (paused) {

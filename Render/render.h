@@ -74,7 +74,7 @@ private slots:
     void videoRefresh();
     void videoDisplay();
 
-    void updatePositionChanged();
+    void updatePositionChanged(Frame *vp);
 private:
 
     enum class PrivState {
