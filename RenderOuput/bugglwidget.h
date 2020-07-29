@@ -42,6 +42,8 @@ public:
     void setOutAspectRatioMode(int ratioMode) override;
     QImage receiveFrame(const QImage& frame) override;
 
+    QImage getLastFrame() const;
+
 public slots:
 
     void setTransparent(bool transparent);    

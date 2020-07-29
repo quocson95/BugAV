@@ -118,6 +118,7 @@ void BugGLWidget::initBufferRGB(int w, int h)
 {
     hasInitRGB = true;
     freeBufferRGB();
+    images.reserve(BUF_SIZE);
     for(auto i = 0; i < BUF_SIZE; i++) {
         images.push_back(QImage(w, h, QImage::Format_RGB32));
     }
@@ -476,6 +477,14 @@ void BugGLWidget::setOutAspectRatioMode(int ratioMode)
 QImage BugGLWidget::receiveFrame(const QImage &frame)
 {
     return frame;
+}
+
+QImage BugGLWidget::getLastFrame() const
+{
+    if (images.size() > bufIndex) {
+        return images.at(bufIndex);
+    }
+    return QImage{};
 }
 
 void BugGLWidget::updateData(AVFrame *frame)
