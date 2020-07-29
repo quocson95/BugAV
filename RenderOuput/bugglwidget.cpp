@@ -11,7 +11,9 @@ extern "C" {
 #include <QCoreApplication>
 #include <math.h>
 #include "QTimer"
-
+#ifdef Q_OS_LINUX
+#include <x86intrin.h>
+#endif
 namespace BugAV {
 
 //-------------------------------------

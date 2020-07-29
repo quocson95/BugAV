@@ -3,7 +3,6 @@
 #include "ui_grid.h"
 
 #include <BugPlayer/bugplayer.h>
-#include <RenderOuput/bugglrgb.h>
 #include <RenderOuput/ibugavdefaultrenderer.h>
 
 #include <common/packetqueue.h>
@@ -18,7 +17,7 @@ Grid::Grid(QWidget *parent) :
 //    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
     size = 1;
     // camera fish eye
-    files << "https://api.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1594954132&id=5652f0a46bf69136a15eb49f500ce8685671722f&tk=9cd83bcade0ad1ef123711f834d3b88c4b27c818&noRedirect=true";
+    files << "http://api.stg.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1595054570&id=1f7a7ab8b2e26173a473769a17402234bf7ef768&tk=9cf18b2e2ccac24419444811fbdbdc7a3d38760a&noRedirect=true";
 
     files << "rtsp://admin:Admin123@192.168.0.9:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
              files << "rtsp://admin:Admin123@vcloudcam.ddns.net:8556/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
@@ -92,7 +91,7 @@ void Grid::addPlayer(int i, int j)
     if (i*size + j < files.size()) {
         player->play(files.at(i*size + j));
     }    
-    player->setSpeed(32);
+    player->setSpeed(1);
     ui->g->addWidget(renderer, i, j);
     players.push_back(player);
     renderers.push_back(renderer);
@@ -105,23 +104,26 @@ void Grid::addPlayer(int i, int j)
 void Grid::on_reCreateGrid_clicked()
 {
     foreach (auto player, players) {
-        player->setRenderer(nullptr);
+//        player->setRenderer(nullptr);
         player->stop();
     }
-    for(auto i = 0; i < ui->g->count(); i++) {
-        ui->g->removeWidget(ui->g->itemAt(i)->widget());
-    }
-    qDeleteAll(players);
-    qDeleteAll(renderers);
-    players.clear();
-    renderers.clear();
+//    for(auto i = 0; i < ui->g->count(); i++) {
+//        ui->g->removeWidget(ui->g->itemAt(i)->widget());
+//    }
+//    qDeleteAll(players);
+//    qDeleteAll(renderers);
+//    players.clear();
+//    renderers.clear();
 
-    start();
+//    start();
 }
 
 void Grid::on_create_clicked()
 {
-    start();
+    foreach (auto player, players) {
+//        player->setRenderer(nullptr);
+        player->refresh();
+    }
 }
 
 void Grid::on_slider_valueChanged(int value)
