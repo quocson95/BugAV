@@ -48,11 +48,8 @@ HEADERS += \
     Render/bugfilter.h \
     Render/render.h \
     RenderOuput/IBugAVRenderer.h \
-    RenderOuput/bugglrgb.h \
     RenderOuput/bugglwidget.h \     \
-    RenderOuput/glvideowidget.h \
     RenderOuput/ibugavdefaultrenderer.h \
-    RenderOuput/yuv_rgb.h \
     common/clock.h \
     common/common.h \
     common/define.h \
@@ -75,11 +72,8 @@ SOURCES += \
     Render/bugfilter.cpp \
     Render/render.cpp \
     RenderOuput/IBugAVRenderer.cpp \
-    RenderOuput/bugglrgb.cpp \
     RenderOuput/bugglwidget.cpp \
-    RenderOuput/glvideowidget.cpp \
     RenderOuput/ibugavdefaultrenderer.cpp \
-    RenderOuput/yuv_rgb.c \
     common/clock.cpp \
     common/define.cpp \
     common/framequeue.cpp \

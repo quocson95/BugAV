@@ -2,7 +2,6 @@
 
 extern "C" {
 #include <libavutil/frame.h>
-#include "yuv_rgb.h"
 
 }
 #include <QPainter>
@@ -12,8 +11,6 @@ extern "C" {
 #include <QCoreApplication>
 #include <math.h>
 #include "QTimer"
-
-#include <x86intrin.h>
 
 namespace BugAV {
 
