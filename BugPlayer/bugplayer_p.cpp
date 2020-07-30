@@ -122,7 +122,7 @@ bool BugPlayerPrivate::isPlaying() const
 {    
     return (demuxer->isRunning()
             && vDecoder->isRunning()
-            && render->isRunning())
+            && render->isRunning() && !is->paused)
             ;
 }
 
