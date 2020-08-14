@@ -96,6 +96,7 @@ private:
     bool isShaderInited;
     int frameW;
     int frameH;
+    int lineSize;
     size_t frameWxH;
     size_t FrameWxH_4;
 

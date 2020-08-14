@@ -100,7 +100,7 @@ void BugGLWidget::initBufferYUV(int *linesize, int h)
 {
     hasInitYUV = true;
     freeBufferYUV();
-
+    this->lineSize = linesize[0];
     for(auto i = 0; i < 3; i++) {
         originFrame.linesize[i] = linesize[i];
         originFrame.data[i] = static_cast<unsigned char*>(malloc(size_t((linesize[i]) * (h))));
@@ -225,8 +225,10 @@ void BugGLWidget::copyData()
 
 void BugGLWidget::prepareYUV(AVFrame *frame)
 {
-    if (frame->width != frameW
-            || frame->height != frameH || !hasInitYUV)
+    if (    lineSize != frame->linesize[0]
+            || frame->width != frameW
+            || frame->height != frameH
+            || !hasInitYUV)
     {
         initBufferYUV(frame->linesize, frame->height);
         initShader(frame->width, frame->height);        
@@ -382,6 +384,7 @@ BugGLWidget::BugGLWidget(QWidget *parent)
 //    moveToThread(qApp->thread());
     frameW=0;
     frameH=0;
+    lineSize = 0;
     frameWxH = 0;
     FrameWxH_4 = 0;
 
@@ -418,6 +421,7 @@ BugGLWidget::~BugGLWidget()
     makeCurrent();
 
     freeBufferYUV();
+    freeBufferRGB();
 
     if (m_vshaderA != nullptr) {
         delete m_vshaderA;
