@@ -6,6 +6,7 @@ extern "C" {
 }
 #include <QThread>
 #include <QThreadPool>
+#include <QtMath>
 #include "common/videostate.h"
 #include "../Render/bugfilter.h"
 
@@ -201,7 +202,7 @@ int VideoDecoder::getVideoFrame(AVFrame *frame)
         if (is->framedrop > 0 || (is->framedrop && !is->isVideoClock())) {
             if (frame->pts != AV_NOPTS_VALUE) {
                 double diff = dpts - is->getMasterClock();
-                if (!std::isnan(diff) && std::fabs(diff) < AV_NOSYNC_THRESHOLD &&
+                if (!qIsNaN(diff) && qFabs(diff) < AV_NOSYNC_THRESHOLD &&
                     diff - is->frame_last_filter_delay < 0 &&
                     is->viddec.pkt_serial == is->vidclk.serial &&
                     is->videoq->nb_packets)

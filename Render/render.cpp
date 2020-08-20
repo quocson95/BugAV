@@ -15,7 +15,7 @@ extern "C" {
 #include <QThread>
 #include <QThreadPool>
 #include "common/videostate.h"
-
+#include <QtMath>
 #include "RenderOuput/IBugAVRenderer.h"
 #include <RenderOuput/ibugavdefaultrenderer.h>
 #include <QTime>
@@ -155,7 +155,7 @@ double Render::compute_target_delay(VideoState *is, double delay)
            delay to compute the threshold. I still don't know
            if it is the best guess */
         sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
-        if (!std::isnan(diff) && std::fabs(diff) < is->max_frame_duration) {
+        if (!qIsNaN(diff) && qFabs(diff) < is->max_frame_duration) {
             if (diff <= -sync_threshold)
                 delay = FFMAX(0, delay + diff);
             else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD)
@@ -424,7 +424,7 @@ void Render::videoRefresh()
                 is->frame_timer = time;
             }
             is->pictq->mutex.lock();
-            if (!std::isnan(vp->getPts())) {
+            if (!qIsNaN(vp->getPts())) {
                 updateVideoPts(vp->getPts(), vp->pos, vp->serial);
                 updatePositionChanged(vp);
             }
