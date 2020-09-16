@@ -20,7 +20,31 @@ public:
 
     void setQuality(int quality) override;
     void setOutAspectRatioMode(int ratioMode) override;
-    QImage receiveFrame(const QImage &frame);
+    QImage receiveFrame(const QImage &frame) override;
+    void clearBufferRender() override;
+
+//static Config &ins() {
+//    static GlobalCofig instance;
+//    return  instance.cfg;
+//}
+
 };
+
+#define BugAVRendererDefault BugAV::BugAVtRendererImpl::instance()
+class BugAVtRendererImpl {
+public:
+    static IBugAVDefaultRenderer &instance() {
+        static BugAVtRendererImpl ins;
+        return ins.renderer;
+    }
+
+    BugAVtRendererImpl(const BugAVtRendererImpl &) = delete;
+    void operator=(BugAVtRendererImpl const&) = delete;
+
+private:
+    BugAVtRendererImpl() {};
+    IBugAVDefaultRenderer renderer;
+};
+
 }
 #endif // IBUGAVDEFAULTRENDERER_H

@@ -22,6 +22,8 @@ public:
 
     virtual QImage receiveFrame(const QImage& frame) = 0;
 
+    virtual void clearBufferRender() = 0;
+
 };
 
 }

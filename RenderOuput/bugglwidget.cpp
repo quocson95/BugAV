@@ -73,7 +73,7 @@ void BugGLWidget::initializeTexture( GLuint  id, int width, int height) {
 
 void BugGLWidget::freeBufferYUV()
 {
-    for(int i=0;i<BUF_SIZE;i++) {
+    for(int i=0;i<BUFF_SIZE;i++) {
         if (yuvBuffer[i].y != nullptr) {
             free (yuvBuffer[i].y);
         }
@@ -105,7 +105,7 @@ void BugGLWidget::initBufferYUV(int *linesize, int h)
         originFrame.linesize[i] = linesize[i];
         originFrame.data[i] = static_cast<unsigned char*>(malloc(size_t((linesize[i]) * (h))));
     }
-    for(int i=0;i<BUF_SIZE;i++)
+    for(int i=0;i<BUFF_SIZE;i++)
     {
        yuvBuffer[i].y= static_cast<unsigned char*>(malloc(linesize[0] * h));
        yuvBuffer[i].u= static_cast<unsigned char*>(malloc(linesize[1] * h/2));
@@ -117,8 +117,8 @@ void BugGLWidget::initBufferRGB(int w, int h)
 {
     hasInitRGB = true;
     freeBufferRGB();
-    images.reserve(BUF_SIZE);
-    for(auto i = 0; i < BUF_SIZE; i++) {
+    images.reserve(BUFF_SIZE);
+    for(auto i = 0; i < BUFF_SIZE; i++) {
         images.push_back(QImage(w, h, QImage::Format_RGB32));
     }
     const size_t rgb_stride = w*3 +(16-(3*w)%16)%16;
@@ -196,7 +196,7 @@ void BugGLWidget::copyData()
 {
     mutex.lock();   
     auto index = bufIndex + 1;
-    if(index>=BUF_SIZE)
+    if(index>=BUFF_SIZE)
         index=0;
     for (int i = 0; i < renderH ; i++) {
         memcpy(yuvBuffer[index].y + renderW * i,
@@ -250,7 +250,7 @@ void BugGLWidget::prepareRGB(AVFrame *frame)
         initBufferRGB(frame->width, frame->height);
     }
     auto index = bufIndex + 1;
-    if (index >= BUF_SIZE) {
+    if (index >= BUFF_SIZE) {
         index = 0;
     }
     auto img = QImage(frame->data[0], frame->width, frame->height, QImage::Format_RGB32);
@@ -488,6 +488,20 @@ QImage BugGLWidget::getLastFrame() const
         return images.at(bufIndex);
     }
     return QImage{};
+}
+
+void BugGLWidget::clearBufferRender()
+{
+    if (images.size() < BUFF_SIZE) {
+        return;
+    }
+    for(auto i = 0; i < BUFF_SIZE; i++) {
+//        auto index = bufIndex + 1;
+//        if (index >= BUFF_SIZE) {
+//            index = 0;
+//        }
+        images.replace(i, QImage{});
+    }
 }
 
 void BugGLWidget::updateData(AVFrame *frame)

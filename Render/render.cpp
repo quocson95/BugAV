@@ -46,7 +46,7 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
     ,elPrevFrame{nullptr}
 //    ,picture{nullptr}
 {    
-    defaultRenderer = new IBugAVDefaultRenderer;
+    defaultRenderer = &BugAVRendererDefault;
     elTimer = nullptr;
 
     if (renderer == nullptr) {
@@ -82,9 +82,9 @@ Render::~Render()
 //    av_frame_free(&frameYUV);
 //    delete out_buffer;
 
-    if (defaultRenderer != nullptr)  {
-        delete  defaultRenderer;
-    }
+//    if (defaultRenderer != nullptr)  {
+//        delete  defaultRenderer;
+//    }
     if (img != nullptr) {
         delete img;
     }

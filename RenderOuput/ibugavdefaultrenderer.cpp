@@ -49,4 +49,9 @@ QImage IBugAVDefaultRenderer::receiveFrame(const QImage &frame)
     return frame;
 }
 
+void IBugAVDefaultRenderer::clearBufferRender()
+{
+
+}
+
 }

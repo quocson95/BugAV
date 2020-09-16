@@ -20,7 +20,7 @@ extern "C" {
 }
 
 namespace BugAV {
-#define BUF_SIZE 2
+constexpr int BUFF_SIZE = 2;
 
 class LIB_EXPORT BugGLWidget : public QOpenGLWidget, protected QOpenGLFunctions, public IBugAVRenderer
 {
@@ -43,6 +43,8 @@ public:
     QImage receiveFrame(const QImage& frame) override;
 
     QImage getLastFrame() const;
+
+    void clearBufferRender() override;
 
 public slots:
 
@@ -121,7 +123,7 @@ private:
 
     Frame originFrame;
 
-    YUVBuff yuvBuffer[BUF_SIZE];
+    YUVBuff yuvBuffer[BUFF_SIZE];
 
     QVector<QImage> images;
 
