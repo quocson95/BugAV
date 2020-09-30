@@ -405,7 +405,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
     AVDictionary *opts;
     opts = nullptr;
     if (def->isInModeVOD()) {
-//        av_dict_set(&opts, "threads", "2", 0);
+        av_dict_set(&opts, "threads", "auto", 0);
     }
     if (stream_lowres)
         av_dict_set_int(&opts, "lowres", stream_lowres, 0);
