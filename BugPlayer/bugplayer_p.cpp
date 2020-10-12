@@ -61,12 +61,12 @@ int BugPlayerPrivate::play()
         if (isSourceChange()) {
             qDebug() << "source change, do stop before play " << is->fileUrl << " --> " << curFile;
             stop();            
-        } else {
-            if (is->paused) {
-                togglePause();
-            }
-            return 0;
-        }        
+        }
+        return 0;
+    }
+    if (isPause()) {
+        togglePause();
+        return 0;
     }
 //    emit stateChanged(BugAV::BugPlayer::AVState::LoadingState);
     playPriv();
@@ -123,6 +123,14 @@ bool BugPlayerPrivate::isPlaying() const
     return (demuxer->isRunning()
             && vDecoder->isRunning()
             && render->isRunning() && !is->paused)
+            ;
+}
+
+bool BugPlayerPrivate::isPause() const
+{
+    return (demuxer->isRunning()
+            && vDecoder->isRunning()
+            && render->isRunning() && is->paused)
             ;
 }
 

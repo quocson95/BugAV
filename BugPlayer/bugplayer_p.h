@@ -39,6 +39,8 @@ public:
 
     bool isPlaying() const;
 
+    bool isPause() const;
+
     bool isSourceChange() const;
 
     qint64 buffered() const;
