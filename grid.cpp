@@ -17,7 +17,7 @@ Grid::Grid(QWidget *parent) :
 //    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
     size = 1;
     // camera fish eye
-    files << "http://api.stg.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1595054570&id=1f7a7ab8b2e26173a473769a17402234bf7ef768&tk=9cf18b2e2ccac24419444811fbdbdc7a3d38760a&noRedirect=true";
+    files << "https://api.stg.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1602561223&id=c4c1f5c5286244cddcfa720d4538f017dd9b424b&tk=0f412f6d1df086bccb194c2e3b97fb93eea4fe1f&noRedirect=true";
 
     files << "rtsp://admin:Admin123@192.168.0.9:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
              files << "rtsp://admin:Admin123@vcloudcam.ddns.net:8556/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
@@ -131,4 +131,23 @@ void Grid::on_slider_valueChanged(int value)
     auto d = players[0]->getDuration();
     auto v = (value / 100.0 )* d;
     players[0]->seek(v);
+}
+
+void Grid::on_btnSw_clicked()
+{
+    players[0]->setSpeed(1/4);
+}
+
+void Grid::on_btnPause_clicked()
+{
+    players[0]->pause();
+}
+
+void Grid::on_btnFw_clicked()
+{
+    if (players[0]->isPlaying()) {
+        players[0]->setSpeed(4);
+    } else {
+        players[0]->play();
+    }
 }

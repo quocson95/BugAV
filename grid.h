@@ -33,6 +33,9 @@ private slots:
     void on_reCreateGrid_clicked();
     void on_create_clicked();    
     void on_slider_valueChanged(int value);
+    void on_btnSw_clicked();
+    void on_btnPause_clicked();
+    void on_btnFw_clicked();
 };
 
 #endif // GRID_H
