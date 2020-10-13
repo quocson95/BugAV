@@ -117,8 +117,17 @@ void BugPlayer::stop()
 }
 
 void BugPlayer::refresh()
-{
+{    
+    d_ptr->demuxer->enableSkipNonKeyFrame(false);
     d_ptr->refresh();
+}
+
+void BugPlayer::refreshAtCurrent()
+{
+    auto startTime = d_ptr->render->getCurrentPosi();
+    stop();    
+    d_ptr->demuxer->setStartTime(startTime);
+    play();
 }
 
 bool BugPlayer::isPlaying() const
@@ -182,7 +191,22 @@ void BugPlayer::enableSupportFisheye(bool value)
 
 void BugPlayer::setSpeed(const double & speed)
 {
+    // need reload
+    auto curSpeed = d_ptr->is->getSpeed();
+    if (curSpeed == speed) {
+        return;
+    }
     d_ptr->setSpeed(speed);
+    if (speed <= 1.0) {
+        d_ptr->demuxer->enableSkipNonKeyFrame(false);
+        refreshAtCurrent();
+        return;
+    }
+    if (speed > 2.0 && curSpeed <= 2.0) {
+        d_ptr->demuxer->enableSkipNonKeyFrame();
+        refreshAtCurrent();
+        return;
+    }
 }
 
 void BugPlayer::setStartPosition(const qint64 & time)
