@@ -32,6 +32,9 @@ public:
 
     void refresh();
 
+    // refresh and seek to current position
+    void refreshAtCurrent();
+
     bool isPlaying() const;
 
     bool isSourceChange() const;
@@ -64,7 +67,7 @@ public:
 
     qint64 getDuration() const;
 
-    void seek(const double& position);
+    void seek(const double& position);       
 
 Q_SIGNALS:
     void stateChanged(BugAV::AVState state);
@@ -74,7 +77,7 @@ Q_SIGNALS:
     void seekFinished(qint64 timestamp);
 
     void positionChanged(qint64);
-private slots:
+//private slots:
 //    void positionChanged(qint64);
 protected:
     explicit BugPlayer(BugPlayerPrivate &d, QObject *parent = nullptr);

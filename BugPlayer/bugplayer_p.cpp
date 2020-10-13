@@ -69,8 +69,7 @@ int BugPlayerPrivate::play()
         return 0;
     }
 //    emit stateChanged(BugAV::BugPlayer::AVState::LoadingState);
-    playPriv();
-    return 1;
+    return playPriv();
 }
 
 int BugPlayerPrivate::play(const QString &file)
@@ -187,7 +186,7 @@ void BugPlayerPrivate::initPriv()
     }
 }
 
-void BugPlayerPrivate::playPriv()
+int BugPlayerPrivate::playPriv()
 {
     stop();
     initPriv();
@@ -198,10 +197,10 @@ void BugPlayerPrivate::playPriv()
 //    vDecoder->stop();
     is->fileUrl = curFile;
     if (is->fileUrl.isEmpty()) {
-        return;
+        return 0;
     }
     demuxer->start();
-
+    return 1;
 //    render->start();
 //    vDecoder->start();
     // will be emit state playing when loadDone stream
