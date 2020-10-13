@@ -611,9 +611,10 @@ void BugGLWidget::setTransparent(bool transparent)
 
 void BugGLWidget::resizeGL(int w, int h)
 {
-//    if (w > 0 || h > 0) {
-//        glViewport(0, 0, w, h);
-//    }
+    QOpenGLWidget::resizeGL(w, h);
+    if (w > 0 || h > 0) {
+        glViewport(0, 0, w, h);
+    }
 //    emit reqUpdate();
 //    raise();
 }
