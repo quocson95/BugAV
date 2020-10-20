@@ -84,12 +84,12 @@ bool BugAV::AudioOpenALBackEnd::open()
 //            alDeleteBuffers(1, &buffer);
             goto fail;
         }
-//        alSourcei(source, AL_LOOPING, AL_FALSE);
-//        alSourcei(source, AL_SOURCE_RELATIVE, AL_TRUE);
-//        alSourcei(source, AL_ROLLOFF_FACTOR, 0);
-//        alSource3f(source, AL_POSITION, 0.0, 0.0, 0.0);
-//        alSource3f(source, AL_VELOCITY, 0.0, 0.0, 0.0);
-//        alListener3f(AL_POSITION, 0.0, 0.0, 0.0);
+        alSourcei(source, AL_LOOPING, AL_FALSE);
+        alSourcei(source, AL_SOURCE_RELATIVE, AL_TRUE);
+        alSourcei(source, AL_ROLLOFF_FACTOR, 0);
+        alSource3f(source, AL_POSITION, 0.0, 0.0, 0.0);
+        alSource3f(source, AL_VELOCITY, 0.0, 0.0, 0.0);
+        alListener3f(AL_POSITION, 0.0, 0.0, 0.0);
         state = 0;
         qDebug("AudioOutputOpenAL open ok...");
         }
@@ -196,10 +196,10 @@ bool BugAV::AudioOpenALBackEnd::play()
 ALint BugAV::AudioOpenALBackEnd::waitBufferProcessed()
 {
     if (initBuffer) {
-        return -1;
+        return 0;
     }
-    ALint val;
-    do {
+    ALint val;   
+    do {        
         alGetSourcei(source, AL_BUFFERS_PROCESSED, &val);
     } while (val <= 0);
     return val;
@@ -207,9 +207,12 @@ ALint BugAV::AudioOpenALBackEnd::waitBufferProcessed()
 
 bool BugAV::AudioOpenALBackEnd::isBufferProcessed()
 {
+    if (initBuffer) {
+        return 0;
+    }
     ALint val;
     alGetSourcei(source, AL_BUFFERS_PROCESSED, &val);
-    return  val > 0;
+    return  val <= 0;
 }
 
 bool BugAV::AudioOpenALBackEnd::openDevice()
@@ -231,7 +234,7 @@ bool BugAV::AudioOpenALBackEnd::openDevice()
 
 ALenum BugAV::AudioOpenALBackEnd::to_al_format(short channels, short samples)
 {    
-    return AL_FORMAT_STEREO16;
+//    return AL_FORMAT_STEREO16;
         bool stereo = (channels > 1);
         switch (samples) {
         case 16:

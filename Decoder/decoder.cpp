@@ -25,8 +25,7 @@ void Decoder::init(PacketQueue *queue, AVCodecContext *avctx, QWaitCondition *co
     setAvctx(avctx);
     setEmptyQueueCond(cond);
     start_pts = AV_NOPTS_VALUE;
-    pkt_serial = -1;
-    privState = PrivState::InitState;
+    pkt_serial = -1;    
 }
 
 void Decoder::start()
@@ -63,6 +62,12 @@ int Decoder::decodeFrame(AVFrame *frame)
                 }
 //                qDebug() << "avcodec_receive_frame";
                 switch (avctx->codec_type) {
+                case AVMEDIA_TYPE_UNKNOWN:
+                case AVMEDIA_TYPE_DATA:
+                case AVMEDIA_TYPE_SUBTITLE:
+                case AVMEDIA_TYPE_ATTACHMENT:
+                case AVMEDIA_TYPE_NB:
+                    break;
                     case AVMEDIA_TYPE_VIDEO:
                         ret = avcodec_receive_frame(avctx, frame);
 //                        qDebug() << "after avcodec_receive_frame";
@@ -166,123 +171,6 @@ void Decoder::freeAvctx()
         avcodec_free_context(&avctx);
     }
     avctx = nullptr;
-}
-
-int Decoder::decodeFrameV2(AVFrame *frame)
-{
-    if (queue->abort_request) {
-        return -1;
-    }
-    switch (privState) {
-    case PrivState::InitState:{
-        if (checkPktSerial()) {
-            privState = PrivState::ReceiveFrame;
-        } else {
-            privState = PrivState::CheckQueue;
-        }
-    break;
-    }
-    case PrivState::ReceiveFrame: {
-        auto ret = receiveFrame(frame);
-        if (ret == AVERROR(EAGAIN)) {
-            privState = PrivState::CheckQueue;
-        } else {
-            privState = InitState;
-            return ret;
-        }
-        break;
-    }
-    case PrivState::CheckQueue:{
-        if (checkQueue() > 0) {
-            privState = PrivState::SendFrame;
-        } else {
-            privState = PrivState::InitState;
-        }
-        break;
-    }
-    case PrivState::SendFrame: {
-        sendFrame();
-        privState = PrivState::InitState;
-    }
-    }
-    return 0;
-}
-
-int Decoder::checkPktSerial()
-{
-    if (queue->serial == this->pkt_serial) {
-        return 1;
-    }
-    return 0;
-}
-
-int Decoder::receiveFrame(AVFrame *frame)
-{
-    int ret = -1;
-    switch (avctx->codec_type) {
-        case AVMEDIA_TYPE_VIDEO:
-            ret = avcodec_receive_frame(avctx, frame);
-//                        qDebug() << "after avcodec_receive_frame";
-            if (ret >= 0) {
-                if (decoder_reorder_pts == -1) {
-                    frame->pts = frame->best_effort_timestamp;
-                } else if (!decoder_reorder_pts) {
-                    frame->pts = frame->pkt_dts;
-                }
-            }
-            break;
-        case AVMEDIA_TYPE_AUDIO:
-            break;
-    }
-    if (ret == AVERROR_EOF) {
-        finished = this->pkt_serial;
-        avcodec_flush_buffers(avctx);
-        return 0;
-    }
-    if (ret >= 0) {
-        return 1;
-    }
-    return ret;
-}
-
-int Decoder::checkQueue()
-{
-//    if (queue->nb_packets == 0)
-//        emptyQueueCond->wakeOne();
-//    if (packet_pending) {
-//        av_packet_move_ref(&pktTmp, &this->pkt);
-//        packet_pending = 0;
-//    } else {
-//        if (queue->get(&pktTmp, 0, &this->pkt_serial) < 0) {
-//            return -1;
-//        } else {
-//            return 0;
-//        }
-//    }
-//    return (queue->serial != this->pkt_serial);
-    return 0;
-}
-
-int Decoder::sendFrame()
-{
-//    if (PacketQueue::compareFlushPkt(&pktTmp)) {
-//      avcodec_flush_buffers(avctx);
-//      finished = 0;
-//      next_pts = start_pts;
-//      next_pts_tb = start_pts_tb;
-//    } else {
-//       if (avctx->codec_type == AVMEDIA_TYPE_SUBTITLE) {
-
-//       } else {
-//           if (avcodec_send_packet(this->avctx, &pktTmp) == AVERROR(EAGAIN)) {
-//               qDebug() << "Receive_frame and send_packet both returned EAGAIN, which is an API violation";
-//               packet_pending = 1;
-//               av_packet_move_ref(&this->pkt, &pktTmp);
-//           }
-//       }
-//       av_packet_unref(&pktTmp);
-//    }
-    return 1;
 }
 
 };

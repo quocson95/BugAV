@@ -70,7 +70,13 @@ public:
 
     qint64 getDuration() const;
 
-    void seek(const double& position);
+    void seek(const double& position);    
+
+    void setDisableAudio(bool value);
+
+    void setMute(bool value);
+
+    bool isMute() const;
 
     BugPlayer *q_ptr;
     VideoState *is;
@@ -88,14 +94,14 @@ public:
     bool renderRunning;
     bool enableFramedrop;
 
-    float speed;
-
-    Define *def;
-
+    Define *def;   
 
 private:
     void initPriv();
     int playPriv();
+
+    void stopAudio();
+    void stopVideo();
 
 };
 } // namespace BugAV

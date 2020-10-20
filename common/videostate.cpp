@@ -9,6 +9,11 @@ VideoState::VideoState(Define *def):
   ,audio_disable{false}
   ,debug{0}
 {    
+    #ifdef QT_DEBUG
+      debug = 1;
+    #else
+      debug = 0;
+    #endif
     this->def = def;
     pictq = new FrameQueue{def->FramePictQueueSize()};
     sampq = new FrameQueue{def->FrameSampQueueSize()};
@@ -50,6 +55,8 @@ VideoState::VideoState(Define *def):
     audio_write_buf_size = 0;
     audio_volume = 0;
     muted = 0;
+    ignorePktAudio = false;
+    disableAudio = false;
     frame_drops_early = 0;
     frame_drops_late = 0;
     last_i_start = 0;
@@ -81,6 +88,7 @@ VideoState::VideoState(Define *def):
     speed = 1.0;
     videoq->abort_request = 0;
     audioq->abort_request = 0;
+
     setSpeed(1.0);
 //    PacketQueue::mustInitOnce();
     init();

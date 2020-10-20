@@ -67,7 +67,13 @@ public:
 
     qint64 getDuration() const;
 
-    void seek(const double& position);       
+    void seek(const double& position);
+
+    void setDisableAudio(bool value = true);
+
+    void setMute(bool value = true);
+
+    bool isMute() const;
 
 Q_SIGNALS:
     void stateChanged(BugAV::AVState state);

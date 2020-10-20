@@ -36,6 +36,7 @@ private slots:
     void on_btnSw_clicked();
     void on_btnPause_clicked();
     void on_btnFw_clicked();
+    void on_btnMute_clicked();
 };
 
 #endif // GRID_H

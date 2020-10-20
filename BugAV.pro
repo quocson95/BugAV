@@ -48,7 +48,6 @@ HEADERS += \
     Demuxer/handlerinterupt.h \
     Render/audioopenalbackend.h \
     Render/audiorender.h \
-    Render/bugfilter.h \
     Render/render.h \
     RenderOuput/IBugAVRenderer.h \
     RenderOuput/bugglwidget.h \     \
@@ -75,7 +74,6 @@ SOURCES += \
     Demuxer/handlerinterupt.cpp \
     Render/audioopenalbackend.cpp \
     Render/audiorender.cpp \
-    Render/bugfilter.cpp \
     Render/render.cpp \
     RenderOuput/IBugAVRenderer.cpp \
     RenderOuput/bugglwidget.cpp \

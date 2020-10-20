@@ -88,6 +88,10 @@ public:
     int audio_write_buf_size;
     int audio_volume;
     int muted;
+    // ignore audio pkt. when fast-forward, disable audio
+    bool ignorePktAudio;
+    // disable audio feature
+    bool disableAudio;
     AudioParams audio_src;
 #if CONFIG_AVFILTER
     AudioParams audio_filter_src;

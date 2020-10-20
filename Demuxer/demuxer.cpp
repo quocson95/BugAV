@@ -27,11 +27,8 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     ,def{def}
     ,formatOpts{nullptr}
     ,handlerInterupt{nullptr}
-    ,avctx{nullptr}
-    ,skipNonKeyFrame{false}
-//    ,avctx{nullptr}
     ,audioRender{nullptr}
-//    ,elTimer{nullptr}
+   ,skipNonKeyFrame{false}
 {
     startTime = AV_NOPTS_VALUE;
 //    startTime = 50000 * 1000;
@@ -285,10 +282,6 @@ int Demuxer::readFrame()
     }
     if (pkt->stream_index == is->video_stream
             && !(is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
-        is->videoq->put(pkt);
-    } else if (pkt->stream_index == is->audio_stream) {
-        if (is->getSpeed() == 1.0) {
-            is->audioq->put(pkt);
         if (!skipNonKeyFrame) {
             is->videoq->put(pkt);
         } else {
@@ -297,6 +290,12 @@ int Demuxer::readFrame()
             } else {
                 av_packet_unref(pkt);
             }
+        }
+    } else if (pkt->stream_index == is->audio_stream) {
+        if (!is->disableAudio && !is->ignorePktAudio) {
+            is->audioq->put(pkt);
+        } else {
+            av_packet_unref(pkt);
         }
     } else {
         av_packet_unref(pkt);
@@ -463,6 +462,9 @@ int Demuxer::streamOpenCompnent(int stream_index)
             break;
         }
     case AVMEDIA_TYPE_AUDIO: {
+        if (is->getSpeed() != 1.0) {
+            break;
+        }
         is->auddec.init(is->audioq, avctx, is->continue_read_thread);
         // todo audio open sdl?
         if (audioRender != nullptr) {
@@ -541,7 +543,8 @@ void Demuxer::seek()
 int Demuxer::doQueueAttachReq()
 {
     if (is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC) {
-        AVPacket copy = { nullptr };
+        AVPacket copy;
+        copy.buf = nullptr;
         auto ret = -1;
         if ((ret = av_packet_ref(&copy, &is->video_st->attached_pic)) < 0) {
 //            if (is->ic) {

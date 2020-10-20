@@ -42,7 +42,11 @@ void BugPlayer::streamLoaded()
     if (!d_ptr->is->abort_request) {
         d_ptr->render->start();
         d_ptr->vDecoder->start();
-        d_ptr->aDecoder->start();
+        auto denyStartAudioThread = d_ptr->is->disableAudio || d_ptr->is->ignorePktAudio;
+        if (!denyStartAudioThread) {
+            d_ptr->aDecoder->start();
+            d_ptr->audioRender->start();
+        }
 //        d_ptr->audioRender->audioOpen();
         emit stateChanged(BugAV::AVState::LoadingState);
     }
@@ -207,7 +211,7 @@ void BugPlayer::setSpeed(const double & speed)
         refreshAtCurrent();
         return;
     }
-    if (speed > 2.0 && curSpeed <= 2.0) {
+    if (speed > 1.0 && curSpeed <= 1.0) {
         d_ptr->demuxer->enableSkipNonKeyFrame();
         refreshAtCurrent();
         return;
@@ -232,6 +236,21 @@ qint64 BugPlayer::getDuration() const
 void BugPlayer::seek(const double &position)
 {
     d_ptr->seek(position);
+}
+
+void BugPlayer::setDisableAudio(bool value)
+{
+    d_ptr->setDisableAudio(value);
+}
+
+void BugPlayer::setMute(bool value)
+{
+    d_ptr->setMute(value);
+}
+
+bool BugPlayer::isMute() const
+{
+    return d_ptr->isMute();
 }
 
 //void BugPlayer::positionChanged(qint64 posi)

@@ -12,7 +12,6 @@ class QThread;
 namespace BugAV {
 
 class VideoState;
-class BugFilter;
 
 class VideoDecoder: public QObject //, public QRunnable
 {
@@ -42,20 +41,12 @@ private:
     int addQueuFrame();
 
     int getVideoFrame(AVFrame *frame);
-    AVFrame *filterFrame(AVFrame *frame);
+//    AVFrame *filterFrame(AVFrame *frame);
     int queuePicture(AVFrame *srcFrame, double pts, double duration, int64_t pos, int serial);
 private slots:
     void process();
     void threadFinised();
-private:
-    enum class PrivateState {
-        StopState = -1,
-        InitState,
-        CheckStreamAvailState,
-        CalcInfoState,
-        GetFrameState,
-        AddQueueFrameState,
-    };
+private:    
     VideoState *is;
     QThread *thread;
     AVFrame *frame;
@@ -68,13 +59,7 @@ private:
 
     bool isRun;
 
-    PrivateState privState;
     bool requetsStop;
-    BugFilter *filter;
-
-    // QRunnable interface
-public:
-    void run();
 };
 }
 

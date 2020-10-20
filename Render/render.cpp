@@ -1,6 +1,6 @@
 #include "render.h"
 #include "QDebug"
-#include "bugfilter.h"
+
 extern "C" {
 #include "libavutil/time.h"
 #include "libswscale/swscale.h"
@@ -171,16 +171,6 @@ double Render::compute_target_delay(VideoState *is, double delay)
     return delay;
 }
 
-QImage::Format Render::avFormatToImageFormat(int format)
-{
-//    auto f = static_cast<AVPixelFormat>(format);
-//    for (int i = 0; qpixfmt_map[i].fmt != AV_PIX_FMT_NONE; ++i) {
-//        if (qpixfmt_map[i].fmt == f)
-//            return qpixfmt_map[i].qfmt;
-//    }
-    return QImage::Format_Invalid;
-}
-
 AVPixelFormat Render::fixDeprecatedPixelFormat(AVPixelFormat fmt)
 {
     AVPixelFormat pixFormat;
@@ -219,6 +209,7 @@ AVPixelFormat Render::fixDeprecatedPixelFormat(AVPixelFormat fmt)
 
 void Render::updateVideoPts(double pts, int64_t pos, int serial)
 {
+    Q_UNUSED(pos)
     is->vidclk.set(pts, serial);
     is->extclk.syncToSlave(&is->vidclk);
 }
@@ -554,61 +545,6 @@ void Render::setSaveRawImage(bool value)
     saveRawImage = value;
 }
 
-void Render::run()
-{
-//    qDebug() << "Run " << int(privState);
-    if (requestStop) {
-        return;
-    }
-    switch (privState) {
-    case PrivState::Stop: {
-        privState = PrivState::WaitingFirstFrame;
-        break;
-    }
-    case PrivState::WaitingFirstFrame: {
-        if (this->isAvailFirstFrame()) {
-            privState = PrivState::Init;
-        }
-        break;
-    }
-    case PrivState::Init: {
-        if (initPriv() > 0) {
-            privState = PrivState::HandleFrameState1;
-        }
-        break;
-    }
-    case PrivState::HandleFrameState1: {
-        if (handlerFrameState1()) {
-            privState = PrivState::HandleFrameState2;
-        }
-        break;
-    }
-    case PrivState::HandleFrameState2: {
-        if (handlerFrameState2()) {
-            privState = PrivState::HandleFrameState3;
-        } else {
-            privState = PrivState::HandleFrameState1;
-        }
-        break;
-    }
-    case PrivState::HandleFrameState3: {
-       auto ret = handlerFrameState3();
-        if (ret > 0 ) {
-            if (is->force_refresh && is->show_mode == ShowMode::SHOW_MODE_VIDEO && is->pictq->rindex_shown) {
-                videoDisplay();
-            }
-            privState = PrivState::HandleFrameState1;
-        } else if (ret == 0) {
-            privState = PrivState::HandleFrameState3;
-        } else {
-            privState = PrivState::HandleFrameState1;
-        }
-        is->force_refresh = 0;
-        break;
-    }
-    }
-}
-
 bool Render::initPriv()
 {
     if (!hasInit) {
@@ -646,113 +582,6 @@ void Render::freeSwsBuff()
         av_freep(dst_data);
         initSwsBuff = false;
     }
-}
-
-bool Render::handlerFrameState1()
-{
-//    if (remaining_time > 0.0) {
-//            qDebug() << "Remain time " << remaining_time << " render need sleep";
-//        thread->usleep(static_cast<unsigned long>(remaining_time * 1000000.0));
-//        return true;
-//    }
-    auto now = QDateTime::currentMSecsSinceEpoch();
-    if (remaining_time > 0.0) {
-        auto delay = now - lastVideoRefresh;
-        if (delay  < remaining_time) {
-            return false;
-        }
-    }
-    lastVideoRefresh = now;
-    remaining_time = REFRESH_RATE;    
-    if (is->show_mode != ShowMode::SHOW_MODE_NONE && (!is->paused || is->force_refresh)){
-//        videoRefresh();
-        lastVideoRefresh = now;
-        return true;
-    }
-    return false;
-}
-
-bool Render::handlerFrameState2()
-{
-
-//    Frame *sp, *sp2;
-    if (!is->paused && is->getMasterSyncType() == ShowModeClock::AV_SYNC_EXTERNAL_CLOCK && is->realtime) {
-        is->checkExternalClockSpeed();
-    }
-    // show video
-//    auto time = av_gettime_relative() / 1000000.0;
-//    if (is->force_refresh || is->last_vis_time + rdftspeed < time) {
-//        videoDisplay();
-//        is->last_vis_time = time;
-//    }
-//    remaining_time = FFMIN(remaining_time, is->last_vis_time + rdftspeed - time);
-
-    if (is->video_st == nullptr) {
-        is->force_refresh = 0;
-        return false;
-    }
-    return true;
-}
-
-int Render::handlerFrameState3()
-{
-    if (is->pictq->queueNbRemain() == 0 ) {
-        return 1;
-    }    
-    if (is->pictq->queueNbRemain() > 0) {
-        double last_duration, duration, delay;
-        Frame *vp, *lastvp;
-        lastvp = is->pictq->peekLast();
-        vp = is->pictq->peek();
-
-        if (vp->serial != is->videoq->serial) {
-            is->pictq->queueNext();
-            return  0;
-        }
-
-        if (lastvp->serial != vp->serial) {
-            is->frame_timer = av_gettime_relative() / 1000000.0;
-        }
-
-        if (is->paused) {
-            return 1;
-        }
-        /* compute nominal last_duration */
-        last_duration = vp_duration(is->max_frame_duration, lastvp, vp);
-        delay = compute_target_delay(is, last_duration);
-
-        auto time = av_gettime_relative()/1000000.0;
-        if (time < is->frame_timer + delay) {
-            remaining_time = FFMIN(is->frame_timer + delay - time, remaining_time);
-            return 1;
-        }
-        is->frame_timer += delay;
-        if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX) {
-            is->frame_timer = time;
-        }
-        is->pictq->mutex.lock();
-        if (!isnan(vp->getPts())) {
-            updateVideoPts(vp->getPts(), vp->pos, vp->serial);
-        }
-        is->pictq->mutex.unlock();
-        if (is->pictq->queueNbRemain() > 1) {
-            Frame *nextvp = is->pictq->peekNext();
-            duration = vp_duration(is->max_frame_duration, vp, nextvp);
-            if(!is->step && (is->framedrop>0 || (is->framedrop && is->getMasterSyncType() != ShowModeClock::AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
-                qDebug() << "drop frame";
-               is->frame_drops_late++;
-               is->pictq->queueNext();
-               return 0;
-            }
-        }
-        is->pictq->queueNext();
-        is->force_refresh = 1;
-        if (is->step && !is->paused) {
-            is->streamTogglePause();
-        }
-    }
-//    is->force_refresh = 0;
-    return 1;
 }
 
 bool Render::getRequestStop() const

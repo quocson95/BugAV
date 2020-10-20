@@ -395,7 +395,7 @@ BugGLWidget::BugGLWidget(QWidget *parent)
     offsetX = offsetY = 0;
 
     bufIndex=0;
-    memset(m_textureIds, 0, 3);
+    memset(m_textureIds, 0, sizeof(GLuint) * 3);
     for(auto i = 0; i < 3; i++) {        
         originFrame.data[i] = nullptr;
     }
@@ -469,12 +469,12 @@ void BugGLWidget::initShader(int w, int h)
 
 void BugGLWidget::setQuality(int quality)
 {
-
+    Q_UNUSED(quality)
 }
 
 void BugGLWidget::setOutAspectRatioMode(int ratioMode)
 {
-
+    Q_UNUSED(ratioMode)
 }
 
 QImage BugGLWidget::receiveFrame(const QImage &frame)

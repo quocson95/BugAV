@@ -16,8 +16,7 @@ BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
     def = new Define;
     def->setModePlayer(mode);
 
-    is = new VideoState{def};
-    is->debug = 1;
+    is = new VideoState{def};  
     audioRender = new AudioRender{is};
     demuxer = new Demuxer{is, def};
     demuxer->setAudioRender(audioRender);
@@ -32,7 +31,7 @@ BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
     renderRunning = false;
     enableFramedrop = true;
 
-    speed = 1.0;
+//    av_log_set_level(AV_LOG_INFO);
     av_log_set_level(AV_LOG_QUIET);
 }
 
@@ -111,16 +110,12 @@ void BugPlayerPrivate::stop()
 {
     is->abort_request = 1;    
     demuxer->stop();   
-    is->videoq->abort();
-    is->pictq->wakeSignal();
-    is->audioq->abort();
-    is->sampq->wakeSignal();
+    stopVideo();
+    stopAudio();
 //    is->viddec.stop();
-    vDecoder->stop();
-    aDecoder->stop();
-    render->stop();
-    audioRender->stop();
+
     demuxer->unload();
+    is->reset();
 }
 
 void BugPlayerPrivate::refresh()
@@ -218,6 +213,22 @@ int BugPlayerPrivate::playPriv()
     // will be emit state playing when loadDone stream
 }
 
+void BugPlayerPrivate::stopAudio()
+{
+    is->audioq->abort();
+    is->sampq->wakeSignal();
+    aDecoder->stop();
+    audioRender->stop();
+}
+
+void BugPlayerPrivate::stopVideo()
+{
+    is->videoq->abort();
+    is->pictq->wakeSignal();
+    vDecoder->stop();
+    render->stop();
+}
+
 void BugPlayerPrivate::setEnableFramedrop(bool value)
 {
     enableFramedrop = value; // set before play, if not it will effect when player refresh
@@ -229,15 +240,13 @@ void BugPlayerPrivate::setSpeed(const double & speed)
     if (oldSpeed == speed) {
         return;
     }
-    is->setSpeed(speed);
+    is->setSpeed(speed);     
     if (speed != 1.0) {
-        aDecoder->stop();
-        is->audioq->abort();
+        is->ignorePktAudio = true;
+        stopAudio();
     } else {
-         is->audioq->start();
-        aDecoder->start();
+        is->ignorePktAudio = false;
     }
-    audioRender->setSpeed(speed);
 
 }
 
@@ -259,6 +268,24 @@ qint64 BugPlayerPrivate::getDuration() const
 void BugPlayerPrivate::seek(const double &position)
 {       
     demuxer->doSeek(position);
+}
+
+void BugPlayerPrivate::setDisableAudio(bool value)
+{
+    is->disableAudio = value;
+    if (is->disableAudio) {
+        stopAudio();
+    }
+}
+
+void BugPlayerPrivate::setMute(bool value)
+{
+    is->muted = value;
+}
+
+bool BugPlayerPrivate::isMute() const
+{
+    return is->muted;
 }
 
 

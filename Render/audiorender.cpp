@@ -17,25 +17,19 @@ extern "C" {
 BugAV::AudioRender::AudioRender(BugAV::VideoState *is):
     QObject(nullptr)
   ,is{is}
-  ,thread{nullptr}
-  ,audio{nullptr}
-  ,kCheckBufferAudio{-1}
-  ,speed{1.0}
+  ,thread{nullptr}  
 {
     connect(this, &AudioRender::initAudioFormatDone, this, &AudioRender::hanlerAudioFormatDone);
 }
 
 BugAV::AudioRender::~AudioRender()
 {
-    if (audio != nullptr) {
-        audio->stop();
-        input->setBuffer(nullptr);
-    }
+    stop();
 }
 
 void BugAV::AudioRender::start()
 {
-    reqStop = false;
+    reqStop = false;    
     if (thread == nullptr) {
         thread = new QThread{this};
         moveToThread(thread);
@@ -57,20 +51,14 @@ void BugAV::AudioRender::stop()
     thread->quit();
     do {
         thread->wait(500);
-    } while(thread->isRunning());
-    if (audio != nullptr) {
-        audio->stop();
-    }
+    } while(thread->isRunning());    
 }
 
 int BugAV::AudioRender::initAudioFormat(int64_t wanted_channel_layout,
                                    int wanted_nb_channels,
                                    int wanted_sample_rate,
                                    AudioParams *audio_hw_params)
-{
-    if (audio != nullptr) {
-        return 0;
-    }
+{    
     QAudioFormat wanted_spec, spec;
 
     if (!wanted_channel_layout || wanted_nb_channels != av_get_channel_layout_nb_channels(wanted_channel_layout)) {
@@ -105,7 +93,7 @@ int BugAV::AudioRender::initAudioFormat(int64_t wanted_channel_layout,
          QList<int> sampleRatesList ;
         sampleRatesList += info.supportedSampleRates();
         sampleRatesList = sampleRatesList.toSet().toList(); // remove duplicates
-        qSort(sampleRatesList);
+        std::sort(sampleRatesList.begin(), sampleRatesList.end());
         qDebug() << "Engine::initialize frequenciesList" << sampleRatesList;
 
         QList<int> channelsList;
@@ -143,47 +131,7 @@ int BugAV::AudioRender::initAudioFormat(int64_t wanted_channel_layout,
                 return -1;
     }
     wanted_spec.setSampleType(QAudioFormat::UnSignedInt);
-    format = wanted_spec;
-    emit initAudioFormatDone();
     return 0;
-//    audio = new QAudioOutput(wanted_spec, this);
-//    connect(audio, SIGNAL(stateChanged(QAudio::State)), this, SLOT(handleStateChanged(QAudio::State)));
-//    byteBuffer = new QByteArray();
-//    byteBuffer->resize(audio->bufferSize());
-//    input = new QBuffer(byteBuffer, this);
-//    input->open(QIODevice::ReadOnly);
-//    audio->start(input);
-//    return audio->bufferSize();
-//    format.setSampleRate(8000);
-//    format.setChannelCount(1);
-//    format.setSampleSize(8);
-//    format.setCodec("audio/pcm");
-//    format.setByteOrder(QAudioFormat::LittleEndian);
-//    format.setSampleType(QAudioFormat::UnSignedInt);
-//    QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
-//    if (!info.isFormatSupported(format)) {
-//        qWarning() << "Raw audio format not supported by backend, cannot play audio.";
-//        return;
-//    }
-
-//    audio = new QAudioOutput(format, this);
-    //    connect(audio, SIGNAL(stateChanged(QAudio::State)), this, SLOT(handleStateChanged(QAudio::State)));
-}
-
-void BugAV::AudioRender::setSpeed(const double &speed)
-{
-    if (this->speed == speed) {
-        return;
-    }
-    if (speed == 1.0) {
-//        start();
-    } else {
-        is->sampq->wakeSignal();
-//        stop();
-        is->sampq->reset();
-    }
-
-    this->speed = speed;
 }
 
 char * BugAV::AudioRender::audioCallback(char * stream, int len)
@@ -196,7 +144,7 @@ char * BugAV::AudioRender::audioCallback(char * stream, int len)
     auto audio_callback_time = av_gettime_relative();
 //    audioDecodeFrame();
 //    return (char *)is->audio_buf;
-    qDebug() << "audioCallback " << len;
+//    qDebug() << "audioCallback " << len;
     while (len > 0) {
         if (is->audio_buf_index >= int(is->audio_buf_size)) {
             audioSize = audioDecodeFrame();
@@ -252,6 +200,9 @@ int BugAV::AudioRender::audioDecodeFrame()
        return  -1;
    }
    do {
+       if (reqStop) {
+           return -1;
+       }
 #if defined(_WIN32)
         while (frame_queue_nb_remaining(&is->sampq) == 0) {
             if ((av_gettime_relative() - audio_callback_time) > 1000000LL * is->audio_hw_buf_size / is->audio_tgt.bytes_per_sec / 2)
@@ -347,13 +298,13 @@ int BugAV::AudioRender::audioDecodeFrame()
         is->audio_clock = NAN;
     }
     is->audio_clock_serial = af->serial;
-    if (is->debug) {
-        static double last_clock;
-        qDebug("audio: delay=%0.3f clock=%0.3f clock0=%0.3f\n",
-               is->audio_clock - last_clock,
-               is->audio_clock, audio_clock0);
-        last_clock = is->audio_clock;
-    }
+//    if (is->debug) {
+//        static double last_clock;
+//        qDebug("audio: delay=%0.3f clock=%0.3f clock0=%0.3f\n",
+//               is->audio_clock - last_clock,
+//               is->audio_clock, audio_clock0);
+//        last_clock = is->audio_clock;
+//    }
     return  resampled_data_size;
 }
 
@@ -398,20 +349,28 @@ int BugAV::AudioRender::synchronizeAudio(int nb_samples)
 
 void BugAV::AudioRender::process()
 {
-    backend = new AudioOpenALBackEnd();    
-    byteBuffer.resize(4096);
+    qDebug() << "Audio render start";
+    auto backend = new AudioOpenALBackEnd();
     backend->setAudioParam(is->audio_tgt);
     backend->open();
     while (!reqStop) {
-        auto data = audioCallback(buffer, 4096);
-        if (reqStop) {
+        if (is->audio_st != nullptr && is->sampq->queueNbRemain() > 0) {
             break;
         }
-        backend->write(QByteArray::fromRawData(buffer, 4096));
+        thread->msleep(100);
+
+    }
+    while (!reqStop) {
+        audioCallback(buffer, AUDIO_BUFF_SIZE);
+        if (reqStop) {
+            break;
+        }        
+        backend->write(QByteArray::fromRawData(buffer, AUDIO_BUFF_SIZE));
         while (!reqStop && backend->isBufferProcessed()) {
-            thread->msleep(10);
+            thread->msleep(1); //  todo can be better sleep ???
         }
-    }       
+    }
+    qDebug() << "Audio render stop";
     delete backend;
     thread->terminate();
     emit stopped();
@@ -424,10 +383,6 @@ void BugAV::AudioRender::audioNotify()
 
 void BugAV::AudioRender::hanlerAudioFormatDone()
 {
-//    audio = new QAudioOutput(format, nullptr);
-//    audio->start(input);
-//    audioCallback(byteBuffer);
-//    kCheckBufferAudio = startTimer(50);
     start();
 }
 
@@ -440,17 +395,14 @@ void BugAV::AudioRender::handleStateChanged(QAudio::State audioState)
     }
 }
 
-qint64 BugAV::AudioRender::audioLength(const QAudioFormat &format, qint64 microSeconds)
+qint64 BugAV::AudioRender::audioLength(const AudioParams &audioParam, qint64 microSeconds)
 {
-    qint64 result = (format.sampleRate() * format.channelCount() * (format.sampleSize() / 8))
+    qint64 result = (audioParam.freq * audioParam.channels * (16 / 8))
         * microSeconds / 100000;
-    result -= result % (format.channelCount() * format.sampleSize());
+    result -= result % (audioParam.channels * 16);
     return result;
 }
 
-void BugAV::AudioRender::timerEvent(QTimerEvent *event)
-{
-    if (event->timerId() == kCheckBufferAudio) {
-//        audioCallback(byteBuffer);
-    }
+void BugAV::AudioRender::timerEvent(QTimerEvent *)
+{    
 }

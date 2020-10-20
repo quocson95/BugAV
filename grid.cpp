@@ -17,8 +17,10 @@ Grid::Grid(QWidget *parent) :
 //    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
     size = 1;
     // camera fish eye
-    files << "/home/sondq/Downloads/video_audio";
-
+    files << "/home/sondq/Downloads/video_audio2";
+//    files << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603269402&id=d72fdf56dc08a0052920d454ccb1fe0b561fcb59&tk=aabe3cbbda1402b9a4c9cc11bd0cfa8aa09a3e7f&noRedirect=true";
+//    files  << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603269598&id=f0c1c0d70c88aa8540916d661e62c6e058022fea&tk=de612ae9a4c55e929c827adcfb4f45c92a2917b4&noRedirect=true";
+ files << "rtsp://admin:Admin123@192.168.0.15:554/0";
     files << "rtsp://admin:Admin123@192.168.0.9:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
              files << "rtsp://admin:Admin123@vcloudcam.ddns.net:8556/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
              files << "rtsp://admin:Admin123@192.168.0.12:554/profile3";
@@ -79,7 +81,7 @@ void Grid::start()
 
 void Grid::addPlayer(int i, int j)
 {
-    auto player = new BugAV::BugPlayer(this, BugAV::    ModePlayer::VOD);
+    auto player = new BugAV::BugPlayer(this, BugAV::    ModePlayer::RealTime);
     auto renderer = new BugAV::BugGLWidget;
     player->enableSupportFisheye(true);
     QVariantHash avformat;
@@ -92,6 +94,7 @@ void Grid::addPlayer(int i, int j)
         player->play(files.at(i*size + j));
     }    
     player->setSpeed(1);
+//    player->setDisableAudio();
     ui->g->addWidget(renderer, i, j);
     players.push_back(player);
     renderers.push_back(renderer);
@@ -150,4 +153,9 @@ void Grid::on_btnFw_clicked()
     } else {
         players[0]->play();
     }
+}
+
+void Grid::on_btnMute_clicked()
+{
+    players[0]->setMute(!players[0]->isMute());
 }

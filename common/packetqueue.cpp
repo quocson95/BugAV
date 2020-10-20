@@ -49,6 +49,7 @@ bool PacketQueue::compareFlushPkt(AVPacket *pkt)
 void PacketQueue::init()
 {   
     abort_request = 1;
+    flush();
 }
 
 void PacketQueue::flush()

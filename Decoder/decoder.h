@@ -47,25 +47,6 @@ public:
     AVRational next_pts_tb;
     QWaitCondition *emptyQueueCond;
     int decoder_reorder_pts = -1; //let decoder reorder pts 0=off 1=on -1=auto
-
-//    AVPacket pktTmp;
-
-private:
-    enum PrivState {
-        InitState,
-        ReceiveFrame,
-        SendFrame,
-        CheckQueue,
-    };
-    PrivState privState;
-
-    int checkPktSerial();
-
-    int receiveFrame(AVFrame *frame);
-
-    int checkQueue();
-
-    int sendFrame();
 };
 
 }
