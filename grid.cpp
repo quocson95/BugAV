@@ -17,7 +17,7 @@ Grid::Grid(QWidget *parent) :
 //    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
     size = 1;
     // camera fish eye
-    files << "https://api.stg.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1602561223&id=c4c1f5c5286244cddcfa720d4538f017dd9b424b&tk=0f412f6d1df086bccb194c2e3b97fb93eea4fe1f&noRedirect=true";
+    files << "/home/sondq/Downloads/video_audio";
 
     files << "rtsp://admin:Admin123@192.168.0.9:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
              files << "rtsp://admin:Admin123@vcloudcam.ddns.net:8556/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
@@ -44,9 +44,9 @@ Grid::Grid(QWidget *parent) :
              files << "rtsp://admin:Admin123@192.168.0.50:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1";
              files << "rtsp://admin:Admin123@192.168.0.12:554/profile3";
 
-
-    start();
     BugAV::PacketQueue::mustInitOnce();
+    start();
+
 }
 
 Grid::~Grid()
@@ -135,7 +135,7 @@ void Grid::on_slider_valueChanged(int value)
 
 void Grid::on_btnSw_clicked()
 {
-    players[0]->setSpeed(1/4);
+    players[0]->setSpeed(1.0);
 }
 
 void Grid::on_btnPause_clicked()

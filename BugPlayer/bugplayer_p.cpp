@@ -2,9 +2,11 @@
 #include <QDebug>
 #include "common/videostate.h"
 #include "Decoder/videodecoder.h"
+#include "Decoder/audiodecoder.h"
 #include "Demuxer/demuxer.h"
 #include "Render/render.h"
 #include <common/define.h>
+#include <Render/audiorender.h>
 
 namespace BugAV {
 BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
@@ -15,9 +17,15 @@ BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
     def->setModePlayer(mode);
 
     is = new VideoState{def};
+    is->debug = 1;
+    audioRender = new AudioRender{is};
     demuxer = new Demuxer{is, def};
+    demuxer->setAudioRender(audioRender);
+
     vDecoder = new VideoDecoder{is};
-    render = new Render{is};
+    aDecoder = new AudioDecoder{is};
+
+    render = new Render{is};    
 
     demuxerRunning = false;
     vDecoderRunning = false;
@@ -106,9 +114,13 @@ void BugPlayerPrivate::stop()
     demuxer->stop();   
     is->videoq->abort();
     is->pictq->wakeSignal();
+    is->audioq->abort();
+    is->sampq->wakeSignal();
 //    is->viddec.stop();
     vDecoder->stop();
+    aDecoder->stop();
     render->stop();
+    audioRender->stop();
     demuxer->unload();
 }
 
@@ -214,13 +226,20 @@ void BugPlayerPrivate::setEnableFramedrop(bool value)
 
 void BugPlayerPrivate::setSpeed(const double & speed)
 {
-    auto oldSpeed = this->speed;
-//    this->is->speed = speed;
-    is->setSpeed(speed);
-//    this->vDecoder->setSpeedRate(speed);
-    if (isPlaying()) {
-        // this->is->pictq->syncAllFrameToNewPts(oldSpeed, speed);
+    auto oldSpeed = is->getSpeed();
+    if (oldSpeed == speed) {
+        return;
     }
+    is->setSpeed(speed);
+    if (speed != 1.0) {
+        aDecoder->stop();
+        is->audioq->abort();
+    } else {
+         is->audioq->start();
+        aDecoder->start();
+    }
+    audioRender->setSpeed(speed);
+
 }
 
 void BugPlayerPrivate::setStartPosition(const qint64 &time)

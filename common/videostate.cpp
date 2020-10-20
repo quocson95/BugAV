@@ -4,17 +4,22 @@ extern "C" {
 }
 
 namespace BugAV {
-VideoState::VideoState(Define *def)
+VideoState::VideoState(Define *def):
+    img_convert_ctx{nullptr}
+  ,audio_disable{false}
+  ,debug{0}
 {    
     this->def = def;
-    pictq = new FrameQueue{def};
+    pictq = new FrameQueue{def->FramePictQueueSize()};
+    sampq = new FrameQueue{def->FrameSampQueueSize()};
 
     continue_read_thread = new QWaitCondition;
     show_mode = ShowMode::SHOW_MODE_VIDEO;    
-    av_sync_type = ShowModeClock::AV_SYNC_EXTERNAL_CLOCK;
+    av_sync_type = ShowModeClock::AV_SYNC_VIDEO_MASTER;
     videoq = new PacketQueue;
+    audioq = new PacketQueue;
     useAVFilter = false;
-    ic = nullptr;
+    ic = nullptr;    
     seek_req  = 0;
     abort_request = 0;
     force_refresh = 0;
@@ -69,11 +74,14 @@ VideoState::VideoState(Define *def)
     useAVFilter = false; // need avfilter avframe
 
     last_video_stream = last_audio_stream = last_subtitle_stream = -1;
-    img_convert_ctx  = nullptr;
 
     framedrop = 0;
-    setSpeed(1.0);
 
+    duration = 0;
+    speed = 1.0;
+    videoq->abort_request = 0;
+    audioq->abort_request = 0;
+    setSpeed(1.0);
 //    PacketQueue::mustInitOnce();
     init();
     reset();
@@ -92,15 +100,24 @@ VideoState::~VideoState()
 
     viddec.clear();
     delete ic;
-    delete pictq;
+    // video
+    delete pictq;  
     delete videoq;
+    // audio
+    delete sampq;
+    delete audioq;
 }
 
 void VideoState::init()
 {
+    // video
     viddec.init(videoq, nullptr, continue_read_thread);
-    pictq->init(videoq, def->VideoPictureQueueSize(), 1);
+    pictq->init(videoq, def->VideoPictureQueueSize(), 1);    
     vidclk.init(&videoq->serial);
+    // audio
+    auddec.init(audioq, nullptr, continue_read_thread);
+    sampq->init(audioq, def->AudioQueueSize(), 1);
+    audclk.init(&audioq->serial);
 }
 
 ShowModeClock VideoState::getMasterSyncType() const
@@ -141,12 +158,12 @@ double VideoState::getMasterClock()
 void VideoState::checkExternalClockSpeed()
 {
     if ((this->video_stream >= 0 && this->videoq->nb_packets <= EXTERNAL_CLOCK_MIN_FRAMES) ||
-           (this->audio_stream >= 0 && this->audioq.nb_packets <= EXTERNAL_CLOCK_MIN_FRAMES))
+           (this->audio_stream >= 0 && this->audioq->nb_packets <= EXTERNAL_CLOCK_MIN_FRAMES))
     {
 //        setClockSpeed(&this->extclk, FFMAX(EXTERNAL_CLOCK_SPEED_MIN, this->extclk.speed - EXTERNAL_CLOCK_SPEED_STEP));
         this->extclk.setSpeed(FFMAX(EXTERNAL_CLOCK_SPEED_MIN, this->extclk.speed - EXTERNAL_CLOCK_SPEED_STEP));
     } else if ((this->video_stream < 0 || this->videoq->nb_packets > EXTERNAL_CLOCK_MAX_FRAMES) &&
-                  (this->audio_stream < 0 || this->audioq.nb_packets > EXTERNAL_CLOCK_MAX_FRAMES))
+                  (this->audio_stream < 0 || this->audioq->nb_packets > EXTERNAL_CLOCK_MAX_FRAMES))
     {
 //        setClockSpeed(&this->extclk, FFMIN(EXTERNAL_CLOCK_SPEED_MAX, this->extclk.speed + EXTERNAL_CLOCK_SPEED_STEP));
         this->extclk.setSpeed(FFMIN(EXTERNAL_CLOCK_SPEED_MAX, this->extclk.speed + EXTERNAL_CLOCK_SPEED_STEP));
@@ -206,17 +223,27 @@ void VideoState::decoderAbort(Decoder *d, FrameQueue *fq)
 void VideoState::vidDecoderAbort()
 {
     decoderAbort(&viddec, pictq);
+    decoderAbort(&auddec, sampq);
 }
 
-void VideoState::flush()
-{
-    videoq->flush();
-}
+//void VideoState::flush()
+//{
+//    videoq->flush();
+//}
 
 void VideoState::resetStream()
 {
-    video_stream = -1;
+    last_video_stream = video_stream = -1;
     video_st = nullptr;
+
+    last_audio_stream = audio_stream = -1;
+    audio_st = nullptr;
+
+    eof = 0;
+
+    viddec.freeAvctx();
+    auddec.freeAvctx();
+
 }
 
 void VideoState::reset()
@@ -224,24 +251,24 @@ void VideoState::reset()
     resetStream();
 //    framedrop = 0; // drop frame when cpu too slow.
 
-    //init frame queue
+    //init picture frame queue
     pictq->init(videoq, def->VideoPictureQueueSize(), 1);
 
     //init package queue
     videoq->init();
 
-    //init clock
+    // init audio frame queue
+    sampq->init(audioq, def->AudioQueueSize(), 1);
+
+    // init audio package queue
+    audioq->init();
+
+    //init video clock
     vidclk.init(&videoq->serial);
 
-    abort_request = 0;
-    force_refresh = 0;
-    paused = 0;
-    last_paused = 0;
-    step = 0;
-    videoq->abort_request = 0;
-    eof = 0;
-    duration = 0;
-//    speed = 1.0;
+    // init audio clock
+    audclk.init(&audioq->serial);    
+
     if (img_convert_ctx != nullptr) {
         sws_freeContext(img_convert_ctx);
         img_convert_ctx = nullptr;
@@ -258,6 +285,11 @@ bool VideoState::isVideoClock() const
     return getMasterSyncType() == ShowModeClock::AV_SYNC_VIDEO_MASTER;
 }
 
+bool VideoState::isAudioClock() const
+{
+    return getMasterSyncType() == ShowModeClock::AV_SYNC_AUDIO_MASTER;
+}
+
 void VideoState::setIformat(AVInputFormat *value)
 {
     iformat = value;
@@ -267,6 +299,7 @@ void VideoState::setIformat(AVInputFormat *value)
 void VideoState::setSpeed(double value)
 {
     pictq->speed = value;
+    sampq->speed = value;
     speed = value;
 }
 

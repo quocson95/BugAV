@@ -30,6 +30,8 @@ public:
 
     void clear();
 
+    void freeAvctx();
+
     int decodeFrameV2(AVFrame *frame);
 
 public:   

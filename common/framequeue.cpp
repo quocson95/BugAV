@@ -3,9 +3,10 @@
 #include "QDebug"
 
 namespace BugAV {
-FrameQueue::FrameQueue(Define *def)
+FrameQueue::FrameQueue(qint64 frameQueueSize)
 {
-    this->def = def;
+//    this->def = frameQueueSize;
+    this->frameQueueSize = frameQueueSize;
     waitForRead = false;
     rindex = 0;
     windex = 0;
@@ -14,9 +15,10 @@ FrameQueue::FrameQueue(Define *def)
     keep_last = 0;
     rindex_shown = 0;
     pktq = nullptr;
-    waitForRead  =false;
-    queue = new Frame[def->FrameQueueSize()];
-    for (auto i = 0; i < def->FrameQueueSize(); i++) {
+    waitForRead = false;
+    speed = 1.0;
+    queue = new Frame[this->frameQueueSize];
+    for (auto i = 0; i < this->frameQueueSize; i++) {
         queue[i].frame = nullptr;
         queue[i].speed = &speed;
     }
@@ -38,11 +40,13 @@ int FrameQueue::init(PacketQueue *pktq, int maxSize, int keepLast)
 {
     this->pktq = pktq;
     for (auto i = 0; i < max_size; i++) {
-        Frame *vp = &queue[i];
+        Frame *vp = &queue[i];       
         unrefItem(vp);
-        av_frame_free(&vp->frame);
+        if (vp->frame != nullptr) {
+            av_frame_free(&vp->frame);
+        }
     }
-    this->max_size = FFMIN(maxSize, def->FrameQueueSize());
+    this->max_size = FFMIN(maxSize, this->frameQueueSize);
     this->keep_last = !!keepLast;
     for (auto i = 0; i < max_size; i++) {
         if (!(queue[i].frame = av_frame_alloc())) {
@@ -103,21 +107,21 @@ Frame *FrameQueue::peekWriteable()
     return &queue[windex];
 }
 
-//Frame *FrameQueue::peekReadable()
-//{
-//    /* wait until we have a readable a new frame */
-//    mutex.lock();
-//    while (size - rindex_shown <= 0 &&
-//          !pktq->abort_request) {
-//       cond.wait(&mutex);
-//    }
-//    mutex.unlock();
+Frame *FrameQueue::peekReadable()
+{
+    /* wait until we have a readable a new frame */
+    mutex.lock();
+    while (size - rindex_shown <= 0 &&
+          !pktq->abort_request) {
+       cond.wait(&mutex);
+    }
+    mutex.unlock();
 
-//    if (pktq->abort_request)
-//       return nullptr;
+    if (pktq->abort_request)
+       return nullptr;
 
-//    return &queue[(rindex + rindex_shown) % max_size];
-//}
+    return &queue[(rindex + rindex_shown) % max_size];
+}
 
 void FrameQueue::queuePush()
 {
@@ -162,13 +166,28 @@ int64_t FrameQueue::queueLastPos()
 
 qreal FrameQueue::bufferPercent()
 {
-    return (queueNbRemain() / def->FrameQueueSize()) * 100;
+    return (queueNbRemain() /this->frameQueueSize) * 100;
 }
 
 bool FrameQueue::isWriteable()
 {
     auto allowWrite = !(size >= max_size);
     return allowWrite;
+}
+
+void FrameQueue::reset()
+{
+//    waitForRead = false;
+//    rindex = 0;
+//    windex = 0;
+//    size = 0;
+//    keep_last = 0;
+//    rindex_shown = 0;
+////    pktq = nullptr;
+//    waitForRead = false;
+//    speed = 1.0;
+    auto s = FFMAX(this->max_size, this->frameQueueSize);
+    init(this->pktq, s, keep_last);
 }
 
 //void FrameQueue::syncAllFrameToNewPts(const double &oldSpeed, const double &newSpeed)

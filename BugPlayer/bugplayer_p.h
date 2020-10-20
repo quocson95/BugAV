@@ -9,10 +9,12 @@ namespace BugAV {
 class VideoState;
 class Demuxer;
 class VideoDecoder;
+class AudioDecoder;
 class Render;
 class IBugAVRenderer;
 class BugPlayer;
 class Define;
+class AudioRender;
 
 class BugPlayerPrivate
 {
@@ -74,7 +76,10 @@ public:
     VideoState *is;
     Demuxer *demuxer;
     VideoDecoder *vDecoder;
+    AudioDecoder *aDecoder;
+
     Render *render;
+    AudioRender *audioRender;
 
     QString curFile;
 

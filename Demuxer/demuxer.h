@@ -18,6 +18,7 @@ class StreamInfo;
 class VideoState;
 class HandlerInterupt;
 class Define;
+class AudioRender;
 
 class Demuxer: public QObject
 {
@@ -26,6 +27,9 @@ public:
     Demuxer();
     Demuxer(VideoState *is, Define *def);
     ~Demuxer();
+
+    void setAudioRender(AudioRender *audioRender);
+
     void setAvformat(QVariantHash avformat);      
 
     bool load();
@@ -98,7 +102,9 @@ private:
     HandlerInterupt *handlerInterupt;
     friend HandlerInterupt;
 
-    AVCodecContext *avctx;
+//    AVCodecContext *avctx;
+
+    AudioRender *audioRender;
 
 //    QElapsedTimer *elTimer;
 //    bool isAllowUpdatePosition;

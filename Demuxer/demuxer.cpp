@@ -8,6 +8,7 @@ extern "C" {
 #include <QThread>
 #include <QThreadPool>
 #include <QTimer>
+#include <QtMath>
 
 #include "common/packetqueue.h"
 #include "common/clock.h"
@@ -16,6 +17,7 @@ extern "C" {
 #include "common/videostate.h"
 #include "Decoder/decoder.h"
 #include "handlerinterupt.h"
+#include <Render/audiorender.h>
 
 namespace BugAV {
 
@@ -25,7 +27,8 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     ,def{def}
     ,formatOpts{nullptr}
     ,handlerInterupt{nullptr}
-    ,avctx{nullptr}
+//    ,avctx{nullptr}
+    ,audioRender{nullptr}
 //    ,elTimer{nullptr}
 {
     startTime = AV_NOPTS_VALUE;
@@ -55,6 +58,11 @@ Demuxer::~Demuxer()
     av_dict_free(&formatOpts);
     curThread->deleteLater();
     delete handlerInterupt;
+}
+
+void Demuxer::setAudioRender(AudioRender *audioRender)
+{
+    this->audioRender = audioRender;
 }
 
 void Demuxer::setAvformat(QVariantHash avformat)
@@ -159,14 +167,20 @@ bool Demuxer::load()
     stIndex[AVMEDIA_TYPE_VIDEO] = findBestStream(
                 is->ic, AVMEDIA_TYPE_VIDEO, stIndex[AVMEDIA_TYPE_VIDEO]);
 
+    if (!is->audio_disable) {
+        stIndex[AVMEDIA_TYPE_AUDIO] = findBestStream(
+                is->ic, AVMEDIA_TYPE_AUDIO, stIndex[AVMEDIA_TYPE_AUDIO]);
+    }
     // go to here ok
     // open stream
-    if (streamOpenCompnent(stIndex[AVMEDIA_TYPE_VIDEO]) < 0) {
+    if (stIndex[AVMEDIA_TYPE_AUDIO] >= 0) {
+        streamOpenCompnent(stIndex[AVMEDIA_TYPE_AUDIO]);
+    }
+    if (stIndex[AVMEDIA_TYPE_VIDEO] >= 0) {
+        streamOpenCompnent(stIndex[AVMEDIA_TYPE_VIDEO]);
+    }
+    if (is->video_stream < 0 && is->audio_stream < 0 ) {
         qDebug() << "Failed to open file %s " << is->fileUrl << " or configure filtergraph";
-//        if (is->ic != nullptr) {
-//            avformat_close_input(&is->ic);
-//            is->ic = nullptr;
-//        }
         unload();
         return -1;
     }
@@ -223,7 +237,8 @@ int Demuxer::readFrame()
             return ret;
         }
     }
-    auto enoughtPkt = streamHasEnoughPackets(is->video_st, is->video_stream, is->videoq);
+    auto enoughtPkt = streamHasEnoughPackets(is->video_st, is->video_stream, is->videoq) &&
+            streamHasEnoughPackets(is->audio_st, is->audio_stream, is->audioq);
     if ((infinityBuff < 1 && is->videoq->size > def->MaxQueueSize())
             || enoughtPkt) {
 //        qDebug() << "full queue";
@@ -233,9 +248,8 @@ int Demuxer::readFrame()
         return 0;
     }
     if (!is->paused &&
-            (is->video_st == nullptr
-             || (is->viddec.finished == is->videoq->serial
-                 && is->pictq->queueNbRemain() == 0))) {
+            (is->audio_st == nullptr || (is->auddec.finished == is->audioq->serial && is->sampq->queueNbRemain() == 0 )) &&
+            (is->video_st == nullptr || (is->viddec.finished == is->videoq->serial && is->pictq->queueNbRemain() == 0))) {
         if (loop != 1 && (!loop || --loop)) {
             qDebug() << "seek ";
             streamSeek(startTime != AV_NOPTS_VALUE ? startTime : 0, 0, 0);
@@ -252,6 +266,9 @@ int Demuxer::readFrame()
             if (is->video_stream >= 0) {
                 is->videoq->putNullPkt(is->video_stream);
             }
+            if (is->audio_stream >= 0) {
+                is->audioq->putNullPkt(is->audio_stream);
+            }
             is->eof = 1;
         }
         if (is->ic->pb && is->ic->pb->error) {
@@ -267,14 +284,10 @@ int Demuxer::readFrame()
     if (pkt->stream_index == is->video_stream
             && !(is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
         is->videoq->put(pkt);
-//        qDebug() << pkt->pos;
-//        currentPos = pkt->pos;
-//        if (is->speed < 8.0) {
-//            is->videoq->put(pkt);
-//        } else {
-//            if (pkt->flags & AV_PKT_FLAG_KEY )
-//                is->videoq->put(pkt);
-//        }
+    } else if (pkt->stream_index == is->audio_stream) {
+        if (is->getSpeed() == 1.0) {
+            is->audioq->put(pkt);
+        }
     } else {
         av_packet_unref(pkt);
     }
@@ -342,11 +355,11 @@ int Demuxer::streamHasEnoughPackets(AVStream *st, int streamID, PacketQueue *que
 
 void Demuxer::freeAvctx()
 {
-    if (avctx != nullptr) {
-        avcodec_close(avctx);
-        avcodec_free_context(&avctx);
-    }
-    avctx = nullptr;
+//    if (avctx != nullptr) {
+//        avcodec_close(avctx);
+//        avcodec_free_context(&avctx);
+//    }
+//    avctx = nullptr;
 }
 
 void Demuxer::parseAvFormatOpts()
@@ -366,7 +379,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
     if (stream_index < 0 || stream_index >= int(is->ic->nb_streams)){
         return -1;
     }
-    avctx = avcodec_alloc_context3(nullptr);
+    auto avctx = avcodec_alloc_context3(nullptr);
     if (!avctx)
         return AVERROR(ENOMEM);
     auto ret = avcodec_parameters_to_context(avctx, is->ic->streams[stream_index]->codecpar);
@@ -383,6 +396,12 @@ int Demuxer::streamOpenCompnent(int stream_index)
             is->last_video_stream  = stream_index;
             break;
         }
+        case AVMEDIA_TYPE_AUDIO: {
+            is->last_audio_stream = stream_index;
+            break;
+        }
+    default:
+        qDebug() << "No support codec_type " << avctx->codec_type  << "for file " << is->fileUrl;
     }
 
     if (!codec) {
@@ -430,9 +449,41 @@ int Demuxer::streamOpenCompnent(int stream_index)
             is->queue_attachments_req = 1;
             is->viddec.start();
             is->extclk.init(&is->extclk.serial);
-            is->audclk.serial = -1;
+//            is->audclk.serial = -1;
             break;
         }
+    case AVMEDIA_TYPE_AUDIO: {
+        is->auddec.init(is->audioq, avctx, is->continue_read_thread);
+        // todo audio open sdl?
+        if (audioRender != nullptr) {
+            auto sample_rate    = avctx->sample_rate;
+            auto nb_channels    = avctx->channels;
+            auto channel_layout = avctx->channel_layout;
+            ret = audioRender->initAudioFormat(channel_layout, nb_channels, sample_rate, &is->audio_tgt);
+            if (ret < 0) {
+                return ret;
+            }
+        }
+        is->audio_hw_buf_size = ret;
+        is->audio_src = is->audio_tgt;
+        is->audio_buf_size  = 0;
+        is->audio_buf_index = 0;
+        is->audio_diff_avg_coef  = qExp(log(0.01) / AUDIO_DIFF_AVG_NB);
+        is->audio_diff_avg_count = 0;
+        /* since we do not have a precise anough audio FIFO fullness,
+                  we correct audio sync only if larger than this threshold */
+        is->audio_diff_threshold = double(is->audio_hw_buf_size) / double(is->audio_tgt.bytes_per_sec);
+        is->audio_stream = stream_index;
+        is->audio_st = is->ic->streams[stream_index];        
+        if ((is->ic->iformat->flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) &&
+                !is->ic->iformat->read_seek) {
+           is->auddec.start_pts = is->audio_st->start_time;
+           is->auddec.start_pts_tb = is->audio_st->time_base;
+        }
+        is->auddec.start();
+        is->queue_attachments_req = 1;
+        break;
+    }
         default:{}
     }
     return 0;
@@ -449,8 +500,14 @@ void Demuxer::seek()
         qDebug() << is->ic->url << " error while seeking " << AVERROR(ret);
     } else {
         // todo add flush for audio queue, subs queue
-        is->videoq->flush();
-        is->videoq->putFlushPkt();
+        if (is->video_stream >= 0) {
+            is->videoq->flush();
+            is->videoq->putFlushPkt();
+        }
+        if (is->audio_stream >= 0) {
+            is->audioq->flush();
+            is->audioq->putFlushPkt();
+        }
         if (is->seek_flags == AVSEEK_FLAG_BYTE) {
             is->extclk.set(NAN, 0);
         } else {

@@ -1,4 +1,4 @@
-QT += core widgets concurrent opengl
+QT += core widgets concurrent opengl multimedia
 
 CONFIG += c++14
 #CONFIG -= app_bundle
@@ -26,7 +26,7 @@ QMAKE_CFLAGS_RELEASE += /Zi
 QMAKE_LFLAGS_RELEASE += /debug /opt:ref
 
 LIBS +=-L$$PWD/ffmpeg/lib -lavutil -lavformat -lavcodec -lswscale -lswresample -lavfilter
-
+LIBS += -lopenal
 INCLUDEPATH += $$PWD/ffmpeg/include
 
 DISTFILES += \
@@ -41,10 +41,13 @@ FORMS += \
 HEADERS += \
     BugPlayer/bugplayer.h \
     BugPlayer/bugplayer_p.h \
+    Decoder/audiodecoder.h \
     Decoder/decoder.h \
     Decoder/videodecoder.h \
     Demuxer/demuxer.h \
     Demuxer/handlerinterupt.h \
+    Render/audioopenalbackend.h \
+    Render/audiorender.h \
     Render/bugfilter.h \
     Render/render.h \
     RenderOuput/IBugAVRenderer.h \
@@ -65,10 +68,13 @@ HEADERS += \
 SOURCES += \
     BugPlayer/bugplayer.cpp \
     BugPlayer/bugplayer_p.cpp \
+    Decoder/audiodecoder.cpp \
     Decoder/decoder.cpp \
     Decoder/videodecoder.cpp \
     Demuxer/demuxer.cpp \
     Demuxer/handlerinterupt.cpp \
+    Render/audioopenalbackend.cpp \
+    Render/audiorender.cpp \
     Render/bugfilter.cpp \
     Render/render.cpp \
     RenderOuput/IBugAVRenderer.cpp \

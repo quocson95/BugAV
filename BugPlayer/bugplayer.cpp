@@ -3,9 +3,12 @@
 #include <QVariant>
 #include <Demuxer/demuxer.h>
 #include <Render/render.h>
+#include "Render/audiorender.h"
 #include "common/videostate.h"
 #include <Decoder/videodecoder.h>
+#include "Decoder/audiodecoder.h"
 #include <QDebug>
+
 
 namespace BugAV {
 
@@ -39,6 +42,8 @@ void BugPlayer::streamLoaded()
     if (!d_ptr->is->abort_request) {
         d_ptr->render->start();
         d_ptr->vDecoder->start();
+        d_ptr->aDecoder->start();
+//        d_ptr->audioRender->audioOpen();
         emit stateChanged(BugAV::AVState::LoadingState);
     }
 }

@@ -464,7 +464,7 @@ void Render::videoRefresh()
                 vqsize = 0;
                 sqsize = 0;
                 if (is->audio_st)
-                    aqsize = is->audioq.size;
+                    aqsize = is->audioq->size;
                 if (is->video_st)
                     vqsize = is->videoq->size;
                 if (is->subtitle_st)

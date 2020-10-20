@@ -3,11 +3,13 @@
 #include <QThread>
 #include "common/videostate.h"
 namespace BugAV {
-Decoder::Decoder()
+Decoder::Decoder():
+    avctx{nullptr}
 {    
 }
 
-Decoder::Decoder(PacketQueue *queue, QWaitCondition *cond)
+Decoder::Decoder(PacketQueue *queue, QWaitCondition *cond):
+    avctx{nullptr}
 {
     init(queue, nullptr, cond);
 }
@@ -73,18 +75,18 @@ int Decoder::decodeFrame(AVFrame *frame)
                         }
                         break;
                     case AVMEDIA_TYPE_AUDIO:
-//                        ret = avcodec_receive_frame(d->avctx, frame);
-//                        if (ret >= 0) {
-//                            AVRational tb = (AVRational){1, frame->sample_rate};
-//                            if (frame->pts != AV_NOPTS_VALUE)
-//                                frame->pts = av_rescale_q(frame->pts, d->avctx->pkt_timebase, tb);
-//                            else if (d->next_pts != AV_NOPTS_VALUE)
-//                                frame->pts = av_rescale_q(d->next_pts, d->next_pts_tb, tb);
-//                            if (frame->pts != AV_NOPTS_VALUE) {
-//                                d->next_pts = frame->pts + frame->nb_samples;
-//                                d->next_pts_tb = tb;
-//                            }
-//                        }
+                        ret = avcodec_receive_frame(avctx, frame);
+                        if (ret >= 0) {
+                            AVRational tb = (AVRational){1, frame->sample_rate};
+                            if (frame->pts != AV_NOPTS_VALUE)
+                                frame->pts = av_rescale_q(frame->pts, this->avctx->pkt_timebase, tb);
+                            else if (this->next_pts != AV_NOPTS_VALUE)
+                                frame->pts = av_rescale_q(this->next_pts, this->next_pts_tb, tb);
+                            if (frame->pts != AV_NOPTS_VALUE) {
+                                this->next_pts = frame->pts + frame->nb_samples;
+                                this->next_pts_tb = tb;
+                            }
+                        }
                         break;
                 }
                 if (ret == AVERROR_EOF) {
@@ -155,6 +157,15 @@ void Decoder::abort()
 void Decoder::clear()
 {
     // av_packet_unref(&pkt);
+}
+
+void Decoder::freeAvctx()
+{
+    if (avctx != nullptr) {
+        avcodec_close(avctx);
+        avcodec_free_context(&avctx);
+    }
+    avctx = nullptr;
 }
 
 int Decoder::decodeFrameV2(AVFrame *frame)
