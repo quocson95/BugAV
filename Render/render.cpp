@@ -97,6 +97,7 @@ Render::~Render()
 void Render::start()
 {
 //    qDebug() << "!!!Render Thread start";
+    currentFramePts = 0;
     if (thread->isRunning()) {
         return;
     }
@@ -114,6 +115,7 @@ void Render::start()
 void Render::stop()
 {
 //    qDebug() << "!!!Render Thread stop";
+
     timerCheckNoFrameRender->stop();
     requestStop = true;   
     isRun = false;
@@ -122,6 +124,7 @@ void Render::stop()
     do {
         thread->wait(500);
     } while(thread->isRunning());
+    currentFramePts = 0;
 }
 
 void Render::setIs(VideoState *value)
@@ -509,23 +512,36 @@ void Render::videoDisplay()
 
 void Render::updatePositionChanged(Frame *vp)
 {
+    if (vp == nullptr || vp->frame == nullptr) {
+        return;
+    }
+    currentFramePts = vp->frame->pts;
     if (elTimer->hasExpired(1000)) {
         if (is->seek_req) {
             return;
-        }       
-        if (vp == nullptr || vp->frame == nullptr) {
-            return;
-        }
+        }              
 
         if (vp->frame->pts  > 0) {
             auto q = AVRational{1, AV_TIME_BASE};
             auto ts_rescale = qint64(av_rescale_q(vp->frame->pts, is->video_st->time_base, q));
             auto ts = ts_rescale - is->ic->start_time;
 //            qDebug() << "ts " << ts << " " << is->ic->start_time << " \r\n";
+//            currentPosi = ts;
             emit positionChanged(ts);
         }
         elTimer->restart();
     }
+}
+
+qint64 Render::getCurrentPosi() const
+{
+    if (currentFramePts  > 0) {
+        auto q = AVRational{1, AV_TIME_BASE};
+        auto ts_rescale = qint64(av_rescale_q(currentFramePts, is->video_st->time_base, q));
+        auto ts = ts_rescale - is->ic->start_time;
+        return ts;
+    }
+    return 0;
 }
 
 void Render::setPreferPixFmt(const AVPixelFormat &value)

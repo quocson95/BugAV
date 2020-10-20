@@ -146,7 +146,7 @@ void Grid::on_btnPause_clicked()
 void Grid::on_btnFw_clicked()
 {
     if (players[0]->isPlaying()) {
-        players[0]->setSpeed(4);
+        players[0]->setSpeed(8);
     } else {
         players[0]->play();
     }

@@ -49,7 +49,10 @@ public:
     qint64 getStartTime() const;
     void setStartTime(const qint64 &value);
 
-    void doSeek(const double& position);    
+    void doSeek(const double& position);
+
+    bool getSkipNonKeyFrame() const;
+    void enableSkipNonKeyFrame(bool value = true);
 
 signals:
     void started();
@@ -105,6 +108,8 @@ private:
 //    AVCodecContext *avctx;
 
     AudioRender *audioRender;
+
+    bool skipNonKeyFrame;
 
 //    QElapsedTimer *elTimer;
 //    bool isAllowUpdatePosition;

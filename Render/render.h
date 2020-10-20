@@ -127,11 +127,14 @@ private:
 
     QElapsedTimer *elTimer;
 
+    qint64 currentFramePts;
+
     // QRunnable interface
 public:
     void run();
     void setSaveRawImage(bool value);
     void setPreferPixFmt(const AVPixelFormat &value);
+    qint64 getCurrentPosi() const;
 };
 }
 #endif // RENDER_H

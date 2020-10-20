@@ -95,7 +95,7 @@ public:
 
 private:
     void initPriv();
-    void playPriv();
+    int playPriv();
 
 };
 } // namespace BugAV

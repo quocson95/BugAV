@@ -27,6 +27,8 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     ,def{def}
     ,formatOpts{nullptr}
     ,handlerInterupt{nullptr}
+    ,avctx{nullptr}
+    ,skipNonKeyFrame{false}
 //    ,avctx{nullptr}
     ,audioRender{nullptr}
 //    ,elTimer{nullptr}
@@ -287,6 +289,14 @@ int Demuxer::readFrame()
     } else if (pkt->stream_index == is->audio_stream) {
         if (is->getSpeed() == 1.0) {
             is->audioq->put(pkt);
+        if (!skipNonKeyFrame) {
+            is->videoq->put(pkt);
+        } else {
+            if (pkt->flags & AV_PKT_FLAG_KEY) {
+                is->videoq->put(pkt);
+            } else {
+                av_packet_unref(pkt);
+            }
         }
     } else {
         av_packet_unref(pkt);
@@ -424,7 +434,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
     AVDictionary *opts;
     opts = nullptr;
     if (def->isInModeVOD()) {
-        av_dict_set(&opts, "threads", "auto", 0);
+        av_dict_set(&opts, "threads", "2", 0);
     }
     if (stream_lowres)
         av_dict_set_int(&opts, "lowres", stream_lowres, 0);
@@ -587,7 +597,7 @@ void Demuxer::process()
 //    }
 //    if (elTimer != nullptr) {
 //        elTimer->start();
-//    }
+//    }       
 
     if (!reqStop) {
         qDebug() << "Start read frame";
@@ -617,15 +627,15 @@ void Demuxer::process()
     curThread->terminate();
 }
 
-//void Demuxer::onUpdatePositionChanged()
-//{
-//    auto lastPos = is->getMasterClock();
-//    if (currentPos != lastPos) {
-//        currentPos = lastPos;
-//        auto ts = currentPos * AV_TIME_BASE - is->ic->start_time;
-//        emit positionChanged(ts);
-//    }
-//}
+bool Demuxer::getSkipNonKeyFrame() const
+{
+    return skipNonKeyFrame;
+}
+
+void Demuxer::enableSkipNonKeyFrame(bool value)
+{
+    skipNonKeyFrame = value;
+}
 
 qint64 Demuxer::getStartTime() const
 {
