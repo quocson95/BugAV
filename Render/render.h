@@ -69,16 +69,6 @@ private slots:
 
     void updatePositionChanged(Frame *vp);
 private:
-
-    enum class PrivState {
-        Stop = -1,
-        Init = 0,
-        WaitingFirstFrame,
-        HandleFrameState1,
-        HandleFrameState2,
-        HandleFrameState3,        
-    };
-//    AVFrame *frameYUV;
     uint8_t * buffer;
 //    uint8_t *out_buffer;
     bool hasInit;
@@ -90,10 +80,7 @@ private:
     double rdftspeed = 0.02;
     double remaining_time = 0;
     bool requestStop;
-    QMutex mutex;
-    bool isRun;
-
-    PrivState privState;
+    QMutex mutex;    
 
     qint64 lastUpdateFrame;
 
@@ -121,6 +108,7 @@ private:
     QElapsedTimer *elTimer;
 
     qint64 currentFramePts;
+//    qint64
 
 public:
     void setSaveRawImage(bool value);

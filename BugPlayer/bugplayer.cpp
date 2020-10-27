@@ -40,13 +40,14 @@ BugPlayer::BugPlayer(BugPlayerPrivate &d, QObject *parent)
 void BugPlayer::streamLoaded()
 {
     if (!d_ptr->is->abort_request) {
-        d_ptr->render->start();
-        d_ptr->vDecoder->start();
-        auto denyStartAudioThread = d_ptr->is->disableAudio || d_ptr->is->ignorePktAudio;
+        auto denyStartAudioThread = d_ptr->is->audio_disable || d_ptr->is->muted;
         if (!denyStartAudioThread) {
             d_ptr->aDecoder->start();
             d_ptr->audioRender->start();
         }
+        d_ptr->render->start();
+        d_ptr->vDecoder->start();
+
 //        d_ptr->audioRender->audioOpen();
         emit stateChanged(BugAV::AVState::LoadingState);
     }
@@ -206,12 +207,12 @@ void BugPlayer::setSpeed(const double & speed)
         return;
     }
     d_ptr->setSpeed(speed);
-    if (speed <= 1.0) {
+    if (speed <= 1.0) {        
         d_ptr->demuxer->enableSkipNonKeyFrame(false);
         refreshAtCurrent();
         return;
     }
-    if (speed > 1.0 && curSpeed <= 1.0) {
+    if (speed > 1.0 && curSpeed <= 1.0) {        
         d_ptr->demuxer->enableSkipNonKeyFrame();
         refreshAtCurrent();
         return;

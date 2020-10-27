@@ -54,6 +54,8 @@ public:
     bool getSkipNonKeyFrame() const;
     void enableSkipNonKeyFrame(bool value = true);
 
+    void reOpenAudioSt();
+
 signals:
     void started();
     void stopped();
@@ -76,6 +78,8 @@ private:
     void stepToNextFrame();
 //    void streamTogglePause();
     void streamSeek(int64_t pos, int64_t rel, int seek_by_bytes);
+
+    void reFindStream(AVFormatContext *ic, AVMediaType type, int index);
 
 private slots:
     void process();
@@ -110,6 +114,9 @@ private:
     AudioRender *audioRender;
 
     bool skipNonKeyFrame;
+
+    QElapsedTimer *elLastRetryOpenAudioSt;
+    bool denyRetryOpenAudioSt;
 
 //    QElapsedTimer *elTimer;
 //    bool isAllowUpdatePosition;

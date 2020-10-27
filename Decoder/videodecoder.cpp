@@ -131,7 +131,7 @@ int VideoDecoder::getFrame()
 
 int VideoDecoder::addQueuFrame()
 {
-    ret = queuePicture(frame, pts, duration, frame->pkt_pos, is->viddec.pkt_serial);
+    ret = queuePicture(frame, pts, duration, frame->pkt_pos, is->viddec.getPkt_serial());
     //            qDebug() << "after queuePicture";
     if (ret > 0) {
         av_frame_unref(frame);
@@ -167,7 +167,7 @@ int VideoDecoder::getVideoFrame(AVFrame *frame)
                 double diff = dpts - is->getMasterClock();
                 if (!qIsNaN(diff) && qFabs(diff) < AV_NOSYNC_THRESHOLD &&
                     diff - is->frame_last_filter_delay < 0 &&
-                    is->viddec.pkt_serial == is->vidclk.serial &&
+                    is->viddec.getPkt_serial() == is->vidclk.serial &&
                     is->videoq->nb_packets)
                 {
                     is->frame_drops_early++;
@@ -295,7 +295,7 @@ void VideoDecoder::process()
 //            }
 
 //            qDebug() << "queuePicture";
-            ret = queuePicture((frame), pts, duration, frame->pkt_pos, is->viddec.pkt_serial);
+            ret = queuePicture((frame), pts, duration, frame->pkt_pos, is->viddec.getPkt_serial());
 //            qDebug() << "after queuePicture";
             av_frame_unref(frame);
             if (ret < 0 ) {

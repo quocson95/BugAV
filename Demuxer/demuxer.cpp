@@ -29,9 +29,10 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     ,handlerInterupt{nullptr}
     ,audioRender{nullptr}
    ,skipNonKeyFrame{false}
+   ,elLastRetryOpenAudioSt{nullptr}
 {
     startTime = AV_NOPTS_VALUE;
-//    startTime = 50000 * 1000;
+//    startTime = 509 * 1000 * 1000;
     pkt = &pkt1;
     isRun = false;
     infinityBuff = -1;
@@ -57,6 +58,9 @@ Demuxer::~Demuxer()
     av_dict_free(&formatOpts);
     curThread->deleteLater();
     delete handlerInterupt;
+    if (elLastRetryOpenAudioSt != nullptr) {
+        delete elLastRetryOpenAudioSt;
+    }
 }
 
 void Demuxer::setAudioRender(AudioRender *audioRender)
@@ -78,8 +82,11 @@ bool Demuxer::load()
 {
 //    currentPos = 0;
 //    currentPos = 0;
+//    is->lastVideoPts = 0;
     qDebug() << "start load stream input";
     unload();
+    denyRetryOpenAudioSt = false;
+    elLastRetryOpenAudioSt->invalidate();
     is->setIformat(av_find_input_format(is->fileUrl.toUtf8().constData()));
 //    is->iformat = av_find_input_format(is->fileUrl.toUtf8().constData());
     is->ic = avformat_alloc_context();
@@ -172,12 +179,15 @@ bool Demuxer::load()
     }
     // go to here ok
     // open stream
-    if (stIndex[AVMEDIA_TYPE_AUDIO] >= 0) {
-        streamOpenCompnent(stIndex[AVMEDIA_TYPE_AUDIO]);
-    }
+
     if (stIndex[AVMEDIA_TYPE_VIDEO] >= 0) {
         streamOpenCompnent(stIndex[AVMEDIA_TYPE_VIDEO]);
     }
+
+    if (stIndex[AVMEDIA_TYPE_AUDIO] >= 0) {
+        streamOpenCompnent(stIndex[AVMEDIA_TYPE_AUDIO]);
+    }
+
     if (is->video_stream < 0 && is->audio_stream < 0 ) {
         qDebug() << "Failed to open file %s " << is->fileUrl << " or configure filtergraph";
         unload();
@@ -202,7 +212,8 @@ void Demuxer::unload()
     }
     freeAvctx();
     handlerInterupt->setStatus(0);
-    is->resetStream();
+    is->resetAudioStream();
+    is->resetVideoStream();
     is->eof = 0;
 }
 
@@ -255,10 +266,26 @@ int Demuxer::readFrame()
         } else {
             // do nothing. play done file
 //            return; // todo
+//            emit readFrameError();
         }
     }
     handlerInterupt->begin(HandlerInterupt::Action::Read);
     auto ret = av_read_frame(is->ic, pkt);
+    // try open video stream, maybe comming late in rtmp
+    if (is->video_st == nullptr) {
+        reFindStream(is->ic, AVMEDIA_TYPE_VIDEO, stIndex[AVMEDIA_TYPE_VIDEO]);
+    }
+    if (is->audio_st == nullptr && !is->audio_disable && !denyRetryOpenAudioSt) {
+        if (!elLastRetryOpenAudioSt->isValid()) {
+            elLastRetryOpenAudioSt->start();
+        } else {
+            auto t = elLastRetryOpenAudioSt->elapsed();
+            if (t > 10000) {
+                denyRetryOpenAudioSt = true;
+            }
+        }
+        reFindStream(is->ic, AVMEDIA_TYPE_AUDIO, stIndex[AVMEDIA_TYPE_AUDIO]);
+    }
     handlerInterupt->end();
     if (ret < 0) {
         if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !is->eof) {
@@ -269,6 +296,7 @@ int Demuxer::readFrame()
                 is->audioq->putNullPkt(is->audio_stream);
             }
             is->eof = 1;
+//            emit readFrameError();
         }
         if (is->ic->pb && is->ic->pb->error) {
             return - 1;
@@ -292,7 +320,7 @@ int Demuxer::readFrame()
             }
         }
     } else if (pkt->stream_index == is->audio_stream) {
-        if (!is->disableAudio && !is->ignorePktAudio) {
+        if (!is->audio_disable && !is->muted) {
             is->audioq->put(pkt);
         } else {
             av_packet_unref(pkt);
@@ -434,6 +462,9 @@ int Demuxer::streamOpenCompnent(int stream_index)
     opts = nullptr;
     if (def->isInModeVOD()) {
         av_dict_set(&opts, "threads", "2", 0);
+    } else {
+        av_dict_set(&opts, "threads", "1", 0);
+        avctx->thread_count = 1; //  more thread will cause more latency.
     }
     if (stream_lowres)
         av_dict_set_int(&opts, "lowres", stream_lowres, 0);
@@ -582,11 +613,26 @@ void Demuxer::streamSeek(int64_t pos, int64_t rel, int seek_by_bytes)
     }
 }
 
+void Demuxer::reFindStream(AVFormatContext *ic, AVMediaType type, int index)
+{
+    stIndex[type] = findBestStream(
+                    ic, type, index);
+
+    if (stIndex[type] >= 0) {
+        streamOpenCompnent(stIndex[type]);
+    }
+}
+
 void Demuxer::process()
 {
     isRun = true;
     emit  started();
     qDebug() << "!!!Demuxer Thread start";
+    if (elLastRetryOpenAudioSt == nullptr) {
+        elLastRetryOpenAudioSt = new QElapsedTimer;
+    } else {
+        elLastRetryOpenAudioSt->invalidate();
+    }
     if (!load() && !reqStop) {
         emit loadFailed();
         isRun = false;
@@ -638,6 +684,13 @@ bool Demuxer::getSkipNonKeyFrame() const
 void Demuxer::enableSkipNonKeyFrame(bool value)
 {
     skipNonKeyFrame = value;
+    is->audio_disable = skipNonKeyFrame;
+}
+
+void Demuxer::reOpenAudioSt()
+{
+    denyRetryOpenAudioSt = false;
+    elLastRetryOpenAudioSt->invalidate();
 }
 
 qint64 Demuxer::getStartTime() const
@@ -659,7 +712,7 @@ void Demuxer::doSeek(const double &position)
     pos += is->ic->start_time;
     auto curPos = is->getMasterClock() * AV_TIME_BASE;
     auto incr = pos - curPos;    
-    streamSeek(pos, incr, seek_by_bytes);
+    streamSeek(pos, incr, seek_by_bytes);    
 }
 
 void Demuxer::setIs(VideoState *value)

@@ -38,7 +38,7 @@ public:
     AVPacket pkt;
     PacketQueue *queue;
     AVCodecContext *avctx;
-    int pkt_serial;
+
     int finished;
     int packet_pending;
     int64_t start_pts;
@@ -47,6 +47,12 @@ public:
     AVRational next_pts_tb;
     QWaitCondition *emptyQueueCond;
     int decoder_reorder_pts = -1; //let decoder reorder pts 0=off 1=on -1=auto
+
+    int getPkt_serial() const;
+    void setPkt_serial(int value);
+
+private:
+    int pkt_serial;
 };
 
 }

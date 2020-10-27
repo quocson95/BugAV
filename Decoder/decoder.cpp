@@ -173,4 +173,14 @@ void Decoder::freeAvctx()
     avctx = nullptr;
 }
 
+int Decoder::getPkt_serial() const
+{
+    return pkt_serial;
+}
+
+void Decoder::setPkt_serial(int value)
+{
+    pkt_serial = value;
+}
+
 };

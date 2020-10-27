@@ -32,9 +32,7 @@ Render::Render()
     :Render(nullptr, nullptr)
 {
     requestStop = false;
-    hasInit = false;
-    isRun = false;
-    privState = PrivState::Stop;
+    hasInit = false;      
 }
 
 
@@ -72,25 +70,13 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
 
 Render::~Render()
 {
-
-//    if (filter != nullptr) {
-//        delete filter;
-//    }
-
-        qDebug() << "Destroy Render";
+    qDebug() << "Destroy Render";
     stop();
-//    av_frame_free(&frameYUV);
-//    delete out_buffer;
-
-//    if (defaultRenderer != nullptr)  {
-//        delete  defaultRenderer;
-//    }
     if (img != nullptr) {
         delete img;
     }
     thread->deleteLater();
     timerCheckNoFrameRender->deleteLater();
-//    delete thread;
 
 }
 
@@ -98,12 +84,12 @@ void Render::start()
 {
 //    qDebug() << "!!!Render Thread start";
     currentFramePts = 0;
+    is->lastPtsVideo = std::numeric_limits<double>::max();
     if (thread->isRunning()) {
         return;
     }
     lastUpdateFrame = 0;
-    requestStop = false;
-    privState = PrivState::WaitingFirstFrame;
+    requestStop = false;   
     lastVideoRefresh = 0;
     remaining_time = 0;
     freeSwsBuff();
@@ -114,12 +100,8 @@ void Render::start()
 
 void Render::stop()
 {
-//    qDebug() << "!!!Render Thread stop";
-
     timerCheckNoFrameRender->stop();
-    requestStop = true;   
-    isRun = false;
-    privState = PrivState::Stop;
+    requestStop = true;       
     thread->quit();
     do {
         thread->wait(500);
@@ -279,6 +261,7 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
         dstFrame->height = frame->height;
         dstFrame->format = AV_PIX_FMT_RGB32;
     }
+//    is->lastVideoPts = dstFrame->pts;
 
     if (ret >=0) {
         if (renderer != nullptr ) {
@@ -303,8 +286,7 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
 //}
 
 void Render::process()
-{    
-    isRun = true;
+{        
     qDebug() << "!!!Render Thread start";
 //    emit started();
 
@@ -356,8 +338,7 @@ void Render::process()
 //    emit stopped();
     elPrevFrame->invalidate();
     delete  elPrevFrame;
-    elPrevFrame = nullptr;
-    isRun = false;
+    elPrevFrame = nullptr;    
     qDebug() << "!!!Render Thread exit";
     thread->terminate();
 }
@@ -408,7 +389,7 @@ void Render::videoRefresh()
             last_duration = vp_duration(is->max_frame_duration, lastvp, vp);
             delay = compute_target_delay(is, last_duration);
 
-            auto time = av_gettime_relative()/1000000.0;
+            auto time = av_gettime_relative() / 1000000.0;
             if (time < is->frame_timer + delay) {
                 remaining_time = FFMIN(is->frame_timer + delay - time, remaining_time);
                 break;
@@ -491,8 +472,9 @@ void Render::videoRefresh()
 
 void Render::videoDisplay()
 {
-//    qDebug() << "video display";
     Frame *vp = is->pictq->peekLast();
+    is->lastPtsVideo = vp->getPts();
+    qDebug() << "video display " << vp->getPts();
     if (!vp->uploaded) {
         uploadTexture(vp, &is->img_convert_ctx);
         vp->uploaded = 1;
@@ -505,7 +487,7 @@ void Render::updatePositionChanged(Frame *vp)
 {
     if (vp == nullptr || vp->frame == nullptr) {
         return;
-    }
+    }    
     currentFramePts = vp->frame->pts;
     if (elTimer->hasExpired(1000)) {
         if (is->seek_req) {
@@ -516,8 +498,6 @@ void Render::updatePositionChanged(Frame *vp)
             auto q = AVRational{1, AV_TIME_BASE};
             auto ts_rescale = qint64(av_rescale_q(vp->frame->pts, is->video_st->time_base, q));
             auto ts = ts_rescale - is->ic->start_time;
-//            qDebug() << "ts " << ts << " " << is->ic->start_time << " \r\n";
-//            currentPosi = ts;
             emit positionChanged(ts);
         }
         elTimer->restart();
@@ -551,17 +531,7 @@ bool Render::initPriv()
         if (is->viddec.avctx == nullptr) {
             return  hasInit;
         }
-        remaining_time = 0.0;        
-//        frameYUV = nullptr;
-//        frameYUV = av_frame_alloc();
-//         out_buffer= new uint8_t[avpicture_get_size(is->viddec.avctx->pix_fmt, is->viddec.avctx->width, is->viddec.avctx->height)];
-//         avpicture_fill((AVPicture *)frameYUV, out_buffer, is->viddec.avctx->pix_fmt, is->viddec.avctx->width, is->viddec.avctx->height);
- //        int avpicture_fill(AVPicture *picture, const uint8_t *ptr,
- //                           enum AVPixelFormat pix_fmt, int width, int height);
-//         av_image_fill_arrays(frameYUV->data, frameYUV->linesize,  out_buffer, is->viddec.avctx->pix_fmt, is->viddec.avctx->width, is->viddec.avctx->height, 0);
-//        if (defaultRenderer == nullptr) {
-//            defaultRenderer = new IBugAVDefaultRenderer;
-//        }
+        remaining_time = 0.0;
         if (renderer == nullptr) {
             renderer = defaultRenderer;
         }
@@ -608,13 +578,11 @@ QString Render::statistic()
 
 void Render::setRenderer(IBugAVRenderer *value)
 {
-//    mutex.lock();
     if (value == nullptr) {
         renderer = defaultRenderer;
     } else {
         renderer = value;
     }
-//    mutex.unlock();
 }
 
 IBugAVRenderer *Render::getRenderer()

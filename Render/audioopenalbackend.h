@@ -11,9 +11,9 @@
 #include <common/common.h>
 
 namespace BugAV {
-
+constexpr quint8 NUM_BUFFERS_OPENAL = 5;
 class AudioOpenALBackEnd
-{
+{    
 public:
     AudioOpenALBackEnd();
     ~AudioOpenALBackEnd();
@@ -23,7 +23,8 @@ public:
 
     void setAudioParam(const AudioParams &value);
 
-    bool write(const QByteArray data);
+//    bool write(const QByteArray data);
+    int write(uint8_t *data, int size);
     bool play();
 
     ALint waitBufferProcessed();
@@ -40,8 +41,8 @@ private:
     ALCcontext *context;
     ALenum format_al;
 //    QVector<ALuint> buffer;
-    ALuint buffer[3];
-    ALuint buffer_count;
+    ALuint buffer[NUM_BUFFERS_OPENAL];
+    ALuint buffer_count = NUM_BUFFERS_OPENAL;
     ALuint source;
     ALint state;
     bool available;

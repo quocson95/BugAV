@@ -32,9 +32,11 @@ public:
     void vidDecoderAbort();
 //    void flush();
 
-    void resetStream();
+//    void resetStream();
 
     void reset();
+    void resetAudioStream();
+    void resetVideoStream();
 
     bool isExternalClock() const;
     bool isVideoClock() const;
@@ -87,11 +89,9 @@ public:
     int audio_buf_index; /* in bytes */
     int audio_write_buf_size;
     int audio_volume;
-    int muted;
-    // ignore audio pkt. when fast-forward, disable audio
-    bool ignorePktAudio;
+    int muted;    
     // disable audio feature
-    bool disableAudio;
+//    bool disableAudio;
     AudioParams audio_src;
 #if CONFIG_AVFILTER
     AudioParams audio_filter_src;
@@ -161,9 +161,12 @@ public:
 
     double getSpeed() const;
 
+    double lastPtsVideo;
+
 private:
     Define *def;
     double speed;
+
 
 };
 }

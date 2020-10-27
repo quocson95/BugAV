@@ -3,6 +3,8 @@ extern "C" {
 #include "libavutil/time.h"
 }
 
+#include <QtGlobal>
+
 namespace BugAV {
 VideoState::VideoState(Define *def):
     img_convert_ctx{nullptr}
@@ -41,7 +43,7 @@ VideoState::VideoState(Define *def):
 
     audio_stream = -1;
 
-    audio_clock = 0.0;
+    audio_clock = qQNaN();
     audio_clock_serial = 0;
     audio_diff_cum = 0.0; /* used for AV difference average computation */
     audio_diff_avg_coef = 0.0;
@@ -54,9 +56,8 @@ VideoState::VideoState(Define *def):
     audio_buf_index = 0; /* in bytes */
     audio_write_buf_size = 0;
     audio_volume = 0;
-    muted = 0;
-    ignorePktAudio = false;
-    disableAudio = false;
+    muted = 0;   
+//    disableAudio = false;
     frame_drops_early = 0;
     frame_drops_late = 0;
     last_i_start = 0;
@@ -126,6 +127,8 @@ void VideoState::init()
     auddec.init(audioq, nullptr, continue_read_thread);
     sampq->init(audioq, def->AudioQueueSize(), 1);
     audclk.init(&audioq->serial);
+    audio_clock_serial = -1;
+    extclk.init(&extclk.serial);
 }
 
 ShowModeClock VideoState::getMasterSyncType() const
@@ -239,43 +242,31 @@ void VideoState::vidDecoderAbort()
 //    videoq->flush();
 //}
 
-void VideoState::resetStream()
-{
-    last_video_stream = video_stream = -1;
-    video_st = nullptr;
-
-    last_audio_stream = audio_stream = -1;
-    audio_st = nullptr;
-
-    eof = 0;
-
-    viddec.freeAvctx();
-    auddec.freeAvctx();
-
-}
-
 void VideoState::reset()
 {
-    resetStream();
+    resetAudioStream();
+    resetVideoStream();
+    eof = 0;
 //    framedrop = 0; // drop frame when cpu too slow.
 
-    //init picture frame queue
-    pictq->init(videoq, def->VideoPictureQueueSize(), 1);
+//    //init picture frame queue
+//    pictq->init(videoq, def->VideoPictureQueueSize(), 1);
 
-    //init package queue
-    videoq->init();
+//    //init package queue
+//    videoq->init();
 
-    // init audio frame queue
-    sampq->init(audioq, def->AudioQueueSize(), 1);
+//    // init audio frame queue
+//    sampq->init(audioq, def->AudioQueueSize(), 1);
 
-    // init audio package queue
-    audioq->init();
+//    // init audio package queue
+//    audioq->init();
 
-    //init video clock
-    vidclk.init(&videoq->serial);
+//    //init video clock
+//    vidclk.init(&videoq->serial);
 
-    // init audio clock
-    audclk.init(&audioq->serial);    
+//    // init audio clock
+//    audclk.init(&audioq->serial);
+    init();
 
     if (img_convert_ctx != nullptr) {
         sws_freeContext(img_convert_ctx);
@@ -314,5 +305,19 @@ void VideoState::setSpeed(double value)
 double VideoState::getSpeed() const
 {
     return speed;
+}
+
+void VideoState::resetAudioStream()
+{
+    last_audio_stream = audio_stream = -1;
+    audio_st = nullptr;
+    auddec.freeAvctx();
+}
+
+void VideoState::resetVideoStream()
+{
+    last_video_stream = video_stream = -1;
+    video_st = nullptr;
+    viddec.freeAvctx();
 }
 }

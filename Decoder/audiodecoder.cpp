@@ -40,6 +40,11 @@ void BugAV::AudioDecoder::stop()
     } while(thread->isRunning());
 }
 
+bool BugAV::AudioDecoder::isRunning() const
+{
+    return thread->isRunning();
+}
+
 //void BugAV::AudioDecoder::audioCallback(quint8 *stream, int len)
 //{
 //    int audioSize, len1;
@@ -288,7 +293,7 @@ void BugAV::AudioDecoder::process()
         auto pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
         f->setPts(pts);
         f->pos = frame->pkt_pos;
-        f->serial = is->auddec.pkt_serial;
+        f->serial = is->auddec.getPkt_serial();
         auto av = AVRational{frame->nb_samples, frame->sample_rate};
         f->duration = av_q2d(av);
         av_frame_move_ref(f->frame, frame);

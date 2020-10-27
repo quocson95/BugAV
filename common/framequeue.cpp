@@ -11,7 +11,7 @@ FrameQueue::FrameQueue(qint64 frameQueueSize)
     rindex = 0;
     windex = 0;
     size = 0;
-    max_size = 0;
+    max_size = frameQueueSize;
     keep_last = 0;
     rindex_shown = 0;
     pktq = nullptr;
@@ -220,7 +220,7 @@ Frame::~Frame()
 
 double Frame::getPts() const
 {
-    if (*speed == 1.0) {
+    if (*speed == 1.00) {
         return pts;
     }
     auto a = pts / (*speed);

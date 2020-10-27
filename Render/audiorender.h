@@ -7,7 +7,8 @@
 #include <QThread>
 #include <qaudio.h>
 
-constexpr qint16 AUDIO_BUFF_SIZE = 4096;
+constexpr qint16 AUDIO_BUFF_SIZE_LIVE = 1024; // byte
+constexpr qint16 AUDIO_BUFF_SIZE_VOD = AUDIO_BUFF_SIZE_LIVE * 8; // byte, 8192
 
 class QAudioOutput;
 class QBuffer;
@@ -31,7 +32,7 @@ public: signals:
     void stopped();
 
 protected:
-    char *audioCallback(char *stream, int len);
+//    bool audioCallback(uint8_t *stream, int len);
 
     int audioDecodeFrame();
 
@@ -48,15 +49,19 @@ private slots:
     void handleStateChanged(QAudio::State audioState);
 
 private:
+    void playInitialData(AudioOpenALBackEnd *backend);
     qint64 audioLength(const AudioParams &audioParam, qint64 microSeconds);
 private:
     VideoState *is;
     QThread *thread;
 
-    char buffer[AUDIO_BUFF_SIZE];
+    uint8_t buffer[AUDIO_BUFF_SIZE_VOD];
+    int sizeBuffer;
 
 //    AudioOpenALBackEnd *backend;
     bool reqStop;
+    int msSleep;
+    bool hasInitAudioParam;
 
     // QObject interface
 protected:

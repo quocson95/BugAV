@@ -1,12 +1,10 @@
 #include "audioopenalbackend.h"
 #include <QDebug>
-#define NUM_BUFFERS 2
-
 
 BugAV::AudioOpenALBackEnd::AudioOpenALBackEnd():
     device{nullptr}
   ,context{nullptr}
-  ,buffer_count{NUM_BUFFERS}
+  ,buffer_count{NUM_BUFFERS_OPENAL}
   ,state{0}
   ,available{true}  
   ,initBuffer{true}
@@ -35,14 +33,14 @@ BugAV::AudioOpenALBackEnd::~AudioOpenALBackEnd()
 
 QMutex BugAV::AudioOpenALBackEnd::global_mutex;
 #define AL_ENSURE(expr, ...) \
-    do { \
+    { \
         expr; \
         const ALenum err = alGetError(); \
         if (err != AL_NO_ERROR) { \
             qWarning("AudioOutputOpenAL Error>>> " #expr " (%d) : %s", err, alGetString(err)); \
             return __VA_ARGS__; \
         } \
-    } while(0)
+    }
 
 #define SCOPE_LOCK_CONTEXT() \
     QMutexLocker ctx_lock(&global_mutex); \
@@ -69,7 +67,7 @@ bool BugAV::AudioOpenALBackEnd::open()
         format_al = to_al_format(audioParam.channels, 16);
 
 //        buffer.resize(buffer_count);
-        alGenBuffers(NUM_BUFFERS, buffer);
+        alGenBuffers(NUM_BUFFERS_OPENAL, buffer);
 //        alGenBuffers(1, &buffer);
         err = alGetError();
         if (err != AL_NO_ERROR) {
@@ -80,7 +78,7 @@ bool BugAV::AudioOpenALBackEnd::open()
         err = alGetError();
         if (err != AL_NO_ERROR) {
             qWarning("Failed to generate OpenAL source: %s", alGetString(err));
-            alDeleteBuffers(NUM_BUFFERS, buffer);
+            alDeleteBuffers(NUM_BUFFERS_OPENAL, buffer);
 //            alDeleteBuffers(1, &buffer);
             goto fail;
         }
@@ -118,7 +116,7 @@ bool BugAV::AudioOpenALBackEnd::close()
     ALuint buf;
     while (processed-- > 0) { alSourceUnqueueBuffers(source, 1, &buf); }
     alDeleteSources(1, &source);
-    alDeleteBuffers(NUM_BUFFERS, buffer);
+    alDeleteBuffers(NUM_BUFFERS_OPENAL, buffer);
 //    alDeleteBuffers(1, &buffer);
 
     alcMakeContextCurrent(NULL);
@@ -139,47 +137,56 @@ bool BugAV::AudioOpenALBackEnd::close()
     return true;
 }
 
-bool BugAV::AudioOpenALBackEnd::write(const QByteArray data)
+int BugAV::AudioOpenALBackEnd::write(uint8_t *data, int size)
 {    
-    if (data.isEmpty())
-        return false;
+//    if (data.isEmpty())
+//        return false;
+    if (size < 0) {
+        return -1;
+    }
     if (context == nullptr) {
-        return false;
+        return -1;
     }
     SCOPE_LOCK_CONTEXT();
-    if (initBuffer) {
-        AL_ENSURE(alBufferData(buffer[bufferNumer], format_al, data.constData(), data.size(), audioParam.freq), false);
-        if (bufferNumer == NUM_BUFFERS - 1) {
-            AL_ENSURE(alSourceQueueBuffers(source, NUM_BUFFERS, buffer), false);
-            alSourcePlay(source);
-            initBuffer = 0;
-        }
-        // update buffer number to fill
-            bufferNumer = (bufferNumer + 1) % 3;
-    } else {
-        ALuint buffer;
-        auto val = waitBufferProcessed();
-        AL_ENSURE(alSourceUnqueueBuffers(source, 1, &buffer), false);
-        AL_ENSURE(alBufferData(buffer, format_al, data.constData(),
-            data.size(), audioParam.freq), false);
-        AL_ENSURE(alSourceQueueBuffers(source, 1, &buffer), false);
-        if (alGetError() != AL_NO_ERROR) {
-                                return 1;
-                            }
-        alGetSourcei(source, AL_SOURCE_STATE, &val);
-        if (val != AL_PLAYING)
-            alSourcePlay(source);
-    }
-//    ALuint buf = 0;
-//    if (state <= 0) { //state used for filling initial data
-//        buf = buffer[(-state)%buffer_count];
-//        --state;
+//    if (initBuffer) {
+//        AL_ENSURE(alBufferData(buffer[bufferNumer], format_al, data, size, audioParam.freq), false);
+//        if (bufferNumer == NUM_BUFFERS - 1) {
+//            AL_ENSURE(alSourceQueueBuffers(source, NUM_BUFFERS, buffer), false);
+//            alSourcePlay(source);
+//            initBuffer = 0;
+//        }
+//        // update buffer number to fill
+//            bufferNumer = (bufferNumer + 1) % NUM_BUFFERS;
 //    } else {
-//        AL_ENSURE(alSourceUnqueueBuffers(source, 1, &buf), false);
+//        ALuint buffer;
+//        auto val = waitBufferProcessed();
+//        AL_ENSURE(alSourceUnqueueBuffers(source, 1, &buffer), false);
+//        AL_ENSURE(alBufferData(buffer, format_al,
+//                               data, size, audioParam.freq), false);
+//        AL_ENSURE(alSourceQueueBuffers(source, 1, &buffer), false);
+//        if (alGetError() != AL_NO_ERROR) {
+//                                return 1;
+//                            }
+//        alGetSourcei(source, AL_SOURCE_STATE, &val);
+//        if (val != AL_PLAYING)
+//            alSourcePlay(source);
 //    }
-//    AL_ENSURE(alBufferData(buf, format_al, data.constData(), data.size(), audioParam.freq), false);
-//    AL_ENSURE(alSourceQueueBuffers(source, 1, &buf), false);
-    return true;
+//    qDebug() << "state " << state;
+    ALuint buf = 0;
+    if (state <= 0) { //state used for filling initial data
+        buf = buffer[(-state)%buffer_count];
+        --state;        
+    } else {
+        ALint count = 0;
+        AL_ENSURE(alGetSourcei(source, AL_BUFFERS_PROCESSED, &count), false);
+        if(count <= 0)  {
+            return 1;
+        }
+        AL_ENSURE(alSourceUnqueueBuffers(source, 1, &buf), false);
+    }    
+    AL_ENSURE(alBufferData(buf, format_al, data, size, audioParam.freq), false);
+    AL_ENSURE(alSourceQueueBuffers(source, 1, &buf), false);  
+    return 0;
 }
 
 bool BugAV::AudioOpenALBackEnd::play()
@@ -207,9 +214,9 @@ ALint BugAV::AudioOpenALBackEnd::waitBufferProcessed()
 
 bool BugAV::AudioOpenALBackEnd::isBufferProcessed()
 {
-    if (initBuffer) {
-        return 0;
-    }
+//    if (initBuffer) {
+//        return 0;
+//    }
     ALint val;
     alGetSourcei(source, AL_BUFFERS_PROCESSED, &val);
     return  val <= 0;

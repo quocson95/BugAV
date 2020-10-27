@@ -17,6 +17,7 @@ public:
     void start();
     void stop();
 
+    bool isRunning() const;
 public: signals:
     void started();
     void stopped();

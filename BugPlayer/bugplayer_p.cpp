@@ -109,11 +109,9 @@ void BugPlayerPrivate::togglePause()
 void BugPlayerPrivate::stop()
 {
     is->abort_request = 1;    
-    demuxer->stop();   
-    stopVideo();
+    demuxer->stop();
     stopAudio();
-//    is->viddec.stop();
-
+    stopVideo();
     demuxer->unload();
     is->reset();
 }
@@ -214,11 +212,12 @@ int BugPlayerPrivate::playPriv()
 }
 
 void BugPlayerPrivate::stopAudio()
-{
+{    
     is->audioq->abort();
     is->sampq->wakeSignal();
-    aDecoder->stop();
+    aDecoder->stop();    
     audioRender->stop();
+    is->resetAudioStream();
 }
 
 void BugPlayerPrivate::stopVideo()
@@ -240,14 +239,7 @@ void BugPlayerPrivate::setSpeed(const double & speed)
     if (oldSpeed == speed) {
         return;
     }
-    is->setSpeed(speed);     
-    if (speed != 1.0) {
-        is->ignorePktAudio = true;
-        stopAudio();
-    } else {
-        is->ignorePktAudio = false;
-    }
-
+    is->setSpeed(speed);         
 }
 
 void BugPlayerPrivate::setStartPosition(const qint64 &time)
@@ -272,15 +264,36 @@ void BugPlayerPrivate::seek(const double &position)
 
 void BugPlayerPrivate::setDisableAudio(bool value)
 {
-    is->disableAudio = value;
-    if (is->disableAudio) {
-        stopAudio();
-    }
+//    is->disableAudio = value;
+//    if (is->disableAudio) {
+//        stopAudio();
+//    }
+    is->audio_disable = value;
 }
 
 void BugPlayerPrivate::setMute(bool value)
 {
+    if (is->muted == value) {
+        return;
+    }
     is->muted = value;
+    if (is->muted) {
+        stopAudio();
+        is->audioq->flush();
+        return;
+    }
+    if (is->audio_disable) {
+        return;
+    }
+    if (isPlaying()) {
+        aDecoder->start();
+        audioRender->start();
+    }
+    if (!is->realtime) {
+        demuxer->reOpenAudioSt();
+        auto x = render->getCurrentPosi();
+        demuxer->doSeek(x);
+    }
 }
 
 bool BugPlayerPrivate::isMute() const
