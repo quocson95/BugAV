@@ -286,8 +286,12 @@ void BugPlayerPrivate::setMute(bool value)
         return;
     }
     if (isPlaying()) {
-        aDecoder->start();
-        audioRender->start();
+        if (!aDecoder->isRunning()) {
+            aDecoder->start();
+        }
+        if (!audioRender->isRunning()) {
+            audioRender->start();
+        }
     }
     if (!is->realtime) {
         demuxer->reOpenAudioSt();

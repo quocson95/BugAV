@@ -474,7 +474,7 @@ void Render::videoDisplay()
 {
     Frame *vp = is->pictq->peekLast();
     is->lastPtsVideo = vp->getPts();
-    qDebug() << "video display " << vp->getPts();
+//    qDebug() << "video display " << vp->getPts();
     if (!vp->uploaded) {
         uploadTexture(vp, &is->img_convert_ctx);
         vp->uploaded = 1;

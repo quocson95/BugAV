@@ -153,6 +153,8 @@ public:
 
     bool audio_disable;
 
+    bool noAudioStFound;
+
     int debug;
 
     void setIformat(AVInputFormat *value);

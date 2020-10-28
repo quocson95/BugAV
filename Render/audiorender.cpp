@@ -63,6 +63,14 @@ void BugAV::AudioRender::stop()
     hasInitAudioParam = false;
 }
 
+bool BugAV::AudioRender::isRunning() const
+{
+    if (thread == nullptr) {
+        return false;
+    }
+    return thread->isRunning();
+}
+
 int BugAV::AudioRender::initAudioFormat(int64_t wanted_channel_layout,
                                    int wanted_nb_channels,
                                    int wanted_sample_rate,
@@ -390,9 +398,15 @@ int BugAV::AudioRender::synchronizeAudio(int nb_samples)
 void BugAV::AudioRender::process()
 {    
     qDebug() << "Audio render start";   
-    while (!reqStop && !hasInitAudioParam) {
+    while (!reqStop && !hasInitAudioParam && !is->noAudioStFound) {
         qDebug() << "Audio thread Wait init audio param";
         thread->msleep(100);
+    }
+    if (!reqStop || !is->noAudioStFound) {
+        qDebug() << "Audio render stop becase no audio stream found";
+        thread->terminate();
+        emit stopped();
+        return;
     }
     auto backend = new AudioOpenALBackEnd();
     backend->setAudioParam(is->audio_tgt);

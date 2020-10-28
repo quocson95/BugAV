@@ -8,11 +8,11 @@ extern "C" {
 namespace BugAV {
 VideoState::VideoState(Define *def):
     img_convert_ctx{nullptr}
-  ,audio_disable{false}
+//  ,audio_disable{false}
   ,debug{0}
 {    
     #ifdef QT_DEBUG
-      debug = 1;
+      debug = 0;
     #else
       debug = 0;
     #endif
@@ -56,7 +56,7 @@ VideoState::VideoState(Define *def):
     audio_buf_index = 0; /* in bytes */
     audio_write_buf_size = 0;
     audio_volume = 0;
-    muted = 0;   
+    muted = 1;
 //    disableAudio = false;
     frame_drops_early = 0;
     frame_drops_late = 0;
@@ -207,21 +207,26 @@ void VideoState::streamTogglePause()
 
 int VideoState::isRealtime()
 {
-    if (ic == nullptr || ic->iformat == nullptr) {
-        return 0;
-    }
-    if(   !strcmp(ic->iformat->name, "rtp")
-       || !strcmp(ic->iformat->name, "rtsp")
-       || !strcmp(ic->iformat->name, "sdp")
-        || !strcmp(ic->iformat->name, "rtmp")
-    )
-        return 1;
+//    if (ic == nullptr || ic->iformat == nullptr) {
+//        return 0;
+//    }
+//    if(   !strcmp(ic->iformat->name, "rtp")
+//       || !strcmp(ic->iformat->name, "rtsp")
+//       || !strcmp(ic->iformat->name, "sdp")
+//        || !strcmp(ic->iformat->name, "rtmp")
+//    )
+//        return 1;
 
-    if(ic->pb && (   !strncmp(ic->url, "rtp:", 4)
-                 || !strncmp(ic->url, "udp:", 4)
-                )
-    )
+//    if(ic->pb && (   !strncmp(ic->url, "rtp:", 4)
+//                 || !strncmp(ic->url, "udp:", 4)
+//                )
+//    )
+    if (fileUrl.startsWith("rtp")
+            || fileUrl.startsWith("rtsp")
+            || fileUrl.startsWith("sdp")
+            || fileUrl.startsWith("rtmp")) {
         return 1;
+    }
     return 0;
 }
 

@@ -87,6 +87,7 @@ bool Demuxer::load()
     unload();
     denyRetryOpenAudioSt = false;
     elLastRetryOpenAudioSt->invalidate();
+    is->noAudioStFound = false;
     is->setIformat(av_find_input_format(is->fileUrl.toUtf8().constData()));
 //    is->iformat = av_find_input_format(is->fileUrl.toUtf8().constData());
     is->ic = avformat_alloc_context();
@@ -282,9 +283,12 @@ int Demuxer::readFrame()
             auto t = elLastRetryOpenAudioSt->elapsed();
             if (t > 10000) {
                 denyRetryOpenAudioSt = true;
+                is->noAudioStFound = true;
             }
         }
-        reFindStream(is->ic, AVMEDIA_TYPE_AUDIO, stIndex[AVMEDIA_TYPE_AUDIO]);
+        if (!denyRetryOpenAudioSt) {
+            reFindStream(is->ic, AVMEDIA_TYPE_AUDIO, stIndex[AVMEDIA_TYPE_AUDIO]);
+        }
     }
     handlerInterupt->end();
     if (ret < 0) {

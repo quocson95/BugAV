@@ -42,6 +42,9 @@ void BugAV::AudioDecoder::stop()
 
 bool BugAV::AudioDecoder::isRunning() const
 {
+    if (thread == nullptr) {
+        return false;
+    }
     return thread->isRunning();
 }
 
@@ -262,7 +265,7 @@ void BugAV::AudioDecoder::process()
         qDebug() << "AudioDecoder can't alloc frame";
         return;
     }
-    while (is->audioq->size == 0 || is->audio_st == nullptr) {
+    while ((is->audioq->size == 0 || is->audio_st == nullptr) && !is->noAudioStFound) {
 //        qDebug() << "wait video stream input";
         if (reqStop) {
             av_frame_free(&frame);
@@ -270,6 +273,12 @@ void BugAV::AudioDecoder::process()
             break;
         }
         thread->msleep(100);
+    }
+    if (is->noAudioStFound) {
+        av_frame_free(&frame);
+        emit stopped();
+        qDebug() << "!!!AudioDecoder Thread exit becase no audio stream found";
+        thread->terminate();
     }
     forever {
         if (reqStop) {

@@ -19,7 +19,7 @@ VideoDecoder::VideoDecoder(VideoState *is)
     :QObject(nullptr)
 //    ,QRunnable()
     ,is{is}
-    ,frame{nullptr}    
+    ,frame{nullptr}
 {
     isRun = false;   
     requetsStop = false;
