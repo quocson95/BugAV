@@ -14,11 +14,6 @@
 #include <QOpenGLTexture>
 #include <QMutex>
 
-
-extern "C" {
-    #include <libavutil/pixfmt.h>
-}
-
 namespace BugAV {
 constexpr int BUFF_SIZE = 2;
 
@@ -137,7 +132,7 @@ private:
     bool hasInitYUV;
     bool hasInitRGB;
 
-    AVPixelFormat pixFmt;
+    int pixFmt;
 
     unsigned char* dataRGB;
 

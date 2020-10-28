@@ -590,9 +590,9 @@ QSize BugGLWidget::videoFrameSize() const
 
 void BugGLWidget::paintGL()
 {    
-    if (pixFmt == AVPixelFormat::AV_PIX_FMT_YUV420P) {
+    if (AVPixelFormat(pixFmt) == AVPixelFormat::AV_PIX_FMT_YUV420P) {
         drawYUV();
-    } else if (pixFmt == AVPixelFormat::AV_PIX_FMT_RGB32) {
+    } else if (AVPixelFormat(pixFmt) == AVPixelFormat::AV_PIX_FMT_RGB32) {
         drawRGB();
     }
 }
