@@ -355,8 +355,8 @@ void BugGLWidget::drawRGB()
     if (images.count() == 0) {
         return;
     }    
-    auto img = images.at(bufIndex);
-    img = receiveFrame(img);
+    auto imgInBuf = images.at(bufIndex);
+    auto img = receiveFrame(imgInBuf);
     if (img.isNull() || noNeedRender) {
         return;
     }
@@ -369,9 +369,27 @@ void BugGLWidget::drawRGB()
         img = img.copy(QRect(offsetX, offsetY, renderW, renderH));
     }
     QPainter painter{this};
-//    painter.beginNativePainting();
+    painter.beginNativePainting();
+    // Maybe necessary
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+
+    // Put OpenGL code here
+
+    // Necessary if used glPush-es above
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glPopAttrib();
+    painter.endNativePainting();
+    auto r = rect();
     painter.setRenderHints(QPainter::SmoothPixmapTransform);
-    painter.drawImage(rect(), img);
+    painter.drawImage(r, img);
+    painter.end();
 //    painter.endNativePainting();
 }
 
@@ -629,15 +647,5 @@ void BugGLWidget::setTransparent(bool transparent)
     // Call update() on the top-level window after toggling AlwayStackOnTop to make sure
     // the entire backingstore is updated accordingly.
     window()->update();
-}
-
-void BugGLWidget::resizeGL(int w, int h)
-{
-    QOpenGLWidget::resizeGL(w, h);
-//    if (w > 0 || h > 0) {
-//        glViewport(0, 0, w, h);
-//    }
-//    emit reqUpdate();
-//    raise();
 }
 }
