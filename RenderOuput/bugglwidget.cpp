@@ -156,11 +156,20 @@ void BugGLWidget::initializeYUVGL()
 
 
 
+
     //---------------------
-    m_vshaderA = new QOpenGLShader(QOpenGLShader::Vertex);
-    m_vshaderA->compileSourceCode(g_vertextShader);
-    m_fshaderA = new QOpenGLShader(QOpenGLShader::Fragment);
-    m_fshaderA->compileSourceCode(g_fragmentShader);
+    if (m_vshaderA == nullptr) {
+        m_vshaderA = new QOpenGLShader(QOpenGLShader::Vertex);
+        m_vshaderA->compileSourceCode(g_vertextShader);
+    }
+    if (m_fshaderA == nullptr) {
+        m_fshaderA = new QOpenGLShader(QOpenGLShader::Fragment);
+        m_fshaderA->compileSourceCode(g_fragmentShader);
+    }
+    if (m_programA != nullptr) {
+        m_programA->release();
+        delete m_programA;
+    }
     m_programA = new QOpenGLShaderProgram;
     m_programA->addShader(m_vshaderA);
     m_programA->addShader(m_fshaderA);
@@ -275,10 +284,15 @@ void BugGLWidget::prepareRGB(AVFrame *frame)
 
 void BugGLWidget::drawYUV()
 {
+    if (noNeedRender) {
+        return;
+    }
     if(!isShaderInited)
     {
         isShaderInited=true;
+        initializeYUVGL();
         glDeleteTextures(3, m_textureIds);
+        memset(m_textureIds, 0, 3);
 
         glGenTextures(3, m_textureIds);
 
@@ -343,6 +357,9 @@ void BugGLWidget::drawRGB()
     }    
     auto img = images.at(bufIndex);
     img = receiveFrame(img);
+    if (img.isNull() || noNeedRender) {
+        return;
+    }
     // update picture size, update roi
     if (picSize.width() != img.size().width() || picSize.height() != img.size().height()) {
         picSize = img.size();
@@ -352,10 +369,10 @@ void BugGLWidget::drawRGB()
         img = img.copy(QRect(offsetX, offsetY, renderW, renderH));
     }
     QPainter painter{this};
-    painter.beginNativePainting();
+//    painter.beginNativePainting();
     painter.setRenderHints(QPainter::SmoothPixmapTransform);
     painter.drawImage(rect(), img);
-    painter.endNativePainting();
+//    painter.endNativePainting();
 }
 
 void BugGLWidget::reDraw()
@@ -372,14 +389,16 @@ void BugGLWidget::reDraw()
 
 BugGLWidget::BugGLWidget(QWidget *parent)
     :QOpenGLWidget{parent}
+    ,noNeedRender{false}
     ,m_vshaderA{nullptr}
     ,m_fshaderA{nullptr}
     ,m_programA{nullptr}
     ,m_texture(nullptr)
     ,m_transparent(false)
     ,m_background(Qt::white)
-    ,hasInitYUV{false}
-    ,hasInitRGB{false}
+
+    ,hasInitYUV{false}    
+    ,hasInitRGB{false}    
 {
 //    moveToThread(qApp->thread());
     frameW=0;
@@ -394,7 +413,7 @@ BugGLWidget::BugGLWidget(QWidget *parent)
     renderWxH_4 = 0;
     offsetX = offsetY = 0;
 
-    bufIndex=0;
+    bufIndex = 0;
     memset(m_textureIds, 0, 3);
     for(auto i = 0; i < 3; i++) {        
         originFrame.data[i] = nullptr;
@@ -442,7 +461,7 @@ BugGLWidget::~BugGLWidget()
 void BugGLWidget::initializeGL()
 {
     initializeOpenGLFunctions();
-    initializeYUVGL();
+//    initializeYUVGL();
 }
 
 void BugGLWidget::callUpdate()
@@ -518,6 +537,8 @@ void BugGLWidget::updateData(AVFrame *frame)
         prepareYUV(frame);
     } else if (frame->format == AVPixelFormat::AV_PIX_FMT_RGB32) {
         // prepare for rgb
+        isShaderInited = false;
+        hasInitYUV  = false;
         prepareRGB(frame);
     }
     // no support another type

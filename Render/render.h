@@ -132,6 +132,7 @@ public:
     void run();
     void setSaveRawImage(bool value);
     void setPreferPixFmt(const AVPixelFormat &value);
+    AVPixelFormat getPreferPixFmt() const;
 };
 }
 #endif // RENDER_H

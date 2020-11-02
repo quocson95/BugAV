@@ -81,7 +81,7 @@ void Grid::addPlayer(int i, int j)
 {
     auto player = new BugAV::BugPlayer(this, BugAV::    ModePlayer::VOD);
     auto renderer = new BugAV::BugGLWidget;
-    player->enableSupportFisheye(true);
+    player->setPixFmtRGB32(true);
     QVariantHash avformat;
 //    avformat["probesize"] = 4096000;
 //    avformat["analyzeduration"] = 1000000;

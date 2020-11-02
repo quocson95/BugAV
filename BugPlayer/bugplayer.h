@@ -54,7 +54,7 @@ public:
 
     void setEnableFramedrop(bool value = true);
 
-    void enableSupportFisheye(bool value = true);
+    void setPixFmtRGB32(bool value = true);
 
     // set speed, can set anytime
     void setSpeed(const double & speed);

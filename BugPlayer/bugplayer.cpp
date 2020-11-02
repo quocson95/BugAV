@@ -171,11 +171,15 @@ void BugPlayer::setEnableFramedrop(bool value)
     d_ptr->setEnableFramedrop(value);
 }
 
-void BugPlayer::enableSupportFisheye(bool value)
+void BugPlayer::setPixFmtRGB32(bool value)
 {
     if (value) {
         d_ptr->render->setPreferPixFmt(AVPixelFormat::AV_PIX_FMT_RGB32);
     } else {
+//        if (d_ptr->render->getPreferPixFmt() == AVPixelFormat::AV_PIX_FMT_RGB32) {
+//            // can not change from rgb to yuv, bug in render
+//            return;
+//        }
         d_ptr->render->setPreferPixFmt(AVPixelFormat::AV_PIX_FMT_NONE);
     }
 }

@@ -74,6 +74,9 @@ private:
      void drawYUV();
      void drawRGB();
      void reDraw();
+protected:
+     // somtime need trigger receiveFrame but no need render
+     bool noNeedRender;
 private:
 //    QTimer *timer;
     bool init;
@@ -134,7 +137,7 @@ private:
 
     int pixFmt;
 
-    unsigned char* dataRGB;
+    unsigned char* dataRGB;   
 
 };
 }

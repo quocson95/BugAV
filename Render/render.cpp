@@ -265,7 +265,7 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
     if (this->preferPixFmt == AVPixelFormat::AV_PIX_FMT_NONE && fmt == AVPixelFormat::AV_PIX_FMT_YUV420P) {
 //        // do nothing.
 //        // native render yuv420p
-    } else if (fmt != AVPixelFormat::AV_PIX_FMT_RGB32) {
+    } else if (fmt != this->preferPixFmt) {
 //         todo native renderer non yuv 420p
         *img_convert_ctx = sws_getCachedContext(*img_convert_ctx,
                     is->viddec.avctx->width, is->viddec.avctx->height, fmt,
@@ -526,6 +526,11 @@ void Render::updatePositionChanged(Frame *vp)
         }
         elTimer->restart();
     }
+}
+
+AVPixelFormat Render::getPreferPixFmt() const
+{
+    return preferPixFmt;
 }
 
 void Render::setPreferPixFmt(const AVPixelFormat &value)
