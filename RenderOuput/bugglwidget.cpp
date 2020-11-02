@@ -534,6 +534,7 @@ void BugGLWidget::updateData(AVFrame *frame)
     pixFmt = (AVPixelFormat)frame->format;
     if (frame->format == AVPixelFormat::AV_PIX_FMT_YUV420P) {
         // prepare for yuv
+        hasInitRGB = false;
         prepareYUV(frame);
     } else if (frame->format == AVPixelFormat::AV_PIX_FMT_RGB32) {
         // prepare for rgb
@@ -633,9 +634,9 @@ void BugGLWidget::setTransparent(bool transparent)
 void BugGLWidget::resizeGL(int w, int h)
 {
     QOpenGLWidget::resizeGL(w, h);
-    if (w > 0 || h > 0) {
-        glViewport(0, 0, w, h);
-    }
+//    if (w > 0 || h > 0) {
+//        glViewport(0, 0, w, h);
+//    }
 //    emit reqUpdate();
 //    raise();
 }
