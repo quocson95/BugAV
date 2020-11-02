@@ -11,8 +11,13 @@ extern "C" {
 #include <QCoreApplication>
 #include <math.h>
 #include "QTimer"
+
 #ifdef Q_OS_LINUX
 #include <x86intrin.h>
+#endif
+
+#ifdef Q_OS_WINDOWS
+#pragma comment(lib, "opengl32.lib")
 #endif
 namespace BugAV {
 
