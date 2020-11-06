@@ -3,9 +3,12 @@
 #include <QVariant>
 #include <Demuxer/demuxer.h>
 #include <Render/render.h>
+#include "Render/audiorender.h"
 #include "common/videostate.h"
 #include <Decoder/videodecoder.h>
+#include "Decoder/audiodecoder.h"
 #include <QDebug>
+
 
 namespace BugAV {
 
@@ -37,8 +40,15 @@ BugPlayer::BugPlayer(BugPlayerPrivate &d, QObject *parent)
 void BugPlayer::streamLoaded()
 {
     if (!d_ptr->is->abort_request) {
+        auto denyStartAudioThread = d_ptr->is->audio_disable || d_ptr->is->muted;
+        if (!denyStartAudioThread) {
+            d_ptr->aDecoder->start();
+            d_ptr->audioRender->start();
+        }
         d_ptr->render->start();
         d_ptr->vDecoder->start();
+
+//        d_ptr->audioRender->audioOpen();
         emit stateChanged(BugAV::AVState::LoadingState);
     }
 }
@@ -117,8 +127,17 @@ void BugPlayer::stop()
 }
 
 void BugPlayer::refresh()
-{
+{    
+    d_ptr->demuxer->enableSkipNonKeyFrame(false);
     d_ptr->refresh();
+}
+
+void BugPlayer::refreshAtCurrent()
+{
+    auto startTime = d_ptr->render->getCurrentPosi();
+    stop();    
+    d_ptr->demuxer->setStartTime(startTime);
+    play();
 }
 
 bool BugPlayer::isPlaying() const
@@ -186,7 +205,22 @@ void BugPlayer::setPixFmtRGB32(bool value)
 
 void BugPlayer::setSpeed(const double & speed)
 {
+    // need reload
+    auto curSpeed = d_ptr->is->getSpeed();
+    if (curSpeed == speed) {
+        return;
+    }
     d_ptr->setSpeed(speed);
+    if (speed <= 1.0) {        
+        d_ptr->demuxer->enableSkipNonKeyFrame(false);
+        refreshAtCurrent();
+        return;
+    }
+    if (speed > 1.0 && curSpeed <= 1.0) {        
+        d_ptr->demuxer->enableSkipNonKeyFrame();
+        refreshAtCurrent();
+        return;
+    }
 }
 
 void BugPlayer::setStartPosition(const qint64 & time)
@@ -207,6 +241,21 @@ qint64 BugPlayer::getDuration() const
 void BugPlayer::seek(const double &position)
 {
     d_ptr->seek(position);
+}
+
+void BugPlayer::setDisableAudio(bool value)
+{
+    d_ptr->setDisableAudio(value);
+}
+
+void BugPlayer::setMute(bool value)
+{
+    d_ptr->setMute(value);
+}
+
+bool BugPlayer::isMute() const
+{
+    return d_ptr->isMute();
 }
 
 //void BugPlayer::positionChanged(qint64 posi)

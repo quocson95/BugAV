@@ -30,14 +30,17 @@ public:
 
     void decoderAbort(Decoder *d, FrameQueue *fq);
     void vidDecoderAbort();
-    void flush();
+//    void flush();
 
-    void resetStream();
+//    void resetStream();
 
     void reset();
+    void resetAudioStream();
+    void resetVideoStream();
 
     bool isExternalClock() const;
     bool isVideoClock() const;
+    bool isAudioClock() const;
 public:
 //    SDL_Thread *read_tid = nullptr;
     AVInputFormat *iformat  = nullptr;
@@ -60,9 +63,9 @@ public:
 
     FrameQueue *pictq;
 //    FrameQueue subpq;
-//    FrameQueue sampq;
+    FrameQueue *sampq;
 
-//    Decoder auddec;
+    Decoder auddec;
     Decoder viddec;
 //    Decoder subdec;
 
@@ -77,7 +80,7 @@ public:
     double audio_diff_threshold;
     int audio_diff_avg_count;
     AVStream *audio_st = nullptr;
-    PacketQueue audioq;
+    PacketQueue *audioq;
     int audio_hw_buf_size;
     uint8_t *audio_buf = nullptr;
     uint8_t *audio_buf1 = nullptr;
@@ -86,7 +89,9 @@ public:
     int audio_buf_index; /* in bytes */
     int audio_write_buf_size;
     int audio_volume;
-    int muted;
+    int muted;    
+    // disable audio feature
+//    bool disableAudio;
     AudioParams audio_src;
 #if CONFIG_AVFILTER
     AudioParams audio_filter_src;
@@ -118,7 +123,7 @@ public:
     double frame_last_filter_delay;
     int video_stream;
     AVStream *video_st = nullptr;
-    PacketQueue *videoq;
+    PacketQueue *videoq;    
     double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
     SwsContext *img_convert_ctx;
     struct SwsContext *sub_convert_ctx;
@@ -146,6 +151,11 @@ public:
 
     qint64 duration;
 
+    bool audio_disable;
+
+    bool noAudioStFound;
+
+    int debug;
 
     void setIformat(AVInputFormat *value);
 
@@ -153,9 +163,12 @@ public:
 
     double getSpeed() const;
 
+    double lastPtsVideo;
+
 private:
     Define *def;
     double speed;
+
 
 };
 }

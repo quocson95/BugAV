@@ -53,22 +53,15 @@ private:
 
     void freeSwsBuff();
 
-    bool handlerFrameState1();
-    bool handlerFrameState2();
-    int handlerFrameState3();
-
 private:
     static double vp_duration(double maxFrameDuration, Frame *vp, Frame *nextvp);
     static double compute_target_delay (VideoState *is, double delay);
-    static void getSdlPixFmtAndBlendmode(int format, uint32_t *pix_fmt);
-    static QImage::Format avFormatToImageFormat(int format);
+    static void getSdlPixFmtAndBlendmode(int format, uint32_t *pix_fmt);    
     static AVPixelFormat fixDeprecatedPixelFormat(AVPixelFormat fmt);
-//    int getSDLPixFmt(int format);
     void updateVideoPts(double pts, int64_t pos, int serial);
 
     void uploadTexture(Frame *f, SwsContext **img_convert_ctx);
 
-//    AVFrame *cropImage(AVFrame *frame, int left, int top, int right, int bottom);
 private slots:
     void process();
     void videoRefresh();
@@ -76,16 +69,6 @@ private slots:
 
     void updatePositionChanged(Frame *vp);
 private:
-
-    enum class PrivState {
-        Stop = -1,
-        Init = 0,
-        WaitingFirstFrame,
-        HandleFrameState1,
-        HandleFrameState2,
-        HandleFrameState3,        
-    };
-//    AVFrame *frameYUV;
     uint8_t * buffer;
 //    uint8_t *out_buffer;
     bool hasInit;
@@ -97,10 +80,7 @@ private:
     double rdftspeed = 0.02;
     double remaining_time = 0;
     bool requestStop;
-    QMutex mutex;
-    bool isRun;
-
-    PrivState privState;
+    QMutex mutex;    
 
     qint64 lastUpdateFrame;
 
@@ -127,11 +107,13 @@ private:
 
     QElapsedTimer *elTimer;
 
-    // QRunnable interface
+    qint64 currentFramePts;
+//    qint64
+
 public:
-    void run();
     void setSaveRawImage(bool value);
     void setPreferPixFmt(const AVPixelFormat &value);
+    qint64 getCurrentPosi() const;
     AVPixelFormat getPreferPixFmt() const;
 };
 }

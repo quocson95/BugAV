@@ -3,18 +3,30 @@ extern "C" {
 #include "libavutil/time.h"
 }
 
+#include <QtGlobal>
+
 namespace BugAV {
-VideoState::VideoState(Define *def)
+VideoState::VideoState(Define *def):
+    img_convert_ctx{nullptr}
+//  ,audio_disable{false}
+  ,debug{0}
 {    
+    #ifdef QT_DEBUG
+      debug = 0;
+    #else
+      debug = 0;
+    #endif
     this->def = def;
-    pictq = new FrameQueue{def};
+    pictq = new FrameQueue{def->FramePictQueueSize()};
+    sampq = new FrameQueue{def->FrameSampQueueSize()};
 
     continue_read_thread = new QWaitCondition;
     show_mode = ShowMode::SHOW_MODE_VIDEO;    
-    av_sync_type = ShowModeClock::AV_SYNC_EXTERNAL_CLOCK;
+    av_sync_type = ShowModeClock::AV_SYNC_VIDEO_MASTER;
     videoq = new PacketQueue;
+    audioq = new PacketQueue;
     useAVFilter = false;
-    ic = nullptr;
+    ic = nullptr;    
     seek_req  = 0;
     abort_request = 0;
     force_refresh = 0;
@@ -31,7 +43,7 @@ VideoState::VideoState(Define *def)
 
     audio_stream = -1;
 
-    audio_clock = 0.0;
+    audio_clock = qQNaN();
     audio_clock_serial = 0;
     audio_diff_cum = 0.0; /* used for AV difference average computation */
     audio_diff_avg_coef = 0.0;
@@ -44,7 +56,8 @@ VideoState::VideoState(Define *def)
     audio_buf_index = 0; /* in bytes */
     audio_write_buf_size = 0;
     audio_volume = 0;
-    muted = 0;
+    muted = 1;
+//    disableAudio = false;
     frame_drops_early = 0;
     frame_drops_late = 0;
     last_i_start = 0;
@@ -69,11 +82,15 @@ VideoState::VideoState(Define *def)
     useAVFilter = false; // need avfilter avframe
 
     last_video_stream = last_audio_stream = last_subtitle_stream = -1;
-    img_convert_ctx  = nullptr;
 
     framedrop = 0;
-    setSpeed(1.0);
 
+    duration = 0;
+    speed = 1.0;
+    videoq->abort_request = 0;
+    audioq->abort_request = 0;
+
+    setSpeed(1.0);
 //    PacketQueue::mustInitOnce();
     init();
     reset();
@@ -92,15 +109,26 @@ VideoState::~VideoState()
 
     viddec.clear();
     delete ic;
-    delete pictq;
+    // video
+    delete pictq;  
     delete videoq;
+    // audio
+    delete sampq;
+    delete audioq;
 }
 
 void VideoState::init()
 {
+    // video
     viddec.init(videoq, nullptr, continue_read_thread);
-    pictq->init(videoq, def->VideoPictureQueueSize(), 1);
+    pictq->init(videoq, def->VideoPictureQueueSize(), 1);    
     vidclk.init(&videoq->serial);
+    // audio
+    auddec.init(audioq, nullptr, continue_read_thread);
+    sampq->init(audioq, def->AudioQueueSize(), 1);
+    audclk.init(&audioq->serial);
+    audio_clock_serial = -1;
+    extclk.init(&extclk.serial);
 }
 
 ShowModeClock VideoState::getMasterSyncType() const
@@ -141,12 +169,12 @@ double VideoState::getMasterClock()
 void VideoState::checkExternalClockSpeed()
 {
     if ((this->video_stream >= 0 && this->videoq->nb_packets <= EXTERNAL_CLOCK_MIN_FRAMES) ||
-           (this->audio_stream >= 0 && this->audioq.nb_packets <= EXTERNAL_CLOCK_MIN_FRAMES))
+           (this->audio_stream >= 0 && this->audioq->nb_packets <= EXTERNAL_CLOCK_MIN_FRAMES))
     {
 //        setClockSpeed(&this->extclk, FFMAX(EXTERNAL_CLOCK_SPEED_MIN, this->extclk.speed - EXTERNAL_CLOCK_SPEED_STEP));
         this->extclk.setSpeed(FFMAX(EXTERNAL_CLOCK_SPEED_MIN, this->extclk.speed - EXTERNAL_CLOCK_SPEED_STEP));
     } else if ((this->video_stream < 0 || this->videoq->nb_packets > EXTERNAL_CLOCK_MAX_FRAMES) &&
-                  (this->audio_stream < 0 || this->audioq.nb_packets > EXTERNAL_CLOCK_MAX_FRAMES))
+                  (this->audio_stream < 0 || this->audioq->nb_packets > EXTERNAL_CLOCK_MAX_FRAMES))
     {
 //        setClockSpeed(&this->extclk, FFMIN(EXTERNAL_CLOCK_SPEED_MAX, this->extclk.speed + EXTERNAL_CLOCK_SPEED_STEP));
         this->extclk.setSpeed(FFMIN(EXTERNAL_CLOCK_SPEED_MAX, this->extclk.speed + EXTERNAL_CLOCK_SPEED_STEP));
@@ -179,21 +207,26 @@ void VideoState::streamTogglePause()
 
 int VideoState::isRealtime()
 {
-    if (ic == nullptr || ic->iformat == nullptr) {
-        return 0;
-    }
-    if(   !strcmp(ic->iformat->name, "rtp")
-       || !strcmp(ic->iformat->name, "rtsp")
-       || !strcmp(ic->iformat->name, "sdp")
-        || !strcmp(ic->iformat->name, "rtmp")
-    )
-        return 1;
+//    if (ic == nullptr || ic->iformat == nullptr) {
+//        return 0;
+//    }
+//    if(   !strcmp(ic->iformat->name, "rtp")
+//       || !strcmp(ic->iformat->name, "rtsp")
+//       || !strcmp(ic->iformat->name, "sdp")
+//        || !strcmp(ic->iformat->name, "rtmp")
+//    )
+//        return 1;
 
-    if(ic->pb && (   !strncmp(ic->url, "rtp:", 4)
-                 || !strncmp(ic->url, "udp:", 4)
-                )
-    )
+//    if(ic->pb && (   !strncmp(ic->url, "rtp:", 4)
+//                 || !strncmp(ic->url, "udp:", 4)
+//                )
+//    )
+    if (fileUrl.startsWith("rtp")
+            || fileUrl.startsWith("rtsp")
+            || fileUrl.startsWith("sdp")
+            || fileUrl.startsWith("rtmp")) {
         return 1;
+    }
     return 0;
 }
 
@@ -206,42 +239,40 @@ void VideoState::decoderAbort(Decoder *d, FrameQueue *fq)
 void VideoState::vidDecoderAbort()
 {
     decoderAbort(&viddec, pictq);
+    decoderAbort(&auddec, sampq);
 }
 
-void VideoState::flush()
-{
-    videoq->flush();
-}
-
-void VideoState::resetStream()
-{
-    video_stream = -1;
-    video_st = nullptr;
-}
+//void VideoState::flush()
+//{
+//    videoq->flush();
+//}
 
 void VideoState::reset()
 {
-    resetStream();
+    resetAudioStream();
+    resetVideoStream();
+    eof = 0;
 //    framedrop = 0; // drop frame when cpu too slow.
 
-    //init frame queue
-    pictq->init(videoq, def->VideoPictureQueueSize(), 1);
+//    //init picture frame queue
+//    pictq->init(videoq, def->VideoPictureQueueSize(), 1);
 
-    //init package queue
-    videoq->init();
+//    //init package queue
+//    videoq->init();
 
-    //init clock
-    vidclk.init(&videoq->serial);
+//    // init audio frame queue
+//    sampq->init(audioq, def->AudioQueueSize(), 1);
 
-    abort_request = 0;
-    force_refresh = 0;
-    paused = 0;
-    last_paused = 0;
-    step = 0;
-    videoq->abort_request = 0;
-    eof = 0;
-    duration = 0;
-//    speed = 1.0;
+//    // init audio package queue
+//    audioq->init();
+
+//    //init video clock
+//    vidclk.init(&videoq->serial);
+
+//    // init audio clock
+//    audclk.init(&audioq->serial);
+    init();
+
     if (img_convert_ctx != nullptr) {
         sws_freeContext(img_convert_ctx);
         img_convert_ctx = nullptr;
@@ -258,6 +289,11 @@ bool VideoState::isVideoClock() const
     return getMasterSyncType() == ShowModeClock::AV_SYNC_VIDEO_MASTER;
 }
 
+bool VideoState::isAudioClock() const
+{
+    return getMasterSyncType() == ShowModeClock::AV_SYNC_AUDIO_MASTER;
+}
+
 void VideoState::setIformat(AVInputFormat *value)
 {
     iformat = value;
@@ -267,11 +303,26 @@ void VideoState::setIformat(AVInputFormat *value)
 void VideoState::setSpeed(double value)
 {
     pictq->speed = value;
+    sampq->speed = value;
     speed = value;
 }
 
 double VideoState::getSpeed() const
 {
     return speed;
+}
+
+void VideoState::resetAudioStream()
+{
+    last_audio_stream = audio_stream = -1;
+    audio_st = nullptr;
+    auddec.freeAvctx();
+}
+
+void VideoState::resetVideoStream()
+{
+    last_video_stream = video_stream = -1;
+    video_st = nullptr;
+    viddec.freeAvctx();
 }
 }

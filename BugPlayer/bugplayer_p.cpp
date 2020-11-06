@@ -2,9 +2,11 @@
 #include <QDebug>
 #include "common/videostate.h"
 #include "Decoder/videodecoder.h"
+#include "Decoder/audiodecoder.h"
 #include "Demuxer/demuxer.h"
 #include "Render/render.h"
 #include <common/define.h>
+#include <Render/audiorender.h>
 
 namespace BugAV {
 BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
@@ -14,17 +16,22 @@ BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
     def = new Define;
     def->setModePlayer(mode);
 
-    is = new VideoState{def};
+    is = new VideoState{def};  
+    audioRender = new AudioRender{is};
     demuxer = new Demuxer{is, def};
+    demuxer->setAudioRender(audioRender);
+
     vDecoder = new VideoDecoder{is};
-    render = new Render{is};
+    aDecoder = new AudioDecoder{is};
+
+    render = new Render{is};    
 
     demuxerRunning = false;
     vDecoderRunning = false;
     renderRunning = false;
     enableFramedrop = true;
 
-    speed = 1.0;
+//    av_log_set_level(AV_LOG_INFO);
     av_log_set_level(AV_LOG_QUIET);
 }
 
@@ -69,8 +76,7 @@ int BugPlayerPrivate::play()
         return 0;
     }
 //    emit stateChanged(BugAV::BugPlayer::AVState::LoadingState);
-    playPriv();
-    return 1;
+    return playPriv();
 }
 
 int BugPlayerPrivate::play(const QString &file)
@@ -103,13 +109,11 @@ void BugPlayerPrivate::togglePause()
 void BugPlayerPrivate::stop()
 {
     is->abort_request = 1;    
-    demuxer->stop();   
-    is->videoq->abort();
-    is->pictq->wakeSignal();
-//    is->viddec.stop();
-    vDecoder->stop();
-    render->stop();
+    demuxer->stop();
+    stopAudio();
+    stopVideo();
     demuxer->unload();
+    is->reset();
 }
 
 void BugPlayerPrivate::refresh()
@@ -187,7 +191,7 @@ void BugPlayerPrivate::initPriv()
     }
 }
 
-void BugPlayerPrivate::playPriv()
+int BugPlayerPrivate::playPriv()
 {
     stop();
     initPriv();
@@ -198,13 +202,30 @@ void BugPlayerPrivate::playPriv()
 //    vDecoder->stop();
     is->fileUrl = curFile;
     if (is->fileUrl.isEmpty()) {
-        return;
+        return 0;
     }
     demuxer->start();
-
+    return 1;
 //    render->start();
 //    vDecoder->start();
     // will be emit state playing when loadDone stream
+}
+
+void BugPlayerPrivate::stopAudio()
+{    
+    is->audioq->abort();
+    is->sampq->wakeSignal();
+    aDecoder->stop();    
+    audioRender->stop();
+    is->resetAudioStream();
+}
+
+void BugPlayerPrivate::stopVideo()
+{
+    is->videoq->abort();
+    is->pictq->wakeSignal();
+    vDecoder->stop();
+    render->stop();
 }
 
 void BugPlayerPrivate::setEnableFramedrop(bool value)
@@ -214,13 +235,11 @@ void BugPlayerPrivate::setEnableFramedrop(bool value)
 
 void BugPlayerPrivate::setSpeed(const double & speed)
 {
-    auto oldSpeed = this->speed;
-//    this->is->speed = speed;
-    is->setSpeed(speed);
-//    this->vDecoder->setSpeedRate(speed);
-    if (isPlaying()) {
-        // this->is->pictq->syncAllFrameToNewPts(oldSpeed, speed);
+    auto oldSpeed = is->getSpeed();
+    if (oldSpeed == speed) {
+        return;
     }
+    is->setSpeed(speed);         
 }
 
 void BugPlayerPrivate::setStartPosition(const qint64 &time)
@@ -241,6 +260,49 @@ qint64 BugPlayerPrivate::getDuration() const
 void BugPlayerPrivate::seek(const double &position)
 {       
     demuxer->doSeek(position);
+}
+
+void BugPlayerPrivate::setDisableAudio(bool value)
+{
+//    is->disableAudio = value;
+//    if (is->disableAudio) {
+//        stopAudio();
+//    }
+    is->audio_disable = value;
+}
+
+void BugPlayerPrivate::setMute(bool value)
+{
+    if (is->muted == value) {
+        return;
+    }
+    is->muted = value;
+    if (is->muted) {
+        stopAudio();
+        is->audioq->flush();
+        return;
+    }
+    if (is->audio_disable) {
+        return;
+    }
+    if (isPlaying()) {
+        if (!aDecoder->isRunning()) {
+            aDecoder->start();
+        }
+        if (!audioRender->isRunning()) {
+            audioRender->start();
+        }
+    }
+    if (!is->realtime) {
+        demuxer->reOpenAudioSt();
+        auto x = render->getCurrentPosi();
+        demuxer->doSeek(x);
+    }
+}
+
+bool BugPlayerPrivate::isMute() const
+{
+    return is->muted;
 }
 
 

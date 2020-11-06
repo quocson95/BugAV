@@ -42,7 +42,7 @@ private:
 
 class FrameQueue {
 public:
-    FrameQueue(Define *def);
+    FrameQueue(qint64 frameQueueSize);
     ~FrameQueue();
 
     int init(PacketQueue *pktq, int maxSize, int keepLast);
@@ -53,7 +53,7 @@ public:
     Frame *peekNext();
     Frame *peekLast();
     Frame *peekWriteable();
-//    Frame *peekReadable();
+    Frame *peekReadable();
     void queuePush();
     void queueNext();
     int queueNbRemain();
@@ -62,6 +62,9 @@ public:
     qreal bufferPercent();
 
     bool isWriteable();
+
+    // reset frame queue
+    void reset();
 
 //    void syncAllFrameToNewPts(const double& oldSpeed, const double &newSpeed);
 
@@ -82,7 +85,8 @@ public:
     double speed;
 
 private:
-    Define *def;
+//    Define *def;
+    qint64 frameQueueSize;
 //    bool
 };
 }

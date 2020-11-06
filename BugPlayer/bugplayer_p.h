@@ -9,10 +9,12 @@ namespace BugAV {
 class VideoState;
 class Demuxer;
 class VideoDecoder;
+class AudioDecoder;
 class Render;
 class IBugAVRenderer;
 class BugPlayer;
 class Define;
+class AudioRender;
 
 class BugPlayerPrivate
 {
@@ -68,13 +70,22 @@ public:
 
     qint64 getDuration() const;
 
-    void seek(const double& position);
+    void seek(const double& position);    
+
+    void setDisableAudio(bool value);
+
+    void setMute(bool value);
+
+    bool isMute() const;
 
     BugPlayer *q_ptr;
     VideoState *is;
     Demuxer *demuxer;
     VideoDecoder *vDecoder;
+    AudioDecoder *aDecoder;
+
     Render *render;
+    AudioRender *audioRender;
 
     QString curFile;
 
@@ -83,14 +94,14 @@ public:
     bool renderRunning;
     bool enableFramedrop;
 
-    float speed;
-
-    Define *def;
-
+    Define *def;   
 
 private:
     void initPriv();
-    void playPriv();
+    int playPriv();
+
+    void stopAudio();
+    void stopVideo();
 
 };
 } // namespace BugAV

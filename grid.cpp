@@ -17,7 +17,12 @@ Grid::Grid(QWidget *parent) :
 //    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
     size = 1;
     // camera fish eye
-    files << "https://api.stg.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1602561223&id=c4c1f5c5286244cddcfa720d4538f017dd9b424b&tk=0f412f6d1df086bccb194c2e3b97fb93eea4fe1f&noRedirect=true";
+//    files << "/home/sondq/Downloads/video_audio";
+//    files << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603269402&id=d72fdf56dc08a0052920d454ccb1fe0b561fcb59&tk=aabe3cbbda1402b9a4c9cc11bd0cfa8aa09a3e7f&noRedirect=true";
+//    files  << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603269598&id=f0c1c0d70c88aa8540916d661e62c6e058022fea&tk=de612ae9a4c55e929c827adcfb4f45c92a2917b4&noRedirect=true";
+    files << "rtsp://admin:Admin123@192.168.0.15:554/0";
+//    files << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603512841&id=162f4148bc4e7a9536ac8e54d189640aa54a75ac&tk=4ca66c973414fd09be9d8c242036e4d29a804e1a&noRedirect=true";
+//      files << "rtmp://61.28.227.92:1935/live/84c99a7f-4a3c-40ed-9fe2-50369b247e3b_sub_1603074484?ci=JDg0Yzk5YTdmLTRhM2MtNDBlZC05ZmUyLTUwMzY5YjI0N2UzYgExAANzdWIDdmNjGzFqRzd2ZTloRWdZaVRyWjRiaU1DVWJqWlhDdQAA&sig=cef6d556f";
 
     files << "rtsp://admin:Admin123@192.168.0.9:554/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
              files << "rtsp://admin:Admin123@vcloudcam.ddns.net:8556/Streaming/Channels/102?transportmode=unicast&profile=Profile_2";
@@ -44,9 +49,9 @@ Grid::Grid(QWidget *parent) :
              files << "rtsp://admin:Admin123@192.168.0.50:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1";
              files << "rtsp://admin:Admin123@192.168.0.12:554/profile3";
 
-
-    start();
     BugAV::PacketQueue::mustInitOnce();
+    start();
+
 }
 
 Grid::~Grid()
@@ -79,19 +84,21 @@ void Grid::start()
 
 void Grid::addPlayer(int i, int j)
 {
-    auto player = new BugAV::BugPlayer(this, BugAV::    ModePlayer::VOD);
+    auto player = new BugAV::BugPlayer(this, BugAV::ModePlayer::RealTime);
     auto renderer = new BugAV::BugGLWidget;
     player->setPixFmtRGB32(true);
     QVariantHash avformat;
-//    avformat["probesize"] = 4096000;
+    avformat["probesize"] = 4096;
 //    avformat["analyzeduration"] = 1000000;
-//    avformat["rtsp_flags"] = "prefer_tcp";
+    avformat["rtsp_flags"] = "prefer_tcp";
     player->setRenderer(renderer);
     player->setOptionsForFormat(avformat);
     if (i*size + j < files.size()) {
         player->play(files.at(i*size + j));
     }    
     player->setSpeed(1);
+//    player->seek(509);
+//    player->setDisableAudio();
     ui->g->addWidget(renderer, i, j);
     players.push_back(player);
     renderers.push_back(renderer);
@@ -135,7 +142,7 @@ void Grid::on_slider_valueChanged(int value)
 
 void Grid::on_btnSw_clicked()
 {
-    players[0]->setSpeed(1/4);
+    players[0]->setSpeed(1.0);
 }
 
 void Grid::on_btnPause_clicked()
@@ -146,8 +153,13 @@ void Grid::on_btnPause_clicked()
 void Grid::on_btnFw_clicked()
 {
     if (players[0]->isPlaying()) {
-        players[0]->setSpeed(4);
+        players[0]->setSpeed(8);
     } else {
         players[0]->play();
     }
+}
+
+void Grid::on_btnMute_clicked()
+{
+    players[0]->setMute(!players[0]->isMute());
 }

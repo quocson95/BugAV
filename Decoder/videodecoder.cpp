@@ -8,7 +8,6 @@ extern "C" {
 #include <QThreadPool>
 #include <QtMath>
 #include "common/videostate.h"
-#include "../Render/bugfilter.h"
 
 namespace BugAV {
 VideoDecoder::VideoDecoder()
@@ -21,10 +20,8 @@ VideoDecoder::VideoDecoder(VideoState *is)
 //    ,QRunnable()
     ,is{is}
     ,frame{nullptr}
-    ,filter{nullptr}
 {
-    isRun = false;
-    privState = PrivateState::StopState;
+    isRun = false;   
     requetsStop = false;
 //    speedRate = 1.0;
     frame = nullptr;
@@ -40,10 +37,7 @@ VideoDecoder::~VideoDecoder()
     qDebug() << "Destroy VideoDecoder";
     if (frame != nullptr) {
         av_frame_free(&frame);
-    }    
-    if (filter != nullptr) {
-        delete filter;
-    }
+    }        
     thread->deleteLater();
 }
 
@@ -52,43 +46,18 @@ void VideoDecoder::start()
     if (thread->isRunning()) {
         return;
     }
-//    if (isRun) {
-//        return;
-//    }
-//    isRun = true;
-//    qDebug() << "!!!VideoDecoder Thread start";
-    requetsStop = false;
-    privState = PrivateState::InitState;
+    requetsStop = false;   
     thread->start();
-//    is->viddec.start();
-//    class VideoDecoderRun: public QRunnable{
-//    public:
-//        VideoDecoderRun(VideoDecoder *seft) {
-//            vDecoder = seft;
-//        }
-//        void run() {
-//            vDecoder->process( );
-//        }
-//    private:
-//        VideoDecoder *vDecoder;
-//    };
-//    QThreadPool::globalInstance()->start(new VideoDecoderRun(this));
 }
 
 void VideoDecoder::stop()
 {
-//    qDebug() << "!!!vDecoder Thread stop";
     requetsStop = true;
-//    is->flush();
     isRun = false;
-//    is->videoq->flush();
     thread->quit();
     do {
         thread->wait(500);
-    } while(thread->isRunning());
-
-    privState = PrivateState::StopState;
-
+    } while(thread->isRunning());   
 }
 
 void VideoDecoder::setIs(VideoState *value)
@@ -162,13 +131,7 @@ int VideoDecoder::getFrame()
 
 int VideoDecoder::addQueuFrame()
 {
-    // check writeable
-//    if (!is->pictq->isWriteable()) {
-////        qDebug() << "picture queue not allow write";
-//        return -1;
-//    }
-//    qDebug() << "queuePicture";
-    ret = queuePicture(filterFrame(frame), pts, duration, frame->pkt_pos, is->viddec.pkt_serial);
+    ret = queuePicture(frame, pts, duration, frame->pkt_pos, is->viddec.getPkt_serial());
     //            qDebug() << "after queuePicture";
     if (ret > 0) {
         av_frame_unref(frame);
@@ -204,7 +167,7 @@ int VideoDecoder::getVideoFrame(AVFrame *frame)
                 double diff = dpts - is->getMasterClock();
                 if (!qIsNaN(diff) && qFabs(diff) < AV_NOSYNC_THRESHOLD &&
                     diff - is->frame_last_filter_delay < 0 &&
-                    is->viddec.pkt_serial == is->vidclk.serial &&
+                    is->viddec.getPkt_serial() == is->vidclk.serial &&
                     is->videoq->nb_packets)
                 {
                     is->frame_drops_early++;
@@ -217,37 +180,37 @@ int VideoDecoder::getVideoFrame(AVFrame *frame)
     return gotPicture;
 }
 
-AVFrame *VideoDecoder::filterFrame(AVFrame *frame)
-{
-//    return frame;
-    auto ret = 1;
-    if (filter->getStatusInit() <= 0) {
-        qDebug() << "init filter";
-        ret = filter->init(frame, is);
-    }
-    if ( ret < 0) {
-        return frame;
-    } else {
-        frame_rate = filter->getFrameRate();
-    }
+//AVFrame *VideoDecoder::filterFrame(AVFrame *frame)
+//{
+////    return frame;
+//    auto ret = 1;
+//    if (filter->getStatusInit() <= 0) {
+//        qDebug() << "init filter";
+//        ret = filter->init(frame, is);
+//    }
+//    if ( ret < 0) {
+//        return frame;
+//    } else {
+//        frame_rate = filter->getFrameRate();
+//    }
 
-    ret = filter->pushFrame(frame);
-    if (ret < 0) {
-        is->viddec.finished = is->viddec.pkt_serial;
-        return frame;
-    }
-    is->frame_last_returned_time = av_gettime_relative() / 1000000.0;
-    auto f = filter->pullFrame();
-    if (f != nullptr) {
-        is->frame_last_filter_delay = av_gettime_relative() / 1000000.0 - is->frame_last_returned_time;
-        if (fabs(is->frame_last_filter_delay) > AV_NOSYNC_THRESHOLD / 10.0)
-            is->frame_last_filter_delay = 0;
-        tb = filter->getTimeBase();
-       return f;
-    } else {
-        return frame;
-    }
-}
+//    ret = filter->pushFrame(frame);
+//    if (ret < 0) {
+//        is->viddec.finished = is->viddec.pkt_serial;
+//        return frame;
+//    }
+//    is->frame_last_returned_time = av_gettime_relative() / 1000000.0;
+//    auto f = filter->pullFrame();
+//    if (f != nullptr) {
+//        is->frame_last_filter_delay = av_gettime_relative() / 1000000.0 - is->frame_last_returned_time;
+//        if (fabs(is->frame_last_filter_delay) > AV_NOSYNC_THRESHOLD / 10.0)
+//            is->frame_last_filter_delay = 0;
+//        tb = filter->getTimeBase();
+//       return f;
+//    } else {
+//        return frame;
+//    }
+//}
 
 int VideoDecoder::queuePicture(AVFrame *src_frame, double pts, double duration, int64_t pos, int serial)
 {
@@ -291,9 +254,6 @@ void VideoDecoder::process()
         qDebug() << "Can't alloc frame";
         return;
     }    
-//    if (filter == nullptr) {
-//        filter = new BugFilter;
-//    }
 
     while (is->videoq->size == 0 || is->video_st == nullptr) {
 //        qDebug() << "wait video stream input";
@@ -335,7 +295,7 @@ void VideoDecoder::process()
 //            }
 
 //            qDebug() << "queuePicture";
-            ret = queuePicture((frame), pts, duration, frame->pkt_pos, is->viddec.pkt_serial);
+            ret = queuePicture((frame), pts, duration, frame->pkt_pos, is->viddec.getPkt_serial());
 //            qDebug() << "after queuePicture";
             av_frame_unref(frame);
             if (ret < 0 ) {
@@ -362,49 +322,4 @@ void VideoDecoder::threadFinised()
 {
     is->videoq->flush();
 }
-
-void VideoDecoder::run()
-{
-//    qDebug() << "run video decoder";
-    if (requetsStop) {
-        return;
-    }
-    switch (privState) {
-        case PrivateState::StopState: {
-            privState = PrivateState::InitState;
-            break;
-        }
-        case PrivateState::InitState: {
-            if (initPriv() >= 0) {
-                privState = PrivateState::CheckStreamAvailState;
-            }
-            break;
-        }
-        case PrivateState::CheckStreamAvailState: {
-            if (isStreamInputAvail() > 0) {
-                privState = PrivateState::CalcInfoState;
-            }
-            break;
-        }
-        case PrivateState::CalcInfoState: {
-            if (calcInfo() > 0) {
-                privState = PrivateState::GetFrameState;
-            }
-            break;
-        }
-        case PrivateState::GetFrameState: {
-            if (getFrame() > 0) {
-                privState = PrivateState::AddQueueFrameState;
-            }
-            break;
-        }
-    case PrivateState::AddQueueFrameState: {
-        if (addQueuFrame() > 0) {
-            privState = PrivateState::GetFrameState;
-        }
-        break;
-    }
-    }
-}
-
 }

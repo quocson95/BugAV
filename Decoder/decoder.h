@@ -30,13 +30,15 @@ public:
 
     void clear();
 
+    void freeAvctx();
+
     int decodeFrameV2(AVFrame *frame);
 
 public:   
     AVPacket pkt;
     PacketQueue *queue;
     AVCodecContext *avctx;
-    int pkt_serial;
+
     int finished;
     int packet_pending;
     int64_t start_pts;
@@ -46,24 +48,11 @@ public:
     QWaitCondition *emptyQueueCond;
     int decoder_reorder_pts = -1; //let decoder reorder pts 0=off 1=on -1=auto
 
-//    AVPacket pktTmp;
+    int getPkt_serial() const;
+    void setPkt_serial(int value);
 
 private:
-    enum PrivState {
-        InitState,
-        ReceiveFrame,
-        SendFrame,
-        CheckQueue,
-    };
-    PrivState privState;
-
-    int checkPktSerial();
-
-    int receiveFrame(AVFrame *frame);
-
-    int checkQueue();
-
-    int sendFrame();
+    int pkt_serial;
 };
 
 }

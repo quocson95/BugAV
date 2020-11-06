@@ -18,6 +18,7 @@ class StreamInfo;
 class VideoState;
 class HandlerInterupt;
 class Define;
+class AudioRender;
 
 class Demuxer: public QObject
 {
@@ -26,6 +27,9 @@ public:
     Demuxer();
     Demuxer(VideoState *is, Define *def);
     ~Demuxer();
+
+    void setAudioRender(AudioRender *audioRender);
+
     void setAvformat(QVariantHash avformat);      
 
     bool load();
@@ -45,7 +49,12 @@ public:
     qint64 getStartTime() const;
     void setStartTime(const qint64 &value);
 
-    void doSeek(const double& position);    
+    void doSeek(const double& position);
+
+    bool getSkipNonKeyFrame() const;
+    void enableSkipNonKeyFrame(bool value = true);
+
+    void reOpenAudioSt();
 
 signals:
     void started();
@@ -69,6 +78,8 @@ private:
     void stepToNextFrame();
 //    void streamTogglePause();
     void streamSeek(int64_t pos, int64_t rel, int seek_by_bytes);
+
+    void reFindStream(AVFormatContext *ic, AVMediaType type, int index);
 
 private slots:
     void process();
@@ -98,7 +109,14 @@ private:
     HandlerInterupt *handlerInterupt;
     friend HandlerInterupt;
 
-    AVCodecContext *avctx;
+//    AVCodecContext *avctx;
+
+    AudioRender *audioRender;
+
+    bool skipNonKeyFrame;
+
+    QElapsedTimer *elLastRetryOpenAudioSt;
+    bool denyRetryOpenAudioSt;
 
 //    QElapsedTimer *elTimer;
 //    bool isAllowUpdatePosition;
