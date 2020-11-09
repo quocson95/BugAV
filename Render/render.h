@@ -108,7 +108,6 @@ private:
     QElapsedTimer *elTimer;
 
     qint64 currentFramePts;
-//    qint64
 
 public:
     void setSaveRawImage(bool value);

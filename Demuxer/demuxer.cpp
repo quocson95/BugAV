@@ -116,14 +116,16 @@ bool Demuxer::load()
 
 //    is->ic->flags |= AVFMT_FLAG_IGNDTS;
     if (is->realtime) {
+        is->ic->flags |= AVFMT_FLAG_GENPTS;
         is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
         is->ic->flags |= AVFMT_FLAG_NOBUFFER;
         is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS; // flush avio context every packet (using for decrease buffer, flush old packet)
     } else {
+         is->ic->flags |= AVFMT_FLAG_GENPTS;
         is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
 //        is->ic->flags |= AVFMT_FLAG_GENPTS;
 //        is->ic->flags |= AVFMT_FLAG_IGNDTS;
-        is->ic->flags |= AVFMT_FLAG_FAST_SEEK;
+//        is->ic->flags |= AVFMT_FLAG_FAST_SEEK;
     }
 
     av_format_inject_global_side_data(is->ic);
@@ -324,7 +326,7 @@ int Demuxer::readFrame()
             }
         }
     } else if (pkt->stream_index == is->audio_stream) {
-        if (!is->audio_disable && !is->muted) {
+        if (!is->audio_disable) {
             is->audioq->put(pkt);
         } else {
             av_packet_unref(pkt);
@@ -527,7 +529,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
            is->auddec.start_pts = is->audio_st->start_time;
            is->auddec.start_pts_tb = is->audio_st->time_base;
         }
-        is->auddec.start();
+        is->auddec.start();        
         is->queue_attachments_req = 1;
         break;
     }
@@ -694,7 +696,9 @@ void Demuxer::enableSkipNonKeyFrame(bool value)
 void Demuxer::reOpenAudioSt()
 {
     denyRetryOpenAudioSt = false;
-    elLastRetryOpenAudioSt->invalidate();
+    if (elLastRetryOpenAudioSt != nullptr) {
+        elLastRetryOpenAudioSt->invalidate();
+    }
 }
 
 qint64 Demuxer::getStartTime() const
@@ -709,6 +713,9 @@ void Demuxer::setStartTime(const qint64 &value)
 
 void Demuxer::doSeek(const double &position)
 {   
+    if (is->ic == nullptr) {
+        return;
+    }
     auto pos = position;
     if (pos > is->duration) {
         pos = is->duration;

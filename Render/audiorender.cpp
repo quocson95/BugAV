@@ -13,62 +13,58 @@ extern "C" {
 }
 
 #include "audioopenalbackend.h"
+#include <SDL2/SDL_audio.h>
+#include "SDL2/SDL.h"
 
 BugAV::AudioRender::AudioRender(BugAV::VideoState *is):
     QObject(nullptr)
   ,is{is}
-  ,thread{nullptr}
-  ,hasInitAudioParam{false}
+  ,audio_dev{0}
+//  ,thread{nullptr}
+//  ,hasInitAudioParam{false}
 {
-    connect(this, &AudioRender::initAudioFormatDone, this, &AudioRender::hanlerAudioFormatDone);
-    sizeBuffer = 0;
+//    connect(this, &AudioRender::initAudioFormatDone, this, &AudioRender::hanlerAudioFormatDone);
+//    sizeBuffer = 0;
 }
 
 BugAV::AudioRender::~AudioRender()
 {
-    stop();
+//    stop();
 }
 
 void BugAV::AudioRender::start()
 {
-    reqStop = false;    
-    msSleep = 0;    
-    if (is->isRealtime()) {
-        sizeBuffer = AUDIO_BUFF_SIZE_LIVE;
-    } else {
-        sizeBuffer = AUDIO_BUFF_SIZE_LIVE;
-    }
-    if (thread == nullptr) {
-        thread = new QThread{this};
-        moveToThread(thread);
-        connect(thread, &QThread::started, this, &AudioRender::process);
-    }
-    if (thread->isRunning()) {
-        return;
-    }
-    thread->start();
-
+    reqStop = false;
+    SDL_PauseAudioDevice(audio_dev, 0);
+//    msSleep = 0;
+//    if (is->isRealtime()) {
+//        sizeBuffer = AUDIO_BUFF_SIZE_LIVE;
+//    } else {
+//        sizeBuffer = AUDIO_BUFF_SIZE_VOD;
+//    }
+//    if (thread == nullptr) {
+//        thread = new QThread{this};
+//        moveToThread(thread);
+//        connect(thread, &QThread::started, this, &AudioRender::process);
+//    }
+//    if (thread->isRunning()) {
+//        return;
+//    }
+//    thread->start();
 }
 
 void BugAV::AudioRender::stop()
 {
     reqStop = true;
-    if (thread == nullptr) {
-        return;
+    if (audio_dev > 0) {
+        SDL_CloseAudioDevice(audio_dev);
     }
-    thread->quit();
-    do {
-        thread->wait(500);
-    } while(thread->isRunning());    
-    hasInitAudioParam = false;
+    audio_dev = 0;
 }
 
 bool BugAV::AudioRender::isRunning() const
 {
-    if (thread == nullptr) {
-        return false;
-    }
-    return thread->isRunning();
+    return !reqStop;
 }
 
 int BugAV::AudioRender::initAudioFormat(int64_t wanted_channel_layout,
@@ -76,93 +72,134 @@ int BugAV::AudioRender::initAudioFormat(int64_t wanted_channel_layout,
                                    int wanted_sample_rate,
                                    AudioParams *audio_hw_params)
 {    
-    QAudioFormat wanted_spec, spec;
+    if (SDL_Init(SDL_INIT_AUDIO) != 0) {
+        qDebug("Unable to initialize SDL: %s", SDL_GetError());
+        return 1;
+    } else {
+        if (!SDL_getenv("SDL_AUDIO_ALSA_SET_BUFFER_SIZE"))
+        SDL_setenv("SDL_AUDIO_ALSA_SET_BUFFER_SIZE","1", 1);
+        qDebug("SDL_INIT_AUDIO ok");
+    }
 
-    if (!wanted_channel_layout || wanted_nb_channels != av_get_channel_layout_nb_channels(wanted_channel_layout)) {
-        wanted_channel_layout = av_get_default_channel_layout(wanted_nb_channels);
-        wanted_channel_layout &= ~AV_CH_LAYOUT_STEREO_DOWNMIX;
-    }
-    wanted_nb_channels = av_get_channel_layout_nb_channels(wanted_channel_layout);
-    wanted_spec.setChannelCount(wanted_nb_channels);
-    wanted_spec.setSampleRate(wanted_sample_rate);
-    if (wanted_spec.sampleRate() <= 0 || wanted_spec.channelCount() <= 0) {
-        av_log(NULL, AV_LOG_ERROR, "Invalid sample rate or channel count!\n");
-        return -1;
-    }
-    auto next_sample_rate_idx = FF_ARRAY_ELEMS(NEXT_SAMPLE_RATES) - 1;
-    while (next_sample_rate_idx && NEXT_SAMPLE_RATES[next_sample_rate_idx] >= wanted_spec.sampleRate()) {
-        next_sample_rate_idx--;
-    }
-//    wanted_spec.setByteOrder(QAudioFormat::LittleEndian);
-    wanted_spec.setSampleType(QAudioFormat::SignedInt);
-    wanted_spec.setCodec("audio/pcm");
-//    wanted_spec.setSampleSize(FFMAX(
-//                                  SDL_AUDIO_MIN_BUFFER_SIZE,
-//                                  2 << av_log2(wanted_spec.sampleRate() / SDL_AUDIO_MAX_CALLBACKS_PER_SEC))
-//                              );
-    wanted_spec.setSampleSize(16);
-    forever {
-        QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
-        auto isSupport = info.isFormatSupported(wanted_spec);
-        if (isSupport) {
-            break;
+    SDL_AudioSpec wanted_spec, spec;
+        const char *env;
+        static const int next_nb_channels[] = {0, 0, 1, 6, 2, 6, 4, 6};
+        static const int next_sample_rates[] = {0, 44100, 48000, 96000, 192000};
+        int next_sample_rate_idx = FF_ARRAY_ELEMS(next_sample_rates) - 1;
+
+        env = SDL_getenv("SDL_AUDIO_CHANNELS");
+        if (env) {
+            wanted_nb_channels = atoi(env);
+            wanted_channel_layout = av_get_default_channel_layout(wanted_nb_channels);
         }
-         QList<int> sampleRatesList ;
-        sampleRatesList += info.supportedSampleRates();
-        sampleRatesList = sampleRatesList.toSet().toList(); // remove duplicates
-        std::sort(sampleRatesList.begin(), sampleRatesList.end());
-        qDebug() << "Engine::initialize frequenciesList" << sampleRatesList;
-
-        QList<int> channelsList;
-        channelsList += info.supportedChannelCounts();
-        channelsList = channelsList.toSet().toList();
-        qDebug() << "Engine::initialize channelsList" << channelsList;
-        qWarning() << "wanted_spec " << wanted_spec.channelCount()<< "channels, "
-                   << wanted_spec.sampleRate() << " Hz "
-                   << "sample size " << wanted_spec.sampleSize()
-                   << "format not supported by backend, trying another spec.";
-        auto channels = NEXT_NB_CHANNELS[FFMIN(7, wanted_spec.channelCount())];
-        wanted_spec.setChannelCount(channels);
-        if (!wanted_spec.channelCount()) {
-            wanted_spec.setSampleRate(NEXT_SAMPLE_RATES[next_sample_rate_idx--]);
-            wanted_spec.setChannelCount(wanted_nb_channels);
-            if (!wanted_spec.sampleRate()) {
+        if (!wanted_channel_layout || wanted_nb_channels != av_get_channel_layout_nb_channels(wanted_channel_layout)) {
+            wanted_channel_layout = av_get_default_channel_layout(wanted_nb_channels);
+            wanted_channel_layout &= ~AV_CH_LAYOUT_STEREO_DOWNMIX;
+        }
+        wanted_nb_channels = av_get_channel_layout_nb_channels(wanted_channel_layout);
+        wanted_spec.channels = wanted_nb_channels;
+        wanted_spec.freq = wanted_sample_rate;
+        if (wanted_spec.freq <= 0 || wanted_spec.channels <= 0) {
+            av_log(NULL, AV_LOG_ERROR, "Invalid sample rate or channel count!\n");
+            return -1;
+        }
+        while (next_sample_rate_idx && next_sample_rates[next_sample_rate_idx] >= wanted_spec.freq) {
+            next_sample_rate_idx--;
+        }
+        wanted_spec.format = AUDIO_S16SYS;
+        wanted_spec.silence = 0;
+        wanted_spec.samples = FFMAX(SDL_AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(wanted_spec.freq / SDL_AUDIO_MAX_CALLBACKS_PER_SEC));
+        wanted_spec.callback = BugAV::AudioRender::sdl_audio_callback;
+        wanted_spec.userdata = this;
+        while (!(audio_dev = SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_CHANNELS_CHANGE))) {
+            qDebug("SDL_OpenAudio (%d channels, %d Hz): %s\n",
+                   wanted_spec.channels, wanted_spec.freq, SDL_GetError());
+            wanted_spec.channels = next_nb_channels[FFMIN(7, wanted_spec.channels)];
+            if (!wanted_spec.channels) {
+                wanted_spec.freq = next_sample_rates[next_sample_rate_idx--];
+                wanted_spec.channels = wanted_nb_channels;
+                if (!wanted_spec.freq) {
+                    av_log(NULL, AV_LOG_ERROR,
+                           "No more combinations to try, audio open failed\n");
+                    return -1;
+                }
+            }
+            wanted_channel_layout = av_get_default_channel_layout(wanted_spec.channels);
+        }
+        if (spec.format != AUDIO_S16SYS) {
+            av_log(NULL, AV_LOG_ERROR,
+                   "SDL advised audio format %d is not supported!\n", spec.format);
+            return -1;
+        }
+        if (spec.channels != wanted_spec.channels) {
+            wanted_channel_layout = av_get_default_channel_layout(spec.channels);
+            if (!wanted_channel_layout) {
                 av_log(NULL, AV_LOG_ERROR,
-                                       "No more combinations to try, audio open failed\n");
+                       "SDL advised channel count %d is not supported!\n", spec.channels);
                 return -1;
             }
         }
-        wanted_channel_layout = av_get_default_channel_layout(wanted_spec.channelCount());
-    }
 
-    audio_hw_params->fmt = AV_SAMPLE_FMT_S16;
-    audio_hw_params->freq = wanted_spec.sampleRate();
-    audio_hw_params->channel_layout = wanted_channel_layout;
-    audio_hw_params->channels = wanted_spec.channelCount();
-    audio_hw_params->frame_size = av_samples_get_buffer_size(nullptr, audio_hw_params->channels,
-                                                             1, audio_hw_params->fmt, 1);
-    audio_hw_params->bytes_per_sec = av_samples_get_buffer_size(nullptr, audio_hw_params->channels,
-                                                                audio_hw_params->freq, audio_hw_params->fmt, 1);
-    hasInitAudioParam = true;
-    if (audio_hw_params->bytes_per_sec <= 0 || audio_hw_params->frame_size <= 0) {
-        av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size failed\n");
-                return -1;
-    }
-    wanted_spec.setSampleType(QAudioFormat::UnSignedInt);    
-    return 0;
+        audio_hw_params->fmt = AV_SAMPLE_FMT_S16;
+        audio_hw_params->freq = spec.freq;
+        audio_hw_params->channel_layout = wanted_channel_layout;
+        audio_hw_params->channels =  spec.channels;
+        audio_hw_params->frame_size = av_samples_get_buffer_size(NULL, audio_hw_params->channels, 1, audio_hw_params->fmt, 1);
+        audio_hw_params->bytes_per_sec = av_samples_get_buffer_size(NULL, audio_hw_params->channels, audio_hw_params->freq, audio_hw_params->fmt, 1);
+        if (audio_hw_params->bytes_per_sec <= 0 || audio_hw_params->frame_size <= 0) {
+            av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size failed\n");
+            return -1;
+        }
+        return spec.size;
+}
+
+void BugAV::AudioRender::sdl_audio_callback(void *opaque, Uint8 *stream, int len)
+{
+        AudioRender *ar = static_cast<AudioRender *>(opaque);
+        auto is = ar->is;
+        int audio_size, len1;
+
+        ar->audio_callback_time = av_gettime_relative();
+
+        while (len > 0) {
+            if (is->audio_buf_index >= is->audio_buf_size) {
+               audio_size = ar->audioDecodeFrame();
+               if (audio_size < 0) {
+                    /* if error, just output silence */
+                   is->audio_buf = NULL;
+                   is->audio_buf_size = SDL_AUDIO_MIN_BUFFER_SIZE / is->audio_tgt.frame_size * is->audio_tgt.frame_size;
+               } else {
+                   is->audio_buf_size = audio_size;
+               }
+               is->audio_buf_index = 0;
+            }
+            len1 = is->audio_buf_size - is->audio_buf_index;
+            if (len1 > len)
+                len1 = len;
+            if (!is->muted && is->audio_buf && is->audio_volume == SDL_MIX_MAXVOLUME)
+                memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
+            else {
+                memset(stream, 0, len1);
+                if (!is->muted && is->audio_buf)
+                    SDL_MixAudioFormat(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, AUDIO_S16SYS, len1, is->audio_volume);
+            }
+            len -= len1;
+            stream += len1;
+            is->audio_buf_index += len1;
+        }
+        is->audio_write_buf_size = is->audio_buf_size - is->audio_buf_index;
+        /* Let's assume the audio driver that is used by SDL has two periods. */
+        if (!isnan(is->audio_clock)) {
+            is->audclk.setAt(is->audio_clock - (double)(2 * is->audio_hw_buf_size + is->audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, ar->audio_callback_time / 1000000.0);
+            is->extclk.syncToSlave(&is->audclk);
+        }
 }
 
 //bool BugAV::AudioRender::audioCallback(uint8_t * stream, int len)
 //{
 
-////    int len = stream->capacity();
-////    auto len = audioLength(format, 100000);
-////    qDebug() << "audioCallback len =" <<len;
 //    int audioSize, len1;
 //    auto audio_callback_time = av_gettime_relative();
-////    audioDecodeFrame();
-////    return (char *)is->audio_buf;
-////    qDebug() << "audioCallback " << len;
 //    while (len > 0) {
 //        if (is->audio_buf_index >= int(is->audio_buf_size)) {
 //            audioSize = audioDecodeFrame();
@@ -233,42 +270,14 @@ int BugAV::AudioRender::audioDecodeFrame()
             return -1;
         }
 
-        // sync audio
-        if (af->serial == is->audioq->serial) {
-            auto aPts = af->getPts();
-            // wait for video pts
-            if (aPts > is->lastPtsVideo) {
-                if (aPts - is->lastPtsVideo > 0.1) {
-                    msSleep = 1;
-                    return -1;
-                }
-            } else {
-                // autdio too late with video, ignore audio
-                if (is->lastPtsVideo - aPts > 0.5) {
-                    is->sampq->queueNext();
-                    continue;
-                }
-            }
-        }
         is->sampq->queueNext();
    } while (af->serial != is->audioq->serial);
    auto avFrame = af->frame;
 
-//   qDebug() << "audio display " << af->getPts();
    data_size = av_samples_get_buffer_size(nullptr, avFrame->channels,
                                           avFrame->nb_samples,
                                           AVSampleFormat(avFrame->format),
                                           1);
-   if (is->debug) {
-       qDebug() << "audio display " << af->getPts() << " size " << data_size << "dur " << af->duration;
-   }
-   if (!qIsNaN(af->getPts())) {
-       msSleep = (af->duration * 1000.00) / 2.00;
-   } else {
-       msSleep = 1;
-       return -1;
-   }
-
    dec_channel_layout =
            (avFrame->channel_layout && avFrame->channels == av_get_channel_layout_nb_channels(avFrame->channel_layout)) ?
                avFrame->channel_layout : av_get_default_channel_layout(avFrame->channels);
@@ -395,97 +404,107 @@ int BugAV::AudioRender::synchronizeAudio(int nb_samples)
     return wanted_nb_samples;
 }
 
-void BugAV::AudioRender::process()
-{    
-    qDebug() << "Audio render start";   
-    while (!reqStop && !hasInitAudioParam && !is->noAudioStFound) {
-        qDebug() << "Audio thread Wait init audio param";
-        thread->msleep(100);
-    }
-    if (!reqStop || !is->noAudioStFound) {
-        qDebug() << "Audio render stop becase no audio stream found";
-        thread->terminate();
-        emit stopped();
-        return;
-    }
-    auto backend = new AudioOpenALBackEnd();
-    backend->setAudioParam(is->audio_tgt);
-    backend->open();
-    playInitialData(backend);
-    while (!reqStop) {
-        if (is->audio_st != nullptr && is->sampq->queueNbRemain() > 0) {
-            break;
-        }
-        thread->msleep(1);
+//void BugAV::AudioRender::process()
+//{
+//    qDebug() << "Audio render start";
+//    firstPktAudioPts = 0.0;
+//    SDL_PauseAudioDevice(audio_dev, 0);
+//    while (!reqStop && !hasInitAudioParam && !is->noAudioStFound) {
+//        qDebug() << "Audio thread Wait init audio param";
+//        thread->msleep(100);
+//    }
+//    if (reqStop || is->noAudioStFound) {
+//        qDebug() << "Audio render stop becase no audio stream found";
+//        thread->terminate();
+//        emit stopped();
+//        return;
+//    }
+//    do {
+//        thread->msleep(100);
+//    } while (!reqStop);
+//    auto backend = new AudioOpenALBackEnd();
+//    backend->setAudioParam(is->audio_tgt);
+//    backend->open();
+//    playInitialData(backend);
+//    while (!reqStop) {
+//        if (is->audio_st != nullptr && is->sampq->queueNbRemain() > 0) {
+//            break;
+//        }
+//        thread->msleep(1);
 
-    }
-    int writeResult;
-    while (!reqStop) {      
-        msSleep = 1;
-        auto audioSize = audioDecodeFrame();
-        if (audioSize < 0) {
-            thread->msleep(msSleep);
-            continue;
-        }
-//        backend->write(QByteArray::fromRawData(is->audio_buf, AUDIO_BUFF_SIZE));
-        writeResult = backend->write(is->audio_buf, audioSize);
-        backend->play();
-        thread->msleep(msSleep);
-        if (writeResult > 0) {
-            do {
-                msSleep = 1;
-                writeResult = backend->write(is->audio_buf, audioSize);
-                thread->usleep(msSleep);
-            } while (writeResult == 0 && !reqStop);
-        }
-    }
-    qDebug() << "Audio render stop";
-    delete backend;
-    thread->terminate();
-    emit stopped();
-}
+//    }
+//    int writeResult;
+//    while (!reqStop) {
+//        msSleep = 1;
+//        auto audioSize = audioDecodeFrame();
+//        if (audioSize < 0) {
+//            thread->msleep(msSleep);
+//            continue;
+//        }
+////        auto r = audioCallback(buffer, sizeBuffer);
+////        if (!r) {
+////            thread->msleep(msSleep);
+////            continue;
+////        }
+////        backend->write(QByteArray::fromRawData(is->audio_buf, AUDIO_BUFF_SIZE));
+//        writeResult = backend->write(is->audio_buf, audioSize);
+//        backend->play();
+//        thread->msleep(msSleep);
+//        if (writeResult > 0) {
+//            do {
+//                msSleep = 1;
+//                writeResult = backend->write(is->audio_buf, audioSize);
+//                thread->usleep(msSleep);
+//            } while (writeResult == 0 && !reqStop);
+//        }
+//    }
+//    qDebug() << "Audio render stop";
+//    delete backend;
+//    thread->terminate();
+//    emit stopped();
+//}
 
-void BugAV::AudioRender::audioNotify()
-{
+//void BugAV::AudioRender::audioNotify()
+//{
 //    audioCallback(byteBuffer);
-}
+//}
 
-void BugAV::AudioRender::hanlerAudioFormatDone()
-{
-    start();
-}
+//void BugAV::AudioRender::hanlerAudioFormatDone()
+//{
+//    start();
+//}
 
-void BugAV::AudioRender::handleStateChanged(QAudio::State audioState)
-{
-     qDebug() << "Audio state change " << audioState;
-    if (audioState == QAudio::State::IdleState) {
-        qDebug() << "AudioRender callback";
-//        audioCallback(byteBuffer);
-    }
-}
+//void BugAV::AudioRender::handleStateChanged(QAudio::State audioState)
+//{
+//     qDebug() << "Audio state change " << audioState;
+//    if (audioState == QAudio::State::IdleState) {
+//        qDebug() << "AudioRender callback";
+////        audioCallback(byteBuffer);
+//    }
+//}
 
-void BugAV::AudioRender::playInitialData(AudioOpenALBackEnd *backend)
-{
-    auto format = AVSampleFormat(is->audio_tgt.fmt);
-    const char c = (format == AVSampleFormat::AV_SAMPLE_FMT_U8
-                        || format == AVSampleFormat::AV_SAMPLE_FMT_U8P)
-                ? 0x80 : 0;
-    for (quint32 i = 0; i < NUM_BUFFERS_OPENAL; ++i) {
-            uint8_t x[sizeBuffer];
-            memset(x, c, sizeBuffer);
-            backend->write(x, sizeBuffer); // fill silence byte, not always 0. AudioFormat.silenceByte
-        }
-    backend->play();
-}
+//void BugAV::AudioRender::playInitialData(AudioOpenALBackEnd *backend)
+//{
+//    auto format = AVSampleFormat(is->audio_tgt.fmt);
+//    const char c = (format == AVSampleFormat::AV_SAMPLE_FMT_U8
+//                        || format == AVSampleFormat::AV_SAMPLE_FMT_U8P)
+//                ? 0x80 : 0;
+//    for (quint32 i = 0; i < NUM_BUFFERS_OPENAL; ++i) {
+//            uint8_t x[sizeBuffer];
+//            memset(x, c, sizeBuffer);
+//            backend->write(x, sizeBuffer); // fill silence byte, not always 0. AudioFormat.silenceByte
+//        }
+//    backend->play();
+//}
 
-qint64 BugAV::AudioRender::audioLength(const AudioParams &audioParam, qint64 microSeconds)
-{
-    qint64 result = (audioParam.freq * audioParam.channels * (16 / 8))
-        * microSeconds / 100000;
-    result -= result % (audioParam.channels * 16);
-    return result;
-}
+//qint64 BugAV::AudioRender::audioLength(const AudioParams &audioParam, qint64 microSeconds)
+//{
+//    qint64 result = (audioParam.freq * audioParam.channels * (16 / 8))
+//        * microSeconds / 100000;
+//    result -= result % (audioParam.channels * 16);
+//    return result;
+//}
 
-void BugAV::AudioRender::timerEvent(QTimerEvent *)
-{    
-}
+//void BugAV::AudioRender::timerEvent(QTimerEvent *)
+//{
+//}

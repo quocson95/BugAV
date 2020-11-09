@@ -83,8 +83,8 @@ Q_SIGNALS:
     void seekFinished(qint64 timestamp);
 
     void positionChanged(qint64);
-//private slots:
-//    void positionChanged(qint64);
+private slots:
+    void positionChangedSlot(qint64);
 protected:
     explicit BugPlayer(BugPlayerPrivate &d, QObject *parent = nullptr);
 private:

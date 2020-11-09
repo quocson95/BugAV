@@ -1,5 +1,6 @@
 #include "audioopenalbackend.h"
 #include <QDebug>
+#include <SDL2/SDL.h>
 
 BugAV::AudioOpenALBackEnd::AudioOpenALBackEnd():
     device{nullptr}

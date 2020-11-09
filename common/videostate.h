@@ -164,6 +164,7 @@ public:
     double getSpeed() const;
 
     double lastPtsVideo;
+    double firtsPtsVideo;
 
 private:
     Define *def;

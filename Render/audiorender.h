@@ -6,9 +6,10 @@
 #include <QAudioFormat>
 #include <QThread>
 #include <qaudio.h>
+#include <SDL2/SDL_audio.h>
 
-constexpr qint16 AUDIO_BUFF_SIZE_LIVE = 1024; // byte
-constexpr qint16 AUDIO_BUFF_SIZE_VOD = AUDIO_BUFF_SIZE_LIVE * 8; // byte, 8192
+constexpr qint16 AUDIO_BUFF_SIZE_LIVE = 512; // byte
+constexpr qint16 AUDIO_BUFF_SIZE_VOD = AUDIO_BUFF_SIZE_LIVE * 4; // byte, 2048
 
 class QAudioOutput;
 class QBuffer;
@@ -29,9 +30,11 @@ public:
 
     int initAudioFormat(int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, AudioParams *audio_hw_params);
 
-public: signals:
-    void started();
-    void stopped();
+    /* prepare a new audio buffer */
+    static void sdl_audio_callback(void *opaque, Uint8 *stream, int len);
+//public: signals:
+//    void started();
+//    void stopped();
 
 protected:
 //    bool audioCallback(uint8_t *stream, int len);
@@ -40,34 +43,39 @@ protected:
 
     int synchronizeAudio(int nb_samples);
 
-private: signals:
-    void initAudioFormatDone();
-private slots:
-    void process();
+//private: signals:
+//    void initAudioFormatDone();
+//private slots:
+//    void process();
 
-    void audioNotify();
+//    void audioNotify();
 
-    void hanlerAudioFormatDone();
-    void handleStateChanged(QAudio::State audioState);
+//    void hanlerAudioFormatDone();
+//    void handleStateChanged(QAudio::State audioState);
 
-private:
-    void playInitialData(AudioOpenALBackEnd *backend);
-    qint64 audioLength(const AudioParams &audioParam, qint64 microSeconds);
+//private:
+//    void playInitialData(AudioOpenALBackEnd *backend);
+//    qint64 audioLength(const AudioParams &audioParam, qint64 microSeconds);
 private:
     VideoState *is;
-    QThread *thread;
+//    QThread *thread;
 
-    uint8_t buffer[AUDIO_BUFF_SIZE_VOD];
-    int sizeBuffer;
+//    uint8_t buffer[AUDIO_BUFF_SIZE_VOD];
+//    int sizeBuffer;
 
-//    AudioOpenALBackEnd *backend;
+////    AudioOpenALBackEnd *backend;
     bool reqStop;
-    int msSleep;
-    bool hasInitAudioParam;
+//    int msSleep;
+//    bool hasInitAudioParam;
+
+//    double firstPktAudioPts;
+
+    SDL_AudioDeviceID audio_dev;
+    int64_t audio_callback_time;
 
     // QObject interface
-protected:
-    void timerEvent(QTimerEvent *event);
+//protected:
+//    void timerEvent(QTimerEvent *event);
 };
 }
 #endif // AUDIORENDER_H

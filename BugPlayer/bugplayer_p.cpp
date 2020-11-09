@@ -277,27 +277,27 @@ void BugPlayerPrivate::setMute(bool value)
         return;
     }
     is->muted = value;
-    if (is->muted) {
-        stopAudio();
-        is->audioq->flush();
-        return;
-    }
-    if (is->audio_disable) {
-        return;
-    }
-    if (isPlaying()) {
-        if (!aDecoder->isRunning()) {
-            aDecoder->start();
-        }
-        if (!audioRender->isRunning()) {
-            audioRender->start();
-        }
-    }
-    if (!is->realtime) {
-        demuxer->reOpenAudioSt();
-        auto x = render->getCurrentPosi();
-        demuxer->doSeek(x);
-    }
+//    if (is->muted) {
+//        stopAudio();
+//        is->audioq->flush();
+//        return;
+//    }
+//    if (is->audio_disable) {
+//        return;
+//    }
+//    if (isPlaying()) {
+//        if (!aDecoder->isRunning()) {
+//            aDecoder->start();
+//        }
+//        if (!audioRender->isRunning()) {
+//            audioRender->start();
+//        }
+//    }
+//    if (!is->realtime) {
+//        demuxer->reOpenAudioSt();
+//        auto x = render->getCurrentPosi();
+//        demuxer->doSeek(x);
+//    }
 }
 
 bool BugPlayerPrivate::isMute() const

@@ -40,7 +40,7 @@ BugPlayer::BugPlayer(BugPlayerPrivate &d, QObject *parent)
 void BugPlayer::streamLoaded()
 {
     if (!d_ptr->is->abort_request) {
-        auto denyStartAudioThread = d_ptr->is->audio_disable || d_ptr->is->muted;
+        auto denyStartAudioThread = d_ptr->is->audio_disable;
         if (!denyStartAudioThread) {
             d_ptr->aDecoder->start();
             d_ptr->audioRender->start();
@@ -258,9 +258,12 @@ bool BugPlayer::isMute() const
     return d_ptr->isMute();
 }
 
-//void BugPlayer::positionChanged(qint64 posi)
-//{
-//    qDebug() << posi;
-//}
+void BugPlayer::positionChangedSlot(qint64 posi)
+{
+    // unit in micro second, emit with unit s
+    auto inSec = posi / 1000000;
+    qDebug() << inSec << d_ptr->is->ic->start_time;
+    emit positionChanged(posi);
+}
 
 }

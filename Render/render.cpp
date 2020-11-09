@@ -292,6 +292,7 @@ void Render::process()
 
     elPrevFrame = new QElapsedTimer;
     elPrevFrame->start();
+    is->firtsPtsVideo = 0.0;
     forever {
         if (requestStop) {
 //            emit stopped();
@@ -474,6 +475,9 @@ void Render::videoDisplay()
 {
     Frame *vp = is->pictq->peekLast();
     is->lastPtsVideo = vp->getPts();
+    if (is->firtsPtsVideo == 0.0) {
+        is->firtsPtsVideo = vp->getPts();
+    }
 //    qDebug() << "video display " << vp->getPts();
     if (!vp->uploaded) {
         uploadTexture(vp, &is->img_convert_ctx);
@@ -487,7 +491,7 @@ void Render::updatePositionChanged(Frame *vp)
 {
     if (vp == nullptr || vp->frame == nullptr) {
         return;
-    }    
+    }        
     currentFramePts = vp->frame->pts;
     if (elTimer->hasExpired(1000)) {
         if (is->seek_req) {
@@ -497,7 +501,7 @@ void Render::updatePositionChanged(Frame *vp)
         if (vp->frame->pts  > 0) {
             auto q = AVRational{1, AV_TIME_BASE};
             auto ts_rescale = qint64(av_rescale_q(vp->frame->pts, is->video_st->time_base, q));
-            auto ts = ts_rescale - is->ic->start_time;
+            auto ts = ts_rescale - is->ic->start_time;            
             emit positionChanged(ts);
         }
         elTimer->restart();

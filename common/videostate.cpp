@@ -12,7 +12,7 @@ VideoState::VideoState(Define *def):
   ,debug{0}
 {    
     #ifdef QT_DEBUG
-      debug = 0;
+      debug = 1;
     #else
       debug = 0;
     #endif
@@ -55,7 +55,7 @@ VideoState::VideoState(Define *def):
     audio_buf1_size = 0;
     audio_buf_index = 0; /* in bytes */
     audio_write_buf_size = 0;
-    audio_volume = 0;
+    audio_volume = 100;
     muted = 1;
 //    disableAudio = false;
     frame_drops_early = 0;
