@@ -26,7 +26,7 @@ QMAKE_CFLAGS_RELEASE += /Zi
 QMAKE_LFLAGS_RELEASE += /debug /opt:ref
 
 LIBS +=-L$$PWD/ffmpeg/lib -lavutil -lavformat -lavcodec -lswscale -lswresample -lavfilter
-LIBS += -lopenal
+LIBS += -lopenal -lSDL2
 INCLUDEPATH += $$PWD/ffmpeg/include
 
 DISTFILES += \
