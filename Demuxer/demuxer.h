@@ -118,6 +118,7 @@ private:
     QElapsedTimer *elLastRetryOpenAudioSt;
     bool denyRetryOpenAudioSt;
 
+//    QElapsedTimer *elLastEmptyRead;
 //    QElapsedTimer *elTimer;
 //    bool isAllowUpdatePosition;
 //    qint64 currentPos;

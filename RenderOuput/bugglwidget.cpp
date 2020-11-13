@@ -542,7 +542,7 @@ void BugGLWidget::clearBufferRender()
 //        if (index >= BUFF_SIZE) {
 //            index = 0;
 //        }
-        images.replace(i, QImage{});
+    images.replace(i, QImage{});
     }
 }
 

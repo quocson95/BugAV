@@ -3,6 +3,7 @@ extern "C" {
 #include "libavutil/time.h"
 }
 
+#include <QElapsedTimer>
 #include <QtGlobal>
 
 namespace BugAV {
@@ -94,6 +95,8 @@ VideoState::VideoState(Define *def):
 //    PacketQueue::mustInitOnce();
     init();
     reset();
+    elLastEmptyRead = new QElapsedTimer;
+    elLastEmptyRead->invalidate();
 }
 
 VideoState::~VideoState()
@@ -106,6 +109,7 @@ VideoState::~VideoState()
     if (img_convert_ctx != nullptr) {
         sws_freeContext(img_convert_ctx);
     }
+    delete elLastEmptyRead;
 
     viddec.clear();
     delete ic;

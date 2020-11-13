@@ -75,6 +75,8 @@ public:
 
     bool isMute() const;
 
+    QMap<QString, QString> getMetadata() const;
+
 Q_SIGNALS:
     void stateChanged(BugAV::AVState state);
     void mediaStatusChanged(BugAV::MediaStatus state);
@@ -83,6 +85,9 @@ Q_SIGNALS:
     void seekFinished(qint64 timestamp);
 
     void positionChanged(qint64);
+
+    void durationChanged(qint64 duration);
+
 private slots:
     void positionChangedSlot(qint64);
 protected:
@@ -99,6 +104,8 @@ private:
     void firstFrameComming();
 
     void noRenderNewFrameLongTime();
+
+    void noMoreFrame();
 
 private:
     //Q_DECLARE_PRIVATE(BugPlayer);

@@ -33,7 +33,7 @@ public:
 #define BugAVRendererDefault BugAV::BugAVtRendererImpl::instance()
 class BugAVtRendererImpl {
 public:
-    static IBugAVDefaultRenderer &instance() {
+    static IBugAVDefaultRenderer *instance() {
         static BugAVtRendererImpl ins;
         return ins.renderer;
     }
@@ -42,8 +42,13 @@ public:
     void operator=(BugAVtRendererImpl const&) = delete;
 
 private:
-    BugAVtRendererImpl() {};
-    IBugAVDefaultRenderer renderer;
+    BugAVtRendererImpl() {
+        renderer = new IBugAVDefaultRenderer;
+    };
+    ~BugAVtRendererImpl() {
+        delete renderer;
+    }
+    IBugAVDefaultRenderer *renderer;
 };
 
 }

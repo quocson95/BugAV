@@ -44,7 +44,7 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
     ,elPrevFrame{nullptr}
 //    ,picture{nullptr}
 {    
-    defaultRenderer = &BugAVRendererDefault;
+    defaultRenderer = BugAVRendererDefault;
     elTimer = nullptr;
 
     if (renderer == nullptr) {
@@ -367,6 +367,14 @@ void Render::videoRefresh()
 
     forever{
         if (is->pictq->queueNbRemain() == 0) {
+            if (is->elLastEmptyRead->isValid()) {
+                auto t = is->elLastEmptyRead->elapsed();
+                qDebug() << "last read empty packet " << is->elLastEmptyRead->elapsed();
+                if (is->elLastEmptyRead->hasExpired(3000)) {
+                     qDebug() << "noMoreFrame detect ";
+                    emit noMoreFrame();
+                }
+            }
             // nothing to do, no picture to display in the queue
         } else {
             double last_duration, duration, delay;
@@ -493,7 +501,7 @@ void Render::updatePositionChanged(Frame *vp)
         return;
     }        
     currentFramePts = vp->frame->pts;
-    if (elTimer->hasExpired(1000)) {
+    if (elTimer->hasExpired(200)) {
         if (is->seek_req) {
             return;
         }              
@@ -510,7 +518,7 @@ void Render::updatePositionChanged(Frame *vp)
 
 qint64 Render::getCurrentPosi() const
 {
-    if (currentFramePts  > 0) {
+    if (currentFramePts  > 0 && is->video_st != nullptr) {
         auto q = AVRational{1, AV_TIME_BASE};
         auto ts_rescale = qint64(av_rescale_q(currentFramePts, is->video_st->time_base, q));
         auto ts = ts_rescale - is->ic->start_time;

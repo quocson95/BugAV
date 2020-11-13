@@ -1,14 +1,18 @@
 #ifndef VIDEOSTATE_H
 #define VIDEOSTATE_H
+
 extern "C" {
     #include <libavformat/avformat.h>
 }
+
+#include <QMap>
 
 #include "clock.h"
 #include "common.h"
 #include "Decoder/decoder.h"
 #include "framequeue.h"
 struct SwsContext;
+class QElapsedTimer;
 
 namespace BugAV {
 
@@ -165,6 +169,9 @@ public:
 
     double lastPtsVideo;
     double firtsPtsVideo;
+
+    QElapsedTimer *elLastEmptyRead;
+    QMap<QString, QString> metadata;
 
 private:
     Define *def;

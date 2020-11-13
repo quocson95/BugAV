@@ -46,6 +46,8 @@ public: signals:
     void noRenderNewFrameLongTime();
 
     void positionChanged(qint64 time);
+
+    void noMoreFrame();
 private:
     bool initPriv();
 

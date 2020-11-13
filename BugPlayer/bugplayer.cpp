@@ -24,6 +24,7 @@ BugPlayer::BugPlayer(QObject *parent, ModePlayer mode)
     connect(d_ptr->render, &Render::firstFrameComming, this, &BugPlayer::firstFrameComming);
     connect(d_ptr->render, &Render::noRenderNewFrameLongTime, this, &BugPlayer::noRenderNewFrameLongTime);
     connect(d_ptr->render, &Render::positionChanged, this, &BugPlayer::positionChanged);
+    connect(d_ptr->render, &Render::noMoreFrame, this, &BugPlayer::noMoreFrame);
 
 }
 
@@ -49,7 +50,9 @@ void BugPlayer::streamLoaded()
         d_ptr->vDecoder->start();
 
 //        d_ptr->audioRender->audioOpen();
-        emit stateChanged(BugAV::AVState::LoadingState);
+        emit stateChanged(BugAV::AVState::PlayingState);
+        emit mediaStatusChanged(BugAV::MediaStatus::LoadedState);
+        emit durationChanged(d_ptr->is->duration);
     }
 }
 
@@ -60,8 +63,9 @@ void BugPlayer::streamLoadedFailed()
 }
 
 void BugPlayer::readFrameError()
-{
+{    
     stop();
+//    emit positionChanged(d_ptr->is->duration);
     emit stateChanged(BugAV::AVState::StoppedState);
     emit error(QLatin1String("Read frame error"));
 }
@@ -75,6 +79,13 @@ void BugPlayer::firstFrameComming()
 void BugPlayer::noRenderNewFrameLongTime()
 {
     emit mediaStatusChanged(BugAV::MediaStatus::NoFrameRenderTooLong);
+}
+
+void BugPlayer::noMoreFrame()
+{
+    stop();
+    emit emit stateChanged(BugAV::AVState::StoppedState);
+    emit positionChanged(d_ptr->is->duration);
 }
 
 BugPlayer::~BugPlayer()
@@ -95,7 +106,8 @@ void BugPlayer::play()
 {
     auto status = d_ptr->play();
     if (status > 0) {
-        emit stateChanged(BugAV::AVState::LoadingState);
+        emit mediaStatusChanged(BugAV::MediaStatus::LoadedState);
+        emit stateChanged(BugAV::AVState::PlayingState);
     }
 
 }
@@ -256,6 +268,11 @@ void BugPlayer::setMute(bool value)
 bool BugPlayer::isMute() const
 {
     return d_ptr->isMute();
+}
+
+QMap<QString, QString> BugPlayer::getMetadata() const
+{
+    return d_ptr->is->metadata;
 }
 
 void BugPlayer::positionChangedSlot(qint64 posi)

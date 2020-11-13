@@ -4,6 +4,7 @@ namespace BugAV {
 enum class AVState {
     StoppedState,
     LoadingState,
+    LoadedState,
     PlayingState,
     PausedState,
     PlayingNoRenderState,
@@ -13,6 +14,7 @@ enum class AVState {
 enum class MediaStatus {
     FirstFrameComing,
     NoFrameRenderTooLong,
+    LoadedState,
 };
 
 enum class ModePlayer {

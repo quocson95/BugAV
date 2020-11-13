@@ -46,11 +46,11 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     moveToThread(curThread);
     connect(curThread, SIGNAL (started()), this, SLOT (process()));
 
-//    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
+//    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));    
 }
 
 Demuxer::~Demuxer()
-{
+{   
     qDebug() << "Destroy Demuxer";
     stop();
     unload();
@@ -83,8 +83,11 @@ bool Demuxer::load()
 //    currentPos = 0;
 //    currentPos = 0;
 //    is->lastVideoPts = 0;
+    is->elLastEmptyRead->invalidate();
+    is->metadata.clear();
     qDebug() << "start load stream input";
     unload();
+    is->eof = 0;
     denyRetryOpenAudioSt = false;
     elLastRetryOpenAudioSt->invalidate();
     is->noAudioStFound = false;
@@ -111,8 +114,10 @@ bool Demuxer::load()
         return false;
     }
     AVDictionaryEntry *tag;
-    while ((tag = av_dict_get(is->ic->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
-        qDebug("%s=%s\n", tag->key, tag->value);
+    while ((tag = av_dict_get(is->ic->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
+//        qDebug("%s=%s\n", tag->key, tag->value);
+        is->metadata[tag->key] = tag->value;
+    }
 
 //    is->ic->flags |= AVFMT_FLAG_IGNDTS;
     if (is->realtime) {
@@ -154,6 +159,8 @@ bool Demuxer::load()
         if (is->ic->start_time != AV_NOPTS_VALUE) {
             timestamp += is->ic->start_time;
         }
+        // reset starttime
+        startTime = AV_NOPTS_VALUE;
         ret = avformat_seek_file(is->ic, -1, INT64_MIN, timestamp, INT64_MAX, 0);
         if (ret < 0) {
             qDebug() << is->fileUrl << " could not seek to position " << timestamp / AV_TIME_BASE;
@@ -301,7 +308,7 @@ int Demuxer::readFrame()
             if (is->audio_stream >= 0) {
                 is->audioq->putNullPkt(is->audio_stream);
             }
-            is->eof = 1;
+            is->eof = 1;            
 //            emit readFrameError();
         }
         if (is->ic->pb && is->ic->pb->error) {
@@ -310,6 +317,9 @@ int Demuxer::readFrame()
         mutex.lock();
         is->continue_read_thread->wait(&mutex, 10); // wait max 10ms
         mutex.unlock();
+        if (!is->elLastEmptyRead->isValid()) {
+            is->elLastEmptyRead->start();
+        }
         return 0;
     } else {
         is->eof = 0;
@@ -632,7 +642,7 @@ void Demuxer::reFindStream(AVFormatContext *ic, AVMediaType type, int index)
 void Demuxer::process()
 {
     isRun = true;
-    emit  started();
+    emit  started();    
     qDebug() << "!!!Demuxer Thread start";
     if (elLastRetryOpenAudioSt == nullptr) {
         elLastRetryOpenAudioSt = new QElapsedTimer;
@@ -713,6 +723,7 @@ void Demuxer::setStartTime(const qint64 &value)
 
 void Demuxer::doSeek(const double &position)
 {   
+    is->elLastEmptyRead->restart();
     if (is->ic == nullptr) {
         return;
     }

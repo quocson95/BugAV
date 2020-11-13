@@ -1,5 +1,6 @@
 #include "bugplayer_p.h"
 #include <QDebug>
+#include <QElapsedTimer>
 #include "common/videostate.h"
 #include "Decoder/videodecoder.h"
 #include "Decoder/audiodecoder.h"
@@ -61,6 +62,7 @@ QString BugPlayerPrivate::getFile() const
 // 1: starting play, need emit loading state
 int BugPlayerPrivate::play()
 {
+    is->elLastEmptyRead->restart();
     // ignore if on playing
     auto playing = isPlaying();
     if (playing ) {
@@ -73,7 +75,7 @@ int BugPlayerPrivate::play()
     }
     if (isPause()) {
         togglePause();
-        return 0;
+        return 1;
     }
 //    emit stateChanged(BugAV::BugPlayer::AVState::LoadingState);
     return playPriv();
