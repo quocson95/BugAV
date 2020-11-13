@@ -14,19 +14,26 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-#DEFINES += MAKE_LIB
-#CONFIG += MAKE_LIB
+DEFINES += MAKE_LIB
+CONFIG += MAKE_LIB
 
-#MAKE_LIB {
-#    TEMPLATE = lib
-#}
+MAKE_LIB {
+    TEMPLATE = lib
+}
 
 QMAKE_LFLAGS_RELEASE += /MAP
 QMAKE_CFLAGS_RELEASE += /Zi
 QMAKE_LFLAGS_RELEASE += /debug /opt:ref
 
 LIBS +=-L$$PWD/ffmpeg/lib -lavutil -lavformat -lavcodec -lswscale -lswresample -lavfilter
-LIBS += -lopenal -lSDL2
+win32:{
+    #lib sld2
+    LIBS += -L$$PWD/SDL2-2.0.12/lib/x64 -lSDL2
+    INCLUDEPATH += $$PWD/SDL2-2.0.12/include
+} else: {
+    LIBS += -lSDL2
+}
+#LIBS += -lopenal
 INCLUDEPATH += $$PWD/ffmpeg/include
 
 DISTFILES += \

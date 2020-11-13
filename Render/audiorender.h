@@ -3,10 +3,15 @@
 
 #include <common/videostate.h>
 
-#include <QAudioFormat>
+//#include <QAudioFormat>
 #include <QThread>
-#include <qaudio.h>
+//#include <qaudio.h>
+#ifdef _WIN32
+#include "SDL_audio.h"
+#elif __linux__
 #include <SDL2/SDL_audio.h>
+#endif
+
 
 constexpr qint16 AUDIO_BUFF_SIZE_LIVE = 512; // byte
 constexpr qint16 AUDIO_BUFF_SIZE_VOD = AUDIO_BUFF_SIZE_LIVE * 4; // byte, 2048

@@ -13,8 +13,13 @@ extern "C" {
 }
 
 #include "audioopenalbackend.h"
+#ifdef _WIN32
+#include "SDL_audio.h"
+#include "SDL.h"
+#elif __linux__
 #include <SDL2/SDL_audio.h>
 #include "SDL2/SDL.h"
+#endif
 
 BugAV::AudioRender::AudioRender(BugAV::VideoState *is):
     QObject(nullptr)
@@ -259,7 +264,8 @@ int BugAV::AudioRender::audioDecodeFrame()
            return -1;
        }
 #if defined(_WIN32)
-        while (frame_queue_nb_remaining(&is->sampq) == 0) {
+
+        while (is->sampq->queueNbRemain() == 0) {
             if ((av_gettime_relative() - audio_callback_time) > 1000000LL * is->audio_hw_buf_size / is->audio_tgt.bytes_per_sec / 2)
                 return -1;
 //            av_usleep (1000);

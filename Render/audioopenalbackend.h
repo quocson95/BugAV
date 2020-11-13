@@ -1,3 +1,4 @@
+#ifdef xxx
 #ifndef AUDIOOPENALBACKEND_H
 #define AUDIOOPENALBACKEND_H
 
@@ -57,3 +58,4 @@ private:
 }
 
 #endif // AUDIOOPENALBACKEND_H
+#endif

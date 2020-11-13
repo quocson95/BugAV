@@ -115,7 +115,7 @@ bool Demuxer::load()
     }
     AVDictionaryEntry *tag;
     while ((tag = av_dict_get(is->ic->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-//        qDebug("%s=%s\n", tag->key, tag->value);
+        qDebug("%s=%s\n", tag->key, tag->value);
         is->metadata[tag->key] = tag->value;
     }
 

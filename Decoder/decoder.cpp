@@ -82,7 +82,7 @@ int Decoder::decodeFrame(AVFrame *frame)
                     case AVMEDIA_TYPE_AUDIO:
                         ret = avcodec_receive_frame(avctx, frame);
                         if (ret >= 0) {
-                            AVRational tb = (AVRational){1, frame->sample_rate};
+                            AVRational tb = AVRational{1, frame->sample_rate};
                             if (frame->pts != AV_NOPTS_VALUE)
                                 frame->pts = av_rescale_q(frame->pts, this->avctx->pkt_timebase, tb);
                             else if (this->next_pts != AV_NOPTS_VALUE)
