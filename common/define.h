@@ -19,30 +19,30 @@ constexpr int SDL_AUDIO_MIN_BUFFER_SIZE = 512;
 constexpr int SDL_AUDIO_MAX_CALLBACKS_PER_SEC = 30;
 
 /* Step size for volume control in dB */
-constexpr float SDL_VOLUME_STEP = (0.75);
+constexpr double SDL_VOLUME_STEP = (0.75);
 
 /* no AV sync correction is done if below the minimum AV sync threshold */
-constexpr float AV_SYNC_THRESHOLD_MIN = 0.04;
+constexpr double AV_SYNC_THRESHOLD_MIN = 0.04;
 /* AV sync correction is done if above the maximum AV sync threshold */
-constexpr float AV_SYNC_THRESHOLD_MAX = 0.1;
+constexpr double AV_SYNC_THRESHOLD_MAX = 0.1;
 /* If a frame duration is longer than this, it will not be duplicated to compensate AV sync */
-constexpr float AV_SYNC_FRAMEDUP_THRESHOLD = 0.1;
+constexpr double AV_SYNC_FRAMEDUP_THRESHOLD = 0.1;
 /* no AV correction is done if too big error */
-constexpr float AV_NOSYNC_THRESHOLD  = 10.0;
+constexpr double AV_NOSYNC_THRESHOLD  = 10.0;
 
 /* maximum audio speed change to get correct sync */
 constexpr int SAMPLE_CORRECTION_PERCENT_MAX = 10;
 
 /* external clock speed adjustment constants for realtime sources based on buffer fullness */
-constexpr float EXTERNAL_CLOCK_SPEED_MIN  = 0.900;
-constexpr float EXTERNAL_CLOCK_SPEED_MAX  = 1.010;
-constexpr float EXTERNAL_CLOCK_SPEED_STEP = 0.001;
+constexpr double EXTERNAL_CLOCK_SPEED_MIN  = 0.900;
+constexpr double EXTERNAL_CLOCK_SPEED_MAX  = 1.010;
+constexpr double EXTERNAL_CLOCK_SPEED_STEP = 0.001;
 
 /* we use about AUDIO_DIFF_AVG_NB A-V differences to make the average */
 constexpr int AUDIO_DIFF_AVG_NB = 20;
 
 /* polls for possible required screen refresh at least this often, should be less than 1/fps */
-constexpr float REFRESH_RATE  = 0.01;
+constexpr double REFRESH_RATE  = 0.01;
 
 /* NOTE: the size must be big enough to compensate the hardware audio buffersize size */
 /* TODO: We assume that a decoded and resampled frame fits into this buffer */

@@ -116,7 +116,8 @@ void BugPlayer::play(const QString &file)
 {
     auto status  = d_ptr->play(file);
     if (status > 0) {
-        emit stateChanged(BugAV::AVState::LoadingState);
+        emit mediaStatusChanged(BugAV::MediaStatus::LoadedState);
+        emit stateChanged(BugAV::AVState::PlayingState);
     }
 }
 

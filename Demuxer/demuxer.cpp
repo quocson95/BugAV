@@ -2,6 +2,7 @@
 extern "C" {
 #include "libavutil/time.h"
 #include "libavformat/avformat.h"
+#include <libavutil/dict.h>
 }
 #include "common/define.h"
 #include "QDebug"
@@ -46,7 +47,7 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     moveToThread(curThread);
     connect(curThread, SIGNAL (started()), this, SLOT (process()));
 
-//    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));    
+//    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
 }
 
 Demuxer::~Demuxer()
@@ -113,9 +114,10 @@ bool Demuxer::load()
         unload();
         return false;
     }
-    AVDictionaryEntry *tag;
+    AVDictionaryEntry *tag = nullptr;
+//    qDebug() << "av_dict_get";
     while ((tag = av_dict_get(is->ic->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-        qDebug("%s=%s\n", tag->key, tag->value);
+        qDebug() << tag->key << "  " << tag->value;
         is->metadata[tag->key] = tag->value;
     }
 
