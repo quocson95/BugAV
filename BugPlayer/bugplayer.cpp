@@ -262,6 +262,7 @@ void BugPlayer::setSpeed(const double &speed)
 
 void BugPlayer::setStartPosition(const qint64 & time)
 {
+    needSeekCurrent = false;
     d_ptr->setStartPosition(time);
 }
 

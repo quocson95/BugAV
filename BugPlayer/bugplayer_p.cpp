@@ -207,7 +207,7 @@ int BugPlayerPrivate::playPriv()
         return 0;
     }
     demuxer->start();
-    return 1;
+    return 0;
 //    render->start();
 //    vDecoder->start();
     // will be emit state playing when loadDone stream
