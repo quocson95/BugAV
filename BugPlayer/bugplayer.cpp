@@ -120,7 +120,12 @@ void BugPlayer::play()
 
 void BugPlayer::play(const QString &file)
 {
-    needSeekCurrent = false;
+    if (needSeekCurrent) {
+        needSeekCurrent = false;
+//        setEnableFramedrop(false);
+        refreshAtCurrent();
+        return;
+    }
     auto status  = d_ptr->play(file);
     if (status > 0) {
         emit mediaStatusChanged(BugAV::MediaStatus::LoadedState);
