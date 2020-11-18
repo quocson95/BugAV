@@ -501,7 +501,7 @@ void Render::updatePositionChanged(Frame *vp)
         return;
     }        
     currentFramePts = vp->frame->pts;
-    if (elTimer->hasExpired(200)) {
+    if (elTimer->hasExpired(100)) {
         if (is->seek_req) {
             return;
         }              

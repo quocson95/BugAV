@@ -25,6 +25,7 @@ BugPlayer::BugPlayer(QObject *parent, ModePlayer mode)
     connect(d_ptr->render, &Render::noRenderNewFrameLongTime, this, &BugPlayer::noRenderNewFrameLongTime);
     connect(d_ptr->render, &Render::positionChanged, this, &BugPlayer::positionChanged);
     connect(d_ptr->render, &Render::noMoreFrame, this, &BugPlayer::noMoreFrame);
+    needSeekCurrent = false;
 
 }
 
@@ -104,21 +105,28 @@ QString BugPlayer::getFile() const
 
 void BugPlayer::play()
 {
-    auto status = d_ptr->play();
+    if (needSeekCurrent) {
+        needSeekCurrent = false;
+//        setEnableFramedrop(false);
+        refreshAtCurrent();
+        return;
+    }
+    auto status = d_ptr->play();   
     if (status > 0) {
         emit mediaStatusChanged(BugAV::MediaStatus::LoadedState);
-        emit stateChanged(BugAV::AVState::PlayingState);
+        emit stateChanged(BugAV::AVState::PlayingState);       
     }
-
 }
 
 void BugPlayer::play(const QString &file)
 {
+    needSeekCurrent = false;
     auto status  = d_ptr->play(file);
     if (status > 0) {
         emit mediaStatusChanged(BugAV::MediaStatus::LoadedState);
-        emit stateChanged(BugAV::AVState::PlayingState);
+        emit stateChanged(BugAV::AVState::PlayingState);               
     }
+
 }
 
 void BugPlayer::pause()
@@ -132,6 +140,7 @@ void BugPlayer::pause()
 void BugPlayer::togglePause()
 {
     d_ptr->togglePause();
+
 }
 
 void BugPlayer::stop()
@@ -148,9 +157,11 @@ void BugPlayer::refresh()
 void BugPlayer::refreshAtCurrent()
 {
     auto startTime = d_ptr->render->getCurrentPosi();
-    stop();    
-    d_ptr->demuxer->setStartTime(startTime);
+//    stop();
+//    d_ptr->demuxer->setStartTime(startTime);
+//    play();
     play();
+    seek(startTime);
 }
 
 bool BugPlayer::isPlaying() const
@@ -216,22 +227,30 @@ void BugPlayer::setPixFmtRGB32(bool value)
     }
 }
 
-void BugPlayer::setSpeed(const double & speed)
+void BugPlayer::setSpeed(const double &speed)
 {
     // need reload
     auto curSpeed = d_ptr->is->getSpeed();
     if (curSpeed == speed) {
         return;
     }
-    d_ptr->setSpeed(speed);
+    d_ptr->setSpeed(speed);    
     if (speed <= 1.0) {        
         d_ptr->demuxer->enableSkipNonKeyFrame(false);
-        refreshAtCurrent();
+        if (isPlaying()) {
+            refreshAtCurrent();
+        } else {
+            needSeekCurrent = true;
+        }
         return;
     }
     if (speed > 1.0 && curSpeed <= 1.0) {        
         d_ptr->demuxer->enableSkipNonKeyFrame();
-        refreshAtCurrent();
+        if (isPlaying()) {
+            refreshAtCurrent();
+        } else {
+            needSeekCurrent = true;
+        }
         return;
     }
 }

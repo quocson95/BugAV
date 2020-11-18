@@ -235,6 +235,7 @@ int Demuxer::readFrame()
     if (is->paused != is->last_paused) {
         is->last_paused = is->paused;
         if (is->paused) {
+            is->elLastEmptyRead->invalidate();
             is->read_pause_return = av_read_pause(is->ic);
         } else {
             av_read_play(is->ic);

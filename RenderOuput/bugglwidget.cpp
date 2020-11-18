@@ -282,7 +282,7 @@ void BugGLWidget::prepareRGB(AVFrame *frame)
 //                        0);
 
 //    auto img = QImage(dataRGB, frame->width, frame->height, QImage::Format_RGB888);
-    images.replace(index, img);
+    images.replace(index, img.copy());
     bufIndex = index;
     emit reqUpdate();
 }

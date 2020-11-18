@@ -110,6 +110,7 @@ private:
 private:
     //Q_DECLARE_PRIVATE(BugPlayer);
     QScopedPointer<BugPlayerPrivate> d_ptr;
+    bool needSeekCurrent;
 };
 }
 Q_DECLARE_METATYPE(BugAV::AVState);
