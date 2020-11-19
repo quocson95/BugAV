@@ -4,6 +4,7 @@ extern "C" {
 }
 
 #include <QElapsedTimer>
+#include <QUrl>
 #include <QtGlobal>
 
 namespace BugAV {
@@ -225,6 +226,8 @@ int VideoState::isRealtime()
 //                 || !strncmp(ic->url, "udp:", 4)
 //                )
 //    )
+    auto u = QUrl{fileUrl};
+    localFile = u.isLocalFile();
     if (fileUrl.startsWith("rtp")
             || fileUrl.startsWith("rtsp")
             || fileUrl.startsWith("sdp")
@@ -232,6 +235,11 @@ int VideoState::isRealtime()
         return 1;
     }
     return 0;
+}
+
+bool VideoState::isLocalFile()
+{
+    return localFile;
 }
 
 void VideoState::decoderAbort(Decoder *d, FrameQueue *fq)

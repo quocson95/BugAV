@@ -32,6 +32,8 @@ public:
 
     int isRealtime();
 
+    bool isLocalFile();
+
     void decoderAbort(Decoder *d, FrameQueue *fq);
     void vidDecoderAbort();
 //    void flush();
@@ -60,6 +62,7 @@ public:
     int read_pause_return;
     AVFormatContext *ic = nullptr;
     int realtime;
+    int localFile;
 
     Clock audclk;
     Clock vidclk;
