@@ -199,6 +199,7 @@ int BugPlayerPrivate::playPriv()
     initPriv();
     is->abort_request = 0;
     is->eof = 0;
+    is->paused = 0;
     render->setRequestStop(false);
 //    render->stop();
 //    vDecoder->stop();

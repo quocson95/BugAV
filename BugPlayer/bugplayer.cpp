@@ -95,6 +95,9 @@ BugPlayer::~BugPlayer()
 
 void BugPlayer::setFile(const QString &file)
 {
+    if (d_ptr->curFile != file) {
+        needSeekCurrent = false;
+    }
     d_ptr->curFile = file;
 }
 
