@@ -74,6 +74,7 @@ int BugPlayerPrivate::play()
         return 0;
     }
     if (isPause()) {
+        qDebug() << "Toggle pause ";
         togglePause();
         return 1;
     }

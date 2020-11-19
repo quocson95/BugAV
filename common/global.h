@@ -14,6 +14,7 @@ enum class AVState {
 enum class MediaStatus {
     FirstFrameComing,
     NoFrameRenderTooLong,
+    NoMoreFrame,
     LoadedState,
     LoadingState,
 };

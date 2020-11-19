@@ -33,7 +33,7 @@ Demuxer::Demuxer(VideoState *is, Define *def)
    ,elLastRetryOpenAudioSt{nullptr}
 {
     startTime = AV_NOPTS_VALUE;
-//    startTime = 509 * 1000 * 1000;
+//    startTime = 180 * 1000 * 1000;
     pkt = &pkt1;
     isRun = false;
     infinityBuff = -1;

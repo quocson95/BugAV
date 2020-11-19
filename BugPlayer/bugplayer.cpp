@@ -85,7 +85,8 @@ void BugPlayer::noRenderNewFrameLongTime()
 void BugPlayer::noMoreFrame()
 {
     stop();
-    emit emit stateChanged(BugAV::AVState::StoppedState);
+    emit stateChanged(BugAV::AVState::StoppedState);
+    emit mediaStatusChanged(BugAV::MediaStatus::NoMoreFrame);
     emit positionChanged(d_ptr->is->duration);
 }
 

@@ -367,7 +367,7 @@ void Render::videoRefresh()
 
     forever{
         if (is->pictq->queueNbRemain() == 0) {
-            if (is->elLastEmptyRead->isValid() && is->isLocalFile()) {
+            if (!is->realtime && is->elLastEmptyRead->isValid()) {
 //                auto t = is->elLastEmptyRead->elapsed();
                 qDebug() << "last read empty packet " << is->elLastEmptyRead->elapsed();
                 if (is->elLastEmptyRead->hasExpired(3000)) {
