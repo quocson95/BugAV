@@ -126,6 +126,10 @@ private:
     QVector<QImage> images;
 
     int bufIndex;   
+
+    QVector<QImage> imagesTransform;
+    int bufImgTransformIndex;
+
     QMutex mutex;
 
     int kUpdate;
@@ -139,6 +143,11 @@ private:
 
     unsigned char* dataRGB;   
 
+
+    // IBugAVRenderer interface
+public:
+    void newImageBuffer(const QImage &img) override;
+    void updateImageBuffer(const QImage &img) override;
 };
 }
 #endif // BugGLWidget_H

@@ -24,6 +24,14 @@ public:
 
     virtual void clearBufferRender() = 0;
 
+    virtual void newImageBuffer(const QImage& img) {
+        Q_UNUSED(img)
+    };
+
+    virtual void updateImageBuffer(const QImage& img) {
+        Q_UNUSED(img)
+    }
+
 };
 
 }

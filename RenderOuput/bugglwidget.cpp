@@ -123,8 +123,10 @@ void BugGLWidget::initBufferRGB(int w, int h)
     hasInitRGB = true;
     freeBufferRGB();
     images.reserve(BUFF_SIZE);
+    imagesTransform.reserve(BUFF_SIZE);
     for(auto i = 0; i < BUFF_SIZE; i++) {
         images.push_back(QImage(w, h, QImage::Format_RGB32));
+        imagesTransform.push_back(QImage{w, h, QImage::Format_RGB32});
     }
     const size_t rgb_stride = w*3 +(16-(3*w)%16)%16;
     dataRGB = static_cast<unsigned char*>(_mm_malloc(rgb_stride * h, 16));
@@ -133,6 +135,7 @@ void BugGLWidget::initBufferRGB(int w, int h)
 void BugGLWidget::freeBufferRGB()
 {
     images.clear();
+    imagesTransform.clear();
     if (dataRGB != nullptr) {
         _mm_free(dataRGB);
         dataRGB = nullptr;
@@ -282,6 +285,7 @@ void BugGLWidget::prepareRGB(AVFrame *frame)
 //                        0);
 
 //    auto img = QImage(dataRGB, frame->width, frame->height, QImage::Format_RGB888);
+    newImageBuffer(img);
     images.replace(index, img.copy());
     bufIndex = index;
     emit reqUpdate();
@@ -343,11 +347,9 @@ void BugGLWidget::drawYUV()
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, renderW/2, renderH/2, GL_LUMINANCE,
                     GL_UNSIGNED_BYTE, yuvBuffer[bufIndex].v);
 
-
 //    mutex.unlock();
     i=m_programA->uniformLocation("Vtex");
     glUniform1i(i, 2);
-
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, g_indices);
     //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -361,17 +363,18 @@ void BugGLWidget::drawRGB()
         return;
     }    
     auto imgInBuf = images.at(bufIndex);
-    auto img = receiveFrame(imgInBuf);
-    if (img.isNull() || noNeedRender) {
+    receiveFrame(imgInBuf);
+    auto imgPainter = imagesTransform.at(bufImgTransformIndex);
+    if (imgPainter.width() == 0 || noNeedRender) {
         return;
     }
     // update picture size, update roi
-    if (picSize.width() != img.size().width() || picSize.height() != img.size().height()) {
-        picSize = img.size();
+    if (picSize.width() != imgPainter.size().width() || picSize.height() != imgPainter.size().height()) {
+        picSize = imgPainter.size();
         setRegionOfInterest(0, 0, picSize.width(), picSize.height());
     }
     if (renderW != picSize.width() || renderH != picSize.height()) {
-        img = img.copy(QRect(offsetX, offsetY, renderW, renderH));
+        imgPainter = imgPainter.copy(QRect(offsetX, offsetY, renderW, renderH));
     }
     QPainter painter{this};
     painter.beginNativePainting();
@@ -393,7 +396,7 @@ void BugGLWidget::drawRGB()
     painter.endNativePainting();
     auto r = rect();
     painter.setRenderHints(QPainter::SmoothPixmapTransform);
-    painter.drawImage(r, img);
+    painter.drawImage(r, imgPainter);
     painter.end();
 //    painter.endNativePainting();
 }
@@ -408,6 +411,22 @@ void BugGLWidget::reDraw()
     } else {
         emit reqUpdate();
     }
+}
+
+void BugGLWidget::newImageBuffer(const QImage &img)
+{
+    updateImageBuffer(img);
+}
+
+void BugGLWidget::updateImageBuffer(const QImage &img)
+{
+    auto index = bufImgTransformIndex + 1;
+    if (index >= BUFF_SIZE) {
+        index = 0;
+    }
+    imagesTransform.replace(index, img.copy());
+    bufImgTransformIndex = index;
+    emit reqUpdate();
 }
 
 BugGLWidget::BugGLWidget(QWidget *parent)
@@ -437,6 +456,7 @@ BugGLWidget::BugGLWidget(QWidget *parent)
     offsetX = offsetY = 0;
 
     bufIndex=0;
+    bufImgTransformIndex = 0 ;
     memset(m_textureIds, 0, sizeof(GLuint) * 3);
     for(auto i = 0; i < 3; i++) {        
         originFrame.data[i] = nullptr;
