@@ -135,7 +135,7 @@ void BugGLWidget::initBufferRGB(int w, int h)
 void BugGLWidget::freeBufferRGB()
 {
     images.clear();
-    imagesTransform.clear();
+//    imagesTransform.clear();
     if (dataRGB != nullptr) {
         _mm_free(dataRGB);
         dataRGB = nullptr;
