@@ -13,6 +13,7 @@
 #include <QVector>
 #include <QOpenGLTexture>
 #include <QMutex>
+#include <QReadWriteLock>
 
 namespace BugAV {
 constexpr int BUFF_SIZE = 2;
@@ -64,9 +65,11 @@ private:
 
      void initializeYUVGL();
 
+     int incIndex(int index, int maxIndex);
      int fastUp16(int x);
 
-     void copyData();
+     void cropYUVFrame();
+     void cropRGBFrame();
 
      void prepareYUV(AVFrame *frame);
      void prepareRGB(AVFrame *frame);
@@ -74,6 +77,7 @@ private:
      void drawYUV();
      void drawRGB();
      void reDraw();
+
 protected:
      // somtime need trigger receiveFrame but no need render
      bool noNeedRender;
@@ -109,28 +113,26 @@ private:
     int offsetX, offsetY;
 
     struct YUVBuff {
-        uint8_t *y;
-        uint8_t *u;
-        uint8_t *v;
+        unsigned char *y;
+        unsigned char *u;
+        unsigned char *v;
     };
-
-    typedef struct {
-        unsigned char* data[3];
-        int linesize[3];
-    } Frame;
 
     Frame originFrame;
 
     YUVBuff yuvBuffer[BUFF_SIZE];
 
-    QVector<QImage> images;
+    YUVBuff rgbBuffer[BUFF_SIZE]; // buffer data for painter
+    Frame rawRgbData; // raw frame data from ffmpeg
+    Frame rawRgbFilter; // raw frame data after filter by client
+
 
     int bufIndex;   
 
     QVector<QImage> imagesTransform;
     int bufImgTransformIndex;
 
-    QMutex mutex;
+    QMutex mutex, mutexBufRGB;
 
     int kUpdate;
 
@@ -141,13 +143,16 @@ private:
 
     int pixFmt;
 
-    unsigned char* dataRGB;   
-
+    // prevent access buffer render
+    // when re alloc in case with or height of frame change
+    //
+    QReadWriteLock rwMutex;
+    bool denyPaint;
 
     // IBugAVRenderer interface
 public:
-    void newImageBuffer(const QImage &img) override;
-    void updateImageBuffer(const QImage &img) override;
+    void newFrame(const Frame &frame) override;
+    void updateFrameBuffer(const Frame &frame) override;
 };
 }
 #endif // BugGLWidget_H

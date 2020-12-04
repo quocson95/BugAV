@@ -17,7 +17,7 @@ Grid::Grid(QWidget *parent) :
 //    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
     size = 1;
     // camera fish eye
-    files << "https://api.stg.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1604982146&id=2b9320bad720c8ad80134297f6644d569ea67576&tk=afcaa53ee9d1e60ca4d2cddf64928d2e59d529f8&noRedirect=true";
+    files << "rtsp://root:@Sgpmc256@@113.166.120.32:8554/live4.sdp";
 //    files << "https://api.stg.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1604721339&id=973a7c32e6d3f340f464a723c7b754eeff3bd5fc&tk=67574b5e4d75cb5e18e84c8032ff2e3112199c2e&noRedirect=true";
 //    files << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603269402&id=d72fdf56dc08a0052920d454ccb1fe0b561fcb59&tk=aabe3cbbda1402b9a4c9cc11bd0cfa8aa09a3e7f&noRedirect=true";
 //    files  << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603269598&id=f0c1c0d70c88aa8540916d661e62c6e058022fea&tk=de612ae9a4c55e929c827adcfb4f45c92a2917b4&noRedirect=true";
@@ -94,6 +94,8 @@ void Grid::addPlayer(int i, int j)
     avformat["rtsp_flags"] = "prefer_tcp";
     player->setRenderer(renderer);
     player->setOptionsForFormat(avformat);
+    player->setPixFmtRGB32(true);
+//    renderer->setRegionOfInterest(100, 100, 200, 200);
     if (i*size + j < files.size()) {
         player->play(files.at(i*size + j));
     }    

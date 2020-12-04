@@ -7,6 +7,59 @@
 
 struct AVFrame;
 
+struct Frame {
+    unsigned char* data[3];
+    int linesize[3];
+    int height;
+    int sizeInBytes;
+    int cap;
+
+    Frame() {
+        for (auto i = 0; i < 3; i++) {
+           this->linesize[i] = 0;
+        }
+        this->height = 0;
+        this->sizeInBytes = 0;
+        this->cap = 0;
+        this->data[0] = nullptr;
+        this->data[1] = nullptr;
+        this->data[2] = nullptr;
+    }
+
+    Frame clone() {
+        Frame f;
+        f.cap = cap;
+        f.height = height;
+        f.sizeInBytes = sizeInBytes;
+        for (auto i = 0; i < 3; i++) {
+            f.linesize[i] = linesize[i];
+        }        
+        f.data[0] = static_cast<unsigned char *>(malloc(cap));
+        memcpy(f.data[0], this->data[0], sizeInBytes);
+        return f;
+    }
+
+    void mallocData(int size = 0) {
+        freeMem();
+        if (size == 0) {
+            size = linesize[0] * height * 4;
+        }
+        cap = size;
+        data[0] = static_cast<unsigned char *>(malloc(cap));
+    }
+
+    bool isNull() const {
+        return this->data[0] == nullptr;
+    }
+
+    void freeMem() {
+        if (this->data[0] != nullptr) {
+            free(this->data[0]);
+        }
+    }
+} ;
+
+
 namespace BugAV {
 
 class IBugAVRenderer  {
@@ -24,13 +77,23 @@ public:
 
     virtual void clearBufferRender() = 0;
 
-    virtual void newImageBuffer(const QImage& img) {
+    virtual void newFrame(const QImage& img) {
         Q_UNUSED(img)
     };
 
-    virtual void updateImageBuffer(const QImage& img) {
+    virtual void newFrame(const Frame& frame) {
+        Q_UNUSED(frame)
+    };
+
+    virtual void updateFrameBuffer(const QImage& img) {
         Q_UNUSED(img)
     }
+
+    virtual void updateFrameBuffer(const Frame& frame) {
+        Q_UNUSED(frame)
+    }
+
+
 
 };
 
