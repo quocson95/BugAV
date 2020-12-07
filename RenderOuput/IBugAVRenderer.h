@@ -49,7 +49,7 @@ struct Frame {
     }
 
     bool isNull() const {
-        return this->data[0] == nullptr;
+        return this->data[0] == nullptr || linesize[0] < 1 || height < 1;
     }
 
     void freeMem() {
