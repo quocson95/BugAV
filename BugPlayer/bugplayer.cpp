@@ -305,6 +305,11 @@ QMap<QString, QString> BugPlayer::getMetadata() const
     return d_ptr->is->metadata;
 }
 
+void BugPlayer::setWindowForHIKSDK(QWidget *w)
+{
+    d_ptr->setWindowForHIKSDK(w);
+}
+
 void BugPlayer::positionChangedSlot(qint64 posi)
 {
     // unit in micro second, emit with unit s

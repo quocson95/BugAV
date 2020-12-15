@@ -56,6 +56,8 @@ public:
     bool getSkipNonKeyFrame() const;
     void enableSkipNonKeyFrame(bool value = true);    
 
+    void setWindowForHIKSDK(QWidget *w);
+
 signals:
     void started();
     void stopped();
@@ -119,7 +121,7 @@ private:
     bool denyRetryOpenAudioSt;
 
     int g_lPort = -1;
-    QWidget w, w2;
+//    QWidget w, w2;
 
     FakeStreamDecoder *fakeStream;
 //    uint8_t xxx[1024*1024];

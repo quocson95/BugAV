@@ -20,21 +20,16 @@ extern "C" {
 #include "handlerinterupt.h"
 #include <Render/audiorender.h>
 
+#ifdef Q_OS_WIN
+    #include <windows.h>
+#endif
 #include <QWindow>
-#include <windows.h>
-#include <PlayM4.h>
+
+//#include <PlayM4.h>
 
 #include <Decoder/fakestreamdecoder.h>
 
 namespace BugAV {
-
-inline void checkError(std::string title, LONG nPort) {
-    auto err = PlayM4_GetLastError(nPort);
-    if (err > 0) {
-        qDebug() << QString::fromStdString(title) << " error " << err;
-    }
-}
-
 Demuxer::Demuxer(VideoState *is, Define *def)
     :QObject(nullptr)
     ,is{is}
@@ -56,7 +51,7 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     if (handlerInterupt == nullptr) {
         handlerInterupt = new HandlerInterupt(this);
     }
-    w.show();
+//    w.show();
     curThread = new QThread(this);
     moveToThread(curThread);
     connect(curThread, SIGNAL (started()), this, SLOT (process()));
@@ -99,6 +94,7 @@ bool Demuxer::load()
 //    currentPos = 0;
 //    currentPos = 0;
 //    is->lastVideoPts = 0;
+    fakeStream->start();
     is->elLastEmptyRead->invalidate();
     is->metadata.clear();    
     qDebug() << "start load stream input";
@@ -358,12 +354,12 @@ int Demuxer::readFrame()
             && !(is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
         if (!skipNonKeyFrame) {
 //            PlayM4_InputData(LONG(g_lPort), pkt->data, pkt->size);
-            checkError("PlayM4_InputVideoData", g_lPort);
-//            AVPacket *clonePkt = av_packet_alloc();
-//            av_new_packet(clonePkt, pkt->size);
-//            av_packet_ref(pkt, clonePkt);
-            fakeStream->processPacket(pkt);
-//            is->videoq->put(pkt);
+//            checkError("PlayM4_InputVideoData", g_lPort);
+            AVPacket *clonePkt = av_packet_alloc();
+            av_new_packet(clonePkt, pkt->size);
+            av_packet_ref(clonePkt, pkt);
+            fakeStream->processPacket(clonePkt);
+            is->videoq->put(pkt);
 //            qDebug() << "pkt size " << pkt->size;
 
         } else {
@@ -706,31 +702,31 @@ void Demuxer::process()
 //    }       
 
 
-    if (g_lPort == -1)
-    {
-        LONG x;
-        auto bFlag = PlayM4_GetPort(&x);
-        if (bFlag == false)
-        {
-            PlayM4_GetLastError(g_lPort);
-            return;
-        }
-        g_lPort = x;
-    }
+//    if (g_lPort == -1)
+//    {
+//        LONG x;
+//        auto bFlag = PlayM4_GetPort(&x);
+//        if (bFlag == false)
+//        {
+//            PlayM4_GetLastError(g_lPort);
+//            return;
+//        }
+//        g_lPort = x;
+//    }
 
-    DWORD nLength  =  PlayM4_GetFileHeadLength();
+//    DWORD nLength  =  PlayM4_GetFileHeadLength();
 
-    char x[40];
-    PlayM4_SetStreamOpenMode(g_lPort, STREAME_FILE);
-    checkError("PlayM4_SetStreamOpenMode", g_lPort);
+//    char x[40];
+//    PlayM4_SetStreamOpenMode(g_lPort, STREAME_FILE);
+//    checkError("PlayM4_SetStreamOpenMode", g_lPort);
 
-//   PlayM4_OpenStream(g_lPort, (PBYTE)x, 40, 1024 * 1024);
-   PlayM4_OpenStream(g_lPort, nullptr, 0, 1024 * 1024);
-   checkError("PlayM4_OpenStream", g_lPort);
+////   PlayM4_OpenStream(g_lPort, (PBYTE)x, 40, 1024 * 1024);
+//   PlayM4_OpenStream(g_lPort, nullptr, 0, 1024 * 1024);
+//   checkError("PlayM4_OpenStream", g_lPort);
 
-   auto hWnd = HWND(w.windowHandle()->winId());
-   PlayM4_Play(g_lPort, hWnd);
-   checkError("PlayM4_Play", g_lPort);
+//   auto hWnd = HWND(w.windowHandle()->winId());
+//   PlayM4_Play(g_lPort, hWnd);
+//   checkError("PlayM4_Play", g_lPort);
 
 
     if (!reqStop) {
@@ -771,6 +767,11 @@ void Demuxer::enableSkipNonKeyFrame(bool value)
 {
     skipNonKeyFrame = value;
     is->audio_disable = skipNonKeyFrame;
+}
+
+void Demuxer::setWindowForHIKSDK(QWidget *w)
+{
+    fakeStream->setWindowForHIKSDK(w);
 }
 
 qint64 Demuxer::getStartTime() const

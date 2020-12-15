@@ -42,6 +42,10 @@ win32:{
 
 } else: {
     LIBS += -lSDL2
+
+    LIBS += -L$$PWD/../HIK_Player_SDK  -lAudioRender -lPlayCtrl -lSuperRender
+    INCLUDEPATH += $$PWD/../HIK_Player_SDK
+    DEPENDPATH += $$PWD/../HIK_Player_SDK
 }
 #LIBS += -lopenal
 INCLUDEPATH += $$PWD/ffmpeg/include

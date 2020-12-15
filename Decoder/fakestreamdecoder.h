@@ -6,6 +6,7 @@
 #include "common/videostate.h"
 
 namespace BugAV {
+
 class FakeStreamDecoder: public QObject
 {
     Q_OBJECT
@@ -14,6 +15,8 @@ public:
     ~FakeStreamDecoder();
     void start();
     void stop();
+
+    void setWindowForHIKSDK(QWidget *w);
 
     int openFileOutput();
 
@@ -25,6 +28,7 @@ public:
     void freeGOP();
 
     void processPacket(AVPacket *pkt);
+
 
 private slots:
     void process();
@@ -40,10 +44,18 @@ private:
     QByteArray path;
     std::vector<AVPacket *> gop;
     qint64 lastMuxDTSRecord;
-
-    std::queue<QByteArray> fileQueue;
+    bool reqStop;
+    struct FIQ{
+        QByteArray path;
+        int status; // 0 init, 1 writing, 3 write done, 4 read done
+    };
+    std::queue<FIQ *> fileQueue;
     int indexForFile;
 
+    LONG g_lPort;    
+
+private:
+     void readFile(FIQ *fiq);
 };
 }
 

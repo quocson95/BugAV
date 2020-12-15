@@ -78,6 +78,8 @@ public:
 
     bool isMute() const;
 
+    void setWindowForHIKSDK(QWidget *w);
+
     BugPlayer *q_ptr;
     VideoState *is;
     Demuxer *demuxer;

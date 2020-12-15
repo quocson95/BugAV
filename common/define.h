@@ -80,6 +80,21 @@ constexpr int MIX_MAX_VOLUME = 128;
 constexpr int NEXT_NB_CHANNELS[] = {0, 0, 1, 6, 2, 6, 4, 6};
 constexpr int NEXT_SAMPLE_RATES[] = {0, 44100, 48000, 96000, 192000};
 
+
+#ifdef Q_OS_LINUX
+    using LONG = int;
+    using CHAR = char;
+    using SHORT = short;
+    #ifndef VOID
+    using VOID = void;
+    #endif
+
+    using DWORD = unsigned int;
+    #if !defined(MIDL_PASS)
+    typedef int INT;
+    #endif
+#endif
+
 namespace BugAV {
 class Define {
 public:

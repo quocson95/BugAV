@@ -77,6 +77,8 @@ public:
 
     QMap<QString, QString> getMetadata() const;
 
+    void setWindowForHIKSDK(QWidget *w);
+
 Q_SIGNALS:
     void stateChanged(BugAV::AVState state);
     void mediaStatusChanged(BugAV::MediaStatus state);

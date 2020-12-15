@@ -310,5 +310,10 @@ bool BugPlayerPrivate::isMute() const
     return is->muted;
 }
 
+void BugPlayerPrivate::setWindowForHIKSDK(QWidget( *w))
+{
+    demuxer->setWindowForHIKSDK(w);
+}
+
 
 } // namespace

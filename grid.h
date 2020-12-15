@@ -28,6 +28,8 @@ private:
     QVector<QString> files;
     QVector<BugAV::BugPlayer *> players;
     QVector<BugAV::IBugAVRenderer *> renderers;
+
+    QWidget w;
     int size;
 private slots:
     void on_reCreateGrid_clicked();
