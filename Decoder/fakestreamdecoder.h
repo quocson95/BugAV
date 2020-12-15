@@ -5,6 +5,7 @@
 #include "queue"
 #include "common/videostate.h"
 
+
 namespace BugAV {
 
 class FakeStreamDecoder: public QObject
@@ -52,7 +53,8 @@ private:
     std::queue<FIQ *> fileQueue;
     int indexForFile;
 
-    LONG g_lPort;    
+    LONG g_lPort;
+    QWidget *www;
 
 private:
      void readFile(FIQ *fiq);

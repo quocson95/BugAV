@@ -76,6 +76,7 @@ void FakeStreamDecoder::stop()
 
 void FakeStreamDecoder::setWindowForHIKSDK(QWidget *w)
 {
+    www = w;
 //    wnID = id;
     if (g_lPort == -1)
     {
@@ -285,37 +286,68 @@ void BugAV::FakeStreamDecoder::process()
 
 void FakeStreamDecoder::readFile(FakeStreamDecoder::FIQ *fiq)
 {
+//    auto fp = fopen("C:/Users/sondq/Documents/dev/build-BugAV-Desktop_Qt_5_12_9_MSVC2017_64bit-Debug/0.ts", ("rb"));
+//    auto READ_BUF_SIZE = 200;
+//    auto pBuffer = new char[READ_BUF_SIZE];
+//    while (!feof(fp))
+//      {
+//          fread( pBuffer, READ_BUF_SIZE, 1, fp );
+
+//          while (1)
+//          {
+//              auto bFlag = PlayM4_InputData(g_lPort,(PBYTE)pBuffer,READ_BUF_SIZE);
+//              if (bFlag == FALSE)
+//              {
+//                  auto nError = PlayM4_GetLastError(g_lPort);
+
+//                  //If the buffer is full, input the data repeat
+//                  if (nError == PLAYM4_BUF_OVER)
+//                  {
+//                      qDebug() << "PLAYM4_BUF_OVER";
+//                      Sleep(2);
+//                      continue;
+//                  }
+//              }
+
+//              //If input the data successfully, then read the data from the file to input to the PlayCtrl library sdk
+//              break;
+//          }
+//      }
 //    return;
     qDebug() << "Start read file " << fiq->path;
-    QFile file{"/home/sondq/Documents/dev/build-BugAV-Desktop_Qt_5_12_9_GCC_64bit-Debug/abc/d9f3cd20-16ab-4387-8bef-d30bf993a09f/0.ts"};
+//    QFile file{"C:/Users/sondq/Documents/dev/build-BugAV-Desktop_Qt_5_12_9_MSVC2017_64bit-Debug/0.ts"};
+    QFile file{fiq->path};
     if (!file.open(QIODevice::ReadOnly)) {
         qDebug() << "open file " << fiq->path << " error";
         return;
     }
-    thread->msleep(1000);
-    int MAX_BYTE_READ = 200;
+//    thread->msleep(1000);
+    int MAX_BYTE_READ = 1024 * 2;
     auto buffer = new char[MAX_BYTE_READ];
     int currentByteRead = 0;
-    auto fp = fopen("/home/sondq/Documents/dev/build-BugAV-Desktop_Qt_5_12_9_GCC_64bit-Debug/abc/d9f3cd20-16ab-4387-8bef-d30bf993a09f/0.ts", ("rb"));
+    int err;
+//    auto fp = fopen("C:/Users/sondq/Documents/dev/build-BugAV-Desktop_Qt_5_12_9_MSVC2017_64bit-Debug/0.ts", ("rb"));
     while (!reqStop) {
         qDebug() << " size " << file.size() << " -- " << currentByteRead;
         if ((currentByteRead + MAX_BYTE_READ) > file.size()) {
             continue;
             thread->msleep(1);
         }
-        auto byteRead = fread(buffer, MAX_BYTE_READ, 1, fp);
-//        auto byteRead = file.read(buffer, MAX_BYTE_READ);
+//        auto byteRead = fread(buffer, MAX_BYTE_READ, 1, fp);
+        auto byteRead = file.read(buffer, MAX_BYTE_READ);
         if (byteRead <= 0 && fiq->status == 3) {
             fiq->status = 4;
             return;
         }
         if (byteRead > 0) {
-            auto x = (unsigned char *)(buffer);
-            PlayM4_InputData(g_lPort, x, byteRead);
-            checkError("PlayM4_InputData", g_lPort);
+            auto x = (PBYTE)(buffer);
+//            do {
+            err = PlayM4_InputData(g_lPort, x, byteRead);
+//            } while (!reqStop && err == PLAYM4_BUF_OVER);
+//            checkError("PlayM4_InputData", g_lPort);
         }
-        currentByteRead += MAX_BYTE_READ;
-        thread->msleep(100);
+        currentByteRead += byteRead;
+//        thread->msleep(100);
     }
 }
 

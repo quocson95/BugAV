@@ -93,6 +93,9 @@ constexpr int NEXT_SAMPLE_RATES[] = {0, 44100, 48000, 96000, 192000};
     #if !defined(MIDL_PASS)
     typedef int INT;
     #endif
+#else
+#include "windows.h"
+using PLAYM4_HWND = HWND;
 #endif
 
 namespace BugAV {

@@ -9,8 +9,8 @@ extern "C" {
 #include "libavfilter/avfilter.h"
 #include "libavfilter/buffersrc.h"
 #include "libavfilter/buffersink.h"
-
 }
+#include "limits"
 #include <QImage>
 #include <QThread>
 #include <QThreadPool>
@@ -22,6 +22,7 @@ extern "C" {
 #include <QTimer>
 #include <QTimerEvent>
 #include <QElapsedTimer>
+#include "QtMath"
 
 #define RNDTO2(X) ( ( (X) & 0xFFFFFFFE ))
 #define RNDTO32(X) ( ( (X) % 32 ) ? ( ( (X) + 32 ) & 0xFFFFFFE0 ) : (X) )
@@ -84,7 +85,7 @@ void Render::start()
 {
 //    qDebug() << "!!!Render Thread start";
     currentFramePts = 0;
-    is->lastPtsVideo = std::numeric_limits<double>::max();
+    is->lastPtsVideo = DBL_MAX;
     if (thread->isRunning()) {
         return;
     }
