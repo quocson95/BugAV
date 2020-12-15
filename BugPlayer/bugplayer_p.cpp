@@ -121,6 +121,7 @@ void BugPlayerPrivate::stop()
 
 void BugPlayerPrivate::refresh()
 {
+    demuxer->enableSkipNonKeyFrame(false);
     stop();
     play();
 }

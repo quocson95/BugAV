@@ -14,12 +14,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-DEFINES += MAKE_LIB
-CONFIG += MAKE_LIB
+#DEFINES += MAKE_LIB
+#CONFIG += MAKE_LIB
 
-MAKE_LIB {
-    TEMPLATE = lib
-}
+#MAKE_LIB {
+#    TEMPLATE = lib
+#}
 
 QMAKE_LFLAGS_RELEASE += /MAP
 QMAKE_CFLAGS_RELEASE += /Zi
@@ -30,6 +30,16 @@ win32:{
     #lib sld2
     LIBS += -L$$PWD/SDL2-2.0.12/lib/x64 -lSDL2
     INCLUDEPATH += $$PWD/SDL2-2.0.12/include
+
+    #HIK SDK
+#    LIBS += -L$$PWD/../EN-HCNetSDKV6.1.6.3_build20200925_Win64/lib -lHCCore -lHCNetSDK -lGdiPlus
+#    INCLUDEPATH += $$PWD/../EN-HCNetSDKV6.1.6.3_build20200925_Win64/incEn
+#    DEPENDPATH += $$PWD/../EN-HCNetSDKV6.1.6.3_build20200925_Win64/incEn
+
+    LIBS += -L$$PWD/../HIK_Player_SDK -lPlayCtrl
+    INCLUDEPATH += $$PWD/../HIK_Player_SDK
+    DEPENDPATH += $$PWD/../HIK_Player_SDK
+
 } else: {
     LIBS += -lSDL2
 }
@@ -50,6 +60,7 @@ HEADERS += \
     BugPlayer/bugplayer_p.h \
     Decoder/audiodecoder.h \
     Decoder/decoder.h \
+    Decoder/fakestreamdecoder.h \
     Decoder/videodecoder.h \
     Demuxer/demuxer.h \
     Demuxer/handlerinterupt.h \
@@ -76,6 +87,7 @@ SOURCES += \
     BugPlayer/bugplayer_p.cpp \
     Decoder/audiodecoder.cpp \
     Decoder/decoder.cpp \
+    Decoder/fakestreamdecoder.cpp \
     Decoder/videodecoder.cpp \
     Demuxer/demuxer.cpp \
     Demuxer/handlerinterupt.cpp \

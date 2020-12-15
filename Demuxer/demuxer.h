@@ -7,6 +7,7 @@ extern "C" {
 #include <QThread>
 #include <QVariantHash>
 #include <QWaitCondition>
+#include <QWidget>
 
 class QElapsedTimer;
 
@@ -19,6 +20,7 @@ class VideoState;
 class HandlerInterupt;
 class Define;
 class AudioRender;
+class FakeStreamDecoder;
 
 class Demuxer: public QObject
 {
@@ -52,9 +54,7 @@ public:
     void doSeek(const double& position);
 
     bool getSkipNonKeyFrame() const;
-    void enableSkipNonKeyFrame(bool value = true);
-
-    void reOpenAudioSt();
+    void enableSkipNonKeyFrame(bool value = true);    
 
 signals:
     void started();
@@ -117,6 +117,12 @@ private:
 
     QElapsedTimer *elLastRetryOpenAudioSt;
     bool denyRetryOpenAudioSt;
+
+    int g_lPort = -1;
+    QWidget w, w2;
+
+    FakeStreamDecoder *fakeStream;
+//    uint8_t xxx[1024*1024];
 
 //    QElapsedTimer *elLastEmptyRead;
 //    QElapsedTimer *elTimer;

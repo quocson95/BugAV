@@ -1,8 +1,8 @@
 #include "demuxer.h"
 extern "C" {
-#include "libavutil/time.h"
-#include "libavformat/avformat.h"
-#include <libavutil/dict.h>
+    #include "libavutil/time.h"
+    #include "libavformat/avformat.h"
+    #include <libavutil/dict.h>
 }
 #include "common/define.h"
 #include "QDebug"
@@ -20,7 +20,20 @@ extern "C" {
 #include "handlerinterupt.h"
 #include <Render/audiorender.h>
 
+#include <QWindow>
+#include <windows.h>
+#include <PlayM4.h>
+
+#include <Decoder/fakestreamdecoder.h>
+
 namespace BugAV {
+
+inline void checkError(std::string title, LONG nPort) {
+    auto err = PlayM4_GetLastError(nPort);
+    if (err > 0) {
+        qDebug() << QString::fromStdString(title) << " error " << err;
+    }
+}
 
 Demuxer::Demuxer(VideoState *is, Define *def)
     :QObject(nullptr)
@@ -43,9 +56,11 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     if (handlerInterupt == nullptr) {
         handlerInterupt = new HandlerInterupt(this);
     }
+    w.show();
     curThread = new QThread(this);
     moveToThread(curThread);
     connect(curThread, SIGNAL (started()), this, SLOT (process()));
+    fakeStream = new FakeStreamDecoder{is};
 
 //    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
 }
@@ -85,13 +100,14 @@ bool Demuxer::load()
 //    currentPos = 0;
 //    is->lastVideoPts = 0;
     is->elLastEmptyRead->invalidate();
-    is->metadata.clear();
+    is->metadata.clear();    
     qDebug() << "start load stream input";
     unload();
     is->eof = 0;
     denyRetryOpenAudioSt = false;
     elLastRetryOpenAudioSt->invalidate();
     is->noAudioStFound = false;
+    is->isRealtime();
     is->setIformat(av_find_input_format(is->fileUrl.toUtf8().constData()));
 //    is->iformat = av_find_input_format(is->fileUrl.toUtf8().constData());
     is->ic = avformat_alloc_context();
@@ -102,6 +118,28 @@ bool Demuxer::load()
     is->ic->interrupt_callback = *handlerInterupt;
     // set avformat    
     parseAvFormatOpts();
+
+//    if (is->realtime) {
+//        is->ic->flags |= AVFMT_FLAG_GENPTS;
+//        is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
+//        is->ic->flags |= AVFMT_FLAG_NOBUFFER;
+//        is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS; // flush avio context every packet (using for decrease buffer, flush old packet)
+//        is->ic->flags |= AVFMT_FLAG_NOFILLIN;
+//        is->ic->flags |= AVFMT_FLAG_NOPARSE;
+//    } else {
+//         is->ic->flags |= AVFMT_FLAG_GENPTS;
+//        is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
+////        is->ic->flags |= AVFMT_FLAG_GENPTS;
+////        is->ic->flags |= AVFMT_FLAG_IGNDTS;
+////        is->ic->flags |= AVFMT_FLAG_FAST_SEEK;
+//    }
+
+    is->ic->flags |= AVFMT_FLAG_GENPTS;
+    is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
+    is->ic->flags |= AVFMT_FLAG_NOBUFFER;
+    is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS; // flush avio context every packet (using for decrease buffer, flush old packet)
+    is->ic->flags |= AVFMT_FLAG_NOFILLIN;
+    is->ic->flags |= AVFMT_FLAG_NOPARSE;
 
     handlerInterupt->begin(HandlerInterupt::Action::Open);
 //    auto x = is->fileUrl.toUtf8().constData();
@@ -122,18 +160,7 @@ bool Demuxer::load()
     }
 
 //    is->ic->flags |= AVFMT_FLAG_IGNDTS;
-    if (is->realtime) {
-        is->ic->flags |= AVFMT_FLAG_GENPTS;
-        is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
-        is->ic->flags |= AVFMT_FLAG_NOBUFFER;
-        is->ic->flags |= AVFMT_FLAG_FLUSH_PACKETS; // flush avio context every packet (using for decrease buffer, flush old packet)
-    } else {
-         is->ic->flags |= AVFMT_FLAG_GENPTS;
-        is->ic->flags |= AVFMT_FLAG_DISCARD_CORRUPT;
-//        is->ic->flags |= AVFMT_FLAG_GENPTS;
-//        is->ic->flags |= AVFMT_FLAG_IGNDTS;
-//        is->ic->flags |= AVFMT_FLAG_FAST_SEEK;
-    }
+
 
     av_format_inject_global_side_data(is->ic);
    // go to here ok
@@ -330,7 +357,15 @@ int Demuxer::readFrame()
     if (pkt->stream_index == is->video_stream
             && !(is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
         if (!skipNonKeyFrame) {
-            is->videoq->put(pkt);
+//            PlayM4_InputData(LONG(g_lPort), pkt->data, pkt->size);
+            checkError("PlayM4_InputVideoData", g_lPort);
+//            AVPacket *clonePkt = av_packet_alloc();
+//            av_new_packet(clonePkt, pkt->size);
+//            av_packet_ref(pkt, clonePkt);
+            fakeStream->processPacket(pkt);
+//            is->videoq->put(pkt);
+//            qDebug() << "pkt size " << pkt->size;
+
         } else {
             if (pkt->flags & AV_PKT_FLAG_KEY) {
                 is->videoq->put(pkt);
@@ -366,6 +401,7 @@ void Demuxer::start()
     if (curThread->isRunning()) {
         return;
     }
+    fakeStream->start();
     reqStop = false;
     curThread->start();
     handlerInterupt->setReqStop(false);
@@ -393,6 +429,8 @@ void Demuxer::stop()
     while (curThread->isRunning()) {
         curThread->wait(400);
     }
+    fakeStream->stop();
+
 }
 
 int Demuxer::findBestStream(AVFormatContext *ic, AVMediaType type, int index)
@@ -667,6 +705,34 @@ void Demuxer::process()
 //        elTimer->start();
 //    }       
 
+
+    if (g_lPort == -1)
+    {
+        LONG x;
+        auto bFlag = PlayM4_GetPort(&x);
+        if (bFlag == false)
+        {
+            PlayM4_GetLastError(g_lPort);
+            return;
+        }
+        g_lPort = x;
+    }
+
+    DWORD nLength  =  PlayM4_GetFileHeadLength();
+
+    char x[40];
+    PlayM4_SetStreamOpenMode(g_lPort, STREAME_FILE);
+    checkError("PlayM4_SetStreamOpenMode", g_lPort);
+
+//   PlayM4_OpenStream(g_lPort, (PBYTE)x, 40, 1024 * 1024);
+   PlayM4_OpenStream(g_lPort, nullptr, 0, 1024 * 1024);
+   checkError("PlayM4_OpenStream", g_lPort);
+
+   auto hWnd = HWND(w.windowHandle()->winId());
+   PlayM4_Play(g_lPort, hWnd);
+   checkError("PlayM4_Play", g_lPort);
+
+
     if (!reqStop) {
         qDebug() << "Start read frame";
         emit loadDone();
@@ -682,6 +748,7 @@ void Demuxer::process()
                 emit readFrameError(); // read frame error
                 break;
             }
+
 //            if (elTimer != nullptr && elTimer->hasExpired(1000)) {
 //                onUpdatePositionChanged();
 //                elTimer->restart();
@@ -704,14 +771,6 @@ void Demuxer::enableSkipNonKeyFrame(bool value)
 {
     skipNonKeyFrame = value;
     is->audio_disable = skipNonKeyFrame;
-}
-
-void Demuxer::reOpenAudioSt()
-{
-    denyRetryOpenAudioSt = false;
-    if (elLastRetryOpenAudioSt != nullptr) {
-        elLastRetryOpenAudioSt->invalidate();
-    }
 }
 
 qint64 Demuxer::getStartTime() const

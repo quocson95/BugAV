@@ -159,8 +159,7 @@ void BugPlayer::stop()
 }
 
 void BugPlayer::refresh()
-{    
-    d_ptr->demuxer->enableSkipNonKeyFrame(false);
+{        
     d_ptr->refresh();
 }
 

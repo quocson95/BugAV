@@ -19,6 +19,11 @@ public:
     int serial;
 };
 
+
+static bool IsKeyFrame(AVPacket *pkt) {
+    return pkt->flags | AV_PKT_FLAG_KEY;
+}
+
 class PacketQueue {
 
 public:
