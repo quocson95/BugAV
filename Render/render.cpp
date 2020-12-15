@@ -10,7 +10,8 @@ extern "C" {
 #include "libavfilter/buffersrc.h"
 #include "libavfilter/buffersink.h"
 }
-#include "limits"
+
+#include <float.h>
 #include <QImage>
 #include <QThread>
 #include <QThreadPool>

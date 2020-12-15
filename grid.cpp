@@ -19,8 +19,8 @@ Grid::Grid(QWidget *parent) :
 //    file = "rtsp://admin2:Admin123@192.168.0.99:554/Streaming/Channels/301";
     size = 1;
     // camera fish eye
-    files << "https://api.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1608091700&id=6f8c2021951be4aa9b83a53ca74e2f71ea3a7302&tk=33e4aba7d0f8fd71341a550edf4eb64c44d4286c&noRedirect=true";
-//    files << "C:/Users/sondq/Downloads/ffmpeg-4.3.1-2020-11-19-full_build/bin/live.ts";
+//    files << "rtsp://root:@Sgpmc256@@113.166.120.32:8554/live.sdp";
+    files << "rtmp://61.28.233.79:1935/live/189d2377-bf2a-47d1-9207-2784343d567c_main_1608023731?ci=JDE4OWQyMzc3LWJmMmEtNDdkMS05MjA3LTI3ODQzNDNkNTY3YwIzOAAEbWFpbgN2Y2MbMWxnZXppYU5MOWEwNmZIdnF2UFJUSmZsMktsAAA=&sig=d9c0731ac";
 //    files << "https://api.stg.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1604721339&id=973a7c32e6d3f340f464a723c7b754eeff3bd5fc&tk=67574b5e4d75cb5e18e84c8032ff2e3112199c2e&noRedirect=true";
 //    files << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603269402&id=d72fdf56dc08a0052920d454ccb1fe0b561fcb59&tk=aabe3cbbda1402b9a4c9cc11bd0cfa8aa09a3e7f&noRedirect=true";
 //    files  << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603269598&id=f0c1c0d70c88aa8540916d661e62c6e058022fea&tk=de612ae9a4c55e929c827adcfb4f45c92a2917b4&noRedirect=true";

@@ -90,15 +90,21 @@ constexpr int NEXT_SAMPLE_RATES[] = {0, 44100, 48000, 96000, 192000};
     #endif
 
     using DWORD = unsigned int;
+    using PBYTE = unsigned char *;
     #if !defined(MIDL_PASS)
-    typedef int INT;
+    using INT = int;
     #endif
 #else
 #include "windows.h"
 using PLAYM4_HWND = HWND;
 #endif
 
+
 namespace BugAV {
+
+#undef av_err2str
+#define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
+
 class Define {
 public:
     Define();
