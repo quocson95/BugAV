@@ -5,6 +5,7 @@
 #include <QMutex>
 #include <QObject>
 #include <QRunnable>
+#include "memory"
 extern "C" {
 #include <libavutil/frame.h>
 }
@@ -84,7 +85,7 @@ private:
     bool requestStop;
     QMutex mutex;    
 
-    qint64 lastUpdateFrame;
+//    qint64 lastUpdateFrame;
 
     QImage *img;
 
@@ -105,9 +106,11 @@ private:
     // todo allow another format
     AVPixelFormat preferPixFmt;
 
-    QElapsedTimer *elPrevFrame;
+    std::unique_ptr<QElapsedTimer> elSinceFirstFrame;
 
-    QElapsedTimer *elTimer;
+    QElapsedTimer* elPrevFrame;
+
+    QElapsedTimer* elTimer;
 
     qint64 currentFramePts;
 

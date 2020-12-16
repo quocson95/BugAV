@@ -15,6 +15,7 @@ class IBugAVRenderer;
 class BugPlayer;
 class Define;
 class AudioRender;
+class FakeStreamDecoder;
 
 class BugPlayerPrivate
 {
@@ -78,7 +79,9 @@ public:
 
     bool isMute() const;
 
+    void enableHIKSDK();
     void setWindowForHIKSDK(QWidget *w);
+    void setWindowFishEyeForHIKSDK(QString id, QWidget *w);
 
     BugPlayer *q_ptr;
     VideoState *is;
@@ -88,6 +91,8 @@ public:
 
     Render *render;
     AudioRender *audioRender;
+
+    FakeStreamDecoder *fakeStream;
 
     QString curFile;
 

@@ -3,10 +3,10 @@
 
 #include "IBugAVRenderer.h"
 
-#include <QWidget>
+#include <QFrame>
 
 namespace BugAV {
-class IBugAVDefaultRenderer: public QWidget, public IBugAVRenderer
+class IBugAVDefaultRenderer: public QFrame, public IBugAVRenderer
 {
 public:
     IBugAVDefaultRenderer(QWidget *parent = nullptr);
@@ -23,11 +23,23 @@ public:
     QImage receiveFrame(const QImage &frame) override;
     void clearBufferRender() override;
 
+    void registerWinIDChangedCB(const CallbackWinIDChanged &cbFunc, QString id, void *opaque) override;
+
+private:
+    CallbackWinIDChanged winIDChangedCB;
+    void *opaque;
+    QString id;
 //static Config &ins() {
 //    static GlobalCofig instance;
 //    return  instance.cfg;
 //}
 
+
+    // QWidget interface
+protected:
+//    void showEvent(QShowEvent *event);
+
+//    bool event(QEvent *event);
 };
 
 #define BugAVRendererDefault BugAV::BugAVtRendererImpl::instance()

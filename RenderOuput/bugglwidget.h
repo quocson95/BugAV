@@ -17,7 +17,6 @@
 
 namespace BugAV {
 constexpr int BUFF_SIZE = 2;
-
 class LIB_EXPORT BugGLWidget : public QOpenGLWidget, protected QOpenGLFunctions, public IBugAVRenderer
 {
     Q_OBJECT
@@ -149,10 +148,20 @@ private:
     QReadWriteLock rwMutex;
     bool denyPaint;
 
+    CallbackWinIDChanged winIDChangedCB;
+    void *opaque;
+    QString id;
+
     // IBugAVRenderer interface
 public:
     void newFrame(const Frame &frame) override;
-    void updateFrameBuffer(const Frame &frame) override;
+    void updateFrameBuffer(const Frame &frame) override;   
+    void registerWinIDChangedCB(const CallbackWinIDChanged &cbFunc,QString id, void *opaque) override;
+
+    // QObject interface
+public:
+//    bool event(QEvent *event);
+
 };
 }
 #endif // BugGLWidget_H

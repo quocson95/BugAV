@@ -4,6 +4,7 @@
 #include "common/videostate.h"
 #include "Decoder/videodecoder.h"
 #include "Decoder/audiodecoder.h"
+#include "Decoder/fakestreamdecoder.h"
 #include "Demuxer/demuxer.h"
 #include "Render/render.h"
 #include <common/define.h>
@@ -12,6 +13,7 @@
 namespace BugAV {
 BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
     : q_ptr{q}
+    ,fakeStream{nullptr}
 {
 //    moveToThread(QThreadPool::globalInstance());
     def = new Define;
@@ -310,9 +312,20 @@ bool BugPlayerPrivate::isMute() const
     return is->muted;
 }
 
+void BugPlayerPrivate::enableHIKSDK()
+{
+    this->fakeStream = new FakeStreamDecoder{is};
+    this->demuxer->setFakeStreamDecoder(fakeStream);
+}
+
 void BugPlayerPrivate::setWindowForHIKSDK(QWidget( *w))
 {
     demuxer->setWindowForHIKSDK(w);
+}
+
+void BugPlayerPrivate::setWindowFishEyeForHIKSDK(QString id, QWidget *w)
+{
+    this->fakeStream->setWindowFishEyeForHIKSDK(id, w);
 }
 
 

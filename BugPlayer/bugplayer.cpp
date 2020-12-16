@@ -7,6 +7,7 @@
 #include "common/videostate.h"
 #include <Decoder/videodecoder.h>
 #include "Decoder/audiodecoder.h"
+#include "Decoder/fakestreamdecoder.h"
 #include <QDebug>
 
 
@@ -15,6 +16,7 @@ namespace BugAV {
 BugPlayer::BugPlayer(QObject *parent, ModePlayer mode)
     :QObject(parent)
     ,d_ptr{new BugPlayerPrivate{this, mode}}
+    ,useHIKSDK{false}
 {
     connect(d_ptr->demuxer, &Demuxer::loadDone, this, &BugPlayer::streamLoaded);
     connect(d_ptr->demuxer, &Demuxer::loadFailed, this, &BugPlayer::streamLoadedFailed);
@@ -305,9 +307,28 @@ QMap<QString, QString> BugPlayer::getMetadata() const
     return d_ptr->is->metadata;
 }
 
+void BugPlayer::enableHIKSDK()
+{
+    useHIKSDK = true;
+    d_ptr->enableHIKSDK();
+
+    disconnect(d_ptr->render, &Render::firstFrameComming, this, &BugPlayer::firstFrameComming);
+    disconnect(d_ptr->render, &Render::noRenderNewFrameLongTime, this, &BugPlayer::noRenderNewFrameLongTime);
+    disconnect(d_ptr->render, &Render::positionChanged, this, &BugPlayer::positionChanged);
+    disconnect(d_ptr->render, &Render::noMoreFrame, this, &BugPlayer::noMoreFrame);
+
+    connect(d_ptr->fakeStream, &FakeStreamDecoder::firstFrameComming, this, &BugPlayer::firstFrameComming);
+    connect(d_ptr->fakeStream, &FakeStreamDecoder::noRenderNewFrameLongTime, this, &BugPlayer::noRenderNewFrameLongTime);
+}
+
 void BugPlayer::setWindowForHIKSDK(QWidget *w)
 {
     d_ptr->setWindowForHIKSDK(w);
+}
+
+void BugPlayer::setWindowFishEyeForHIKSDK(QString id, QWidget *w)
+{
+    d_ptr->setWindowFishEyeForHIKSDK(id, w);
 }
 
 void BugPlayer::positionChangedSlot(qint64 posi)

@@ -4,6 +4,7 @@
 
 #include <QImage>
 #include <QSize>
+#include "functional"
 
 struct AVFrame;
 
@@ -63,7 +64,9 @@ struct Frame {
 namespace BugAV {
 
 class IBugAVRenderer  {
+
 public:
+     using CallbackWinIDChanged = std::function<void (unsigned int wnID, QString id, void *opaque)>;
 //    IBugAVRenderer() = default;
     virtual ~IBugAVRenderer() = default;
     virtual void updateData(AVFrame *frame) = 0;    
@@ -92,6 +95,8 @@ public:
     virtual void updateFrameBuffer(const Frame& frame) {
         Q_UNUSED(frame)
     }
+
+    virtual void registerWinIDChangedCB(const CallbackWinIDChanged &cbFunc, QString id, void *opaque) = 0;
 
 
 

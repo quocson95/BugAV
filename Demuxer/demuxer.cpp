@@ -19,15 +19,7 @@ extern "C" {
 #include "Decoder/decoder.h"
 #include "handlerinterupt.h"
 #include <Render/audiorender.h>
-
-#ifdef Q_OS_WIN
-    #include <windows.h>
-#endif
-#include <QWindow>
-
-//#include <PlayM4.h>
-
-#include <Decoder/fakestreamdecoder.h>
+#include "Decoder/fakestreamdecoder.h"
 
 namespace BugAV {
 Demuxer::Demuxer(VideoState *is, Define *def)
@@ -55,7 +47,6 @@ Demuxer::Demuxer(VideoState *is, Define *def)
     curThread = new QThread(this);
     moveToThread(curThread);
     connect(curThread, SIGNAL (started()), this, SLOT (process()));
-    fakeStream = new FakeStreamDecoder{is};
 
 //    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
 }
@@ -350,15 +341,24 @@ int Demuxer::readFrame()
     } else {
         is->eof = 0;
     }
+
+    if (fakeStream != nullptr) {
+        AVPacket *clonePkt = av_packet_alloc();
+        av_new_packet(clonePkt, pkt->size);
+        av_packet_ref(clonePkt, pkt);
+        fakeStream->processPacket(clonePkt);
+        av_packet_unref(pkt);
+        return 0;
+    }
     if (pkt->stream_index == is->video_stream
             && !(is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
         if (!skipNonKeyFrame) {
 //            PlayM4_InputData(LONG(g_lPort), pkt->data, pkt->size);
 //            checkError("PlayM4_InputVideoData", g_lPort);
-            AVPacket *clonePkt = av_packet_alloc();
-            av_new_packet(clonePkt, pkt->size);
-            av_packet_ref(clonePkt, pkt);
-            fakeStream->processPacket(clonePkt);
+//            AVPacket *clonePkt = av_packet_alloc();
+//            av_new_packet(clonePkt, pkt->size);
+//            av_packet_ref(clonePkt, pkt);
+//            fakeStream->processPacket(clonePkt);
             is->videoq->put(pkt);
 //            qDebug() << "pkt size " << pkt->size;
 
@@ -772,6 +772,11 @@ void Demuxer::enableSkipNonKeyFrame(bool value)
 void Demuxer::setWindowForHIKSDK(QWidget *w)
 {
     fakeStream->setWindowForHIKSDK(w);
+}
+
+void Demuxer::setFakeStreamDecoder(FakeStreamDecoder *fakeStreamDec)
+{
+    this->fakeStream = fakeStreamDec;
 }
 
 qint64 Demuxer::getStartTime() const

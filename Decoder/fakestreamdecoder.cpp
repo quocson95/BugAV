@@ -10,9 +10,23 @@ extern "C" {
 #include <QUuid>
 #include <QWidget>
 #include <QWindow>
-#include "PlayM4.h"
+
+#include <RenderOuput/IBugAVRenderer.h>
+#include <RenderOuput/bugglwidget.h>
+#include <RenderOuput/ibugavdefaultrenderer.h>
+
 
 namespace BugAV {
+
+static void CALLBACK PlayM4DisplayCallBackEx(DISPLAY_INFO *pstDisplayInfo) {
+    auto fakeStreamDec = reinterpret_cast<FakeStreamDecoder *>(pstDisplayInfo->nUser);
+    fakeStreamDec->playM4DispCB();
+}
+
+static void WinIDFECChangedCallback(unsigned int wnID, QString id, void *opaque) {
+    auto fakeStreamDec = reinterpret_cast<FakeStreamDecoder *>(opaque);
+    fakeStreamDec->winIDFECChanged(wnID, id);
+}
 
 constexpr int MAX_DURATION_FILE = 60*1000; // ms
 using HWND = WId;
@@ -32,7 +46,25 @@ FakeStreamDecoder::FakeStreamDecoder(VideoState *is):
     ,lastMuxDTSRecord{0}
     ,indexForFile{0}
     ,g_lPort{-1}
+  ,mainWn{nullptr}
+  ,kCheckFrameDisp{-1}
 {    
+    if (g_lPort == -1)
+    {
+        LONG x;
+        auto bFlag = PlayM4_GetPort(&x);
+        if (bFlag == false)
+        {
+            PlayM4_GetLastError(g_lPort);
+            return;
+        }
+        g_lPort = x;
+    }
+    PlayM4_SetStreamOpenMode(g_lPort, STREAME_FILE);
+    checkError("PlayM4_SetStreamOpenMode", g_lPort);
+    PlayM4_OpenStream(g_lPort, nullptr, 0, SOURCE_BUF_MAX);
+    checkError("PlayM4_OpenFile", g_lPort);
+    PlayM4_SetDisplayCallBackEx(g_lPort, PlayM4DisplayCallBackEx, this);
 
     thread = new QThread{this};
     connect(thread, SIGNAL(started()), this, SLOT(process()));
@@ -42,15 +74,21 @@ FakeStreamDecoder::FakeStreamDecoder(VideoState *is):
     auto pathStr =  rootPath + "/" + uuidStr.midRef(1, uuidStr.length() - 2 );
     path = pathStr.toUtf8();
     QDir dir {rootPath};
-//    dir.removeRecursively();
     QDir dir2;
-    dir2.mkpath(pathStr);
+    dir2.mkpath(path);
+//    dir.removeRecursively();
+
+    elSinceFirstFrame = std::make_unique<QElapsedTimer>();
 
 }
 
 FakeStreamDecoder::~FakeStreamDecoder()
 {
     stop();
+    // remove all file
+    QDir dir{path};
+//    dir.mkpath(path);
+    dir.removeRecursively();
 }
 
 void FakeStreamDecoder::start()
@@ -79,35 +117,68 @@ void FakeStreamDecoder::stop()
 }
 
 void FakeStreamDecoder::setWindowForHIKSDK(QWidget *w)
-{
-    if (g_lPort == -1)
-    {
-        LONG x;
-        auto bFlag = PlayM4_GetPort(&x);
-        if (bFlag == false)
-        {
-            PlayM4_GetLastError(g_lPort);
-            return;
-        }
-        g_lPort = x;
+{    
+    mainWn = w;
+    if (mainWn == nullptr ) {
+        PlayM4_Play(g_lPort, 0);
+        return;
     }
-    PlayM4_SetStreamOpenMode(g_lPort, STREAME_FILE);
-    checkError("PlayM4_SetStreamOpenMode", g_lPort);
+    auto hWnd = PLAYM4_HWND(mainWn->windowHandle()->winId());
+    PlayM4_Play(g_lPort, hWnd);
+//    checkError("PlayM4_Play", g_lPort);
 
-//   PlayM4_OpenStream(g_lPort, (PBYTE)x, 40, 1024 * 1024);
-   PlayM4_OpenStream(g_lPort, nullptr, 0, SOURCE_BUF_MAX);
-//    char name[] = "/home/sondq/Documents/dev/build-BugAV-Desktop_Qt_5_12_9_GCC_64bit-Debug/abc/fba57199-d08c-4cca-a937-d5d6fade9946/0.ts";
-//    char name[] = "/home/sondq/Downloads/abc.mp4";
-//    PlayM4_OpenFile(g_lPort, name);
-    checkError("PlayM4_OpenFile", g_lPort);
+//    PlayM4_FEC_Enable(g_lPort);
+//    checkError("PlayM4_FEC_Enable", g_lPort);
 
-    auto hWnd = PLAYM4_HWND(w->windowHandle()->winId());
-    PlayM4_Play(g_lPort, 0);
-    PlayM4_FEC_Enable(true);
-    unsigned int n_Port;
-    PlayM4_FEC_GetPort(g_lPort, &n_Port, FEC_PLACE_CEILING, FEC_CORRECT_PTZ);
-    PlayM4_FEC_SetWnd(g_lPort, n_Port, reinterpret_cast<void *>(hWnd));
-    checkError("PlayM4_Play", g_lPort);
+//    PlayM4_FEC_GetPort(g_lPort, &s_lPort, FEC_PLACE_CEILING, FEC_CORRECT_PTZ);
+//    checkError("PlayM4_FEC_GetPort", g_lPort);
+
+//    PlayM4_FEC_GetParam(g_lPort, s_lPort, stFEPara1);
+//    checkError("PlayM4_FEC_GetParam", g_lPort);
+
+//    stFEPara1->nUpDateType = FEC_UPDATE_PTZPARAM | FEC_UPDATE_PTZZOOM;
+//    stFEPara1->stPTZParam.fPTZPositionX = 0.3f;
+//    stFEPara1->stPTZParam.fPTZPositionY = 0.3f;
+//    stFEPara1->fZoom                    = 0.00001f;
+
+//    PlayM4_FEC_SetParam(g_lPort, s_lPort, stFEPara1);
+//    checkError("PlayM4_FEC_SetParam", g_lPort);
+
+//    PlayM4_FEC_SetWnd(g_lPort, s_lPort, reinterpret_cast<void *>(hWnd));
+//    checkError("PlayM4_FEC_SetWnd", g_lPort);
+}
+
+void FakeStreamDecoder::setWindowFishEyeForHIKSDK(QString id, QWidget *w)
+{
+    if (fishEyeView.empty()) {
+        PlayM4_FEC_Enable(g_lPort);
+        checkError("PlayM4_FEC_Enable", g_lPort);
+    }
+
+    if (!fishEyeView.contains(id)) {
+        FishEyeSubView *fec = new FishEyeSubView;
+        unsigned int port;
+        PlayM4_FEC_GetPort(g_lPort, &port, FEC_PLACE_CEILING, FEC_CORRECT_PTZ);
+        checkError("PlayM4_FEC_GetPort", g_lPort);
+        fec->port = port;
+        fec->w = w;
+        PlayM4_FEC_GetParam(g_lPort, port, &fec->param);
+        checkError("PlayM4_FEC_GetParam", g_lPort);
+        fishEyeView.insert(id, fec);
+    }
+    auto fec = fishEyeView.value(id);
+    PlayM4_FEC_SetParam(g_lPort, fec->port, &fec->param);
+    checkError("PlayM4_FEC_SetParam", g_lPort);
+
+    auto wnID = w->winId();
+    PlayM4_FEC_SetWnd(g_lPort, fec->port, reinterpret_cast<void *>(wnID));
+    checkError("PlayM4_FEC_SetWnd" , g_lPort);
+
+//    auto x = fec->w->windowHandle();
+//    PlayM4_FEC_SetWnd(g_lPort, s_lPort, reinterpret_cast<void *>(fec->w->windowHandle()->winId()));
+//    checkError("PlayM4_FEC_SetWnd", g_lPort);
+//    auto render = reinterpret_cast<IBugAVDefaultRenderer *>(w);
+//    render->registerWinIDChangedCB(WinIDFECChangedCallback, id, this);
 }
 
 int FakeStreamDecoder::openFileOutput()
@@ -215,14 +286,14 @@ void FakeStreamDecoder::endSegment()
         freeOutput();
         return;
     }
-    if (indexForFile == 1) {
-        err = av_write_trailer(ctxOutput);
-        if (err != 0)  {
-            qDebug() << "av_write_trailer " << nameFileOuput << " error " << err;
-            freeOutput();
-            return;
-        }
+//    if (indexForFile == 1) {
+    err = av_write_trailer(ctxOutput);
+    if (err != 0)  {
+        qDebug() << "av_write_trailer " << nameFileOuput << " error " << err;
+        freeOutput();
+        return;
     }
+//    }
     freeOutput();
 }
 
@@ -255,6 +326,7 @@ void FakeStreamDecoder::processPacket(AVPacket *pkt)
     if (pkt == nullptr || pkt->size == 0) {
         return;
     }
+//    av_packet_unref(pkt);
     if (waitForKeyFrame) {
         if (!IsKeyFrame(pkt)) {
             av_packet_free(&pkt);
@@ -277,6 +349,22 @@ void FakeStreamDecoder::processPacket(AVPacket *pkt)
     gop.emplace_back(pkt);
 }
 
+void FakeStreamDecoder::playM4DispCB()
+{
+    if (!elSinceFirstFrame->isValid()) {
+        emit firstFrameComming();
+        elSinceFirstFrame->start();
+        startTimer(&kCheckFrameDisp, 1000);
+    }
+}
+
+void FakeStreamDecoder::winIDFECChanged(unsigned int wnID, QString id)
+{
+    auto fec = fishEyeView.value(id);
+    PlayM4_FEC_SetWnd(g_lPort, fec->port, reinterpret_cast<void *>(wnID));
+    checkError("PlayM4_FEC_SetWnd" , g_lPort);
+}
+
 void BugAV::FakeStreamDecoder::process()
 {
     // wait for first file
@@ -291,6 +379,8 @@ void BugAV::FakeStreamDecoder::process()
         thread->terminate();
         return;
     }
+
+    setWindowForHIKSDK(mainWn);
 
     while (!reqStop) {
         if (fileQueue.empty()) {
@@ -325,9 +415,13 @@ void FakeStreamDecoder::readFile(FakeStreamDecoder::FIQ *fiq)
                 break;
             }
         }
+        if (reqStop) {
+            return;
+        }
     }
     qDebug() << "Start read file " << fiq->path;
     QFile file{fiq->path};
+
     if (!file.open(QIODevice::ReadOnly)) {
         qDebug() << "open file " << fiq->path << " error";
         return;
@@ -348,7 +442,8 @@ void FakeStreamDecoder::readFile(FakeStreamDecoder::FIQ *fiq)
 //    }
     memset(buffer, 0, sizeof(char)*MAX_BYTE_READ);
     auto fileSize = file.size();
-    while (!reqStop) {
+    while (!reqStop)
+    {
         if ((currentByteRead + MAX_BYTE_READ) > fileSize) {
             if (fiq->status != FileStatus::WriteDone) {
                 thread->usleep(1);
@@ -379,8 +474,9 @@ void FakeStreamDecoder::readFile(FakeStreamDecoder::FIQ *fiq)
             memset(buffer, 0, sizeof(char)*MAX_BYTE_READ);
             currentByteRead += byteRead;
         }
-
     }
+
+    file.close();
 }
 
 void FakeStreamDecoder::removeFile(FakeStreamDecoder::FIQ *fiq)
@@ -390,6 +486,37 @@ void FakeStreamDecoder::removeFile(FakeStreamDecoder::FIQ *fiq)
     }
     QFile file{fiq->path};
     file.remove();
+}
+
+void FakeStreamDecoder::killTimer(int *kId)
+{
+    if (kId == nullptr || *kId < 0) {
+        return;
+    }
+    QObject::killTimer(*kId);
+    *kId = -1;
+    return;
+}
+
+void FakeStreamDecoder::startTimer(int *kId, int interval)
+{
+    if (kId == nullptr) {
+        return ;
+    }
+    killTimer(kId);
+    *kId = QObject::startTimer(interval);
+    return;
+}
+
+void FakeStreamDecoder::timerEvent(QTimerEvent *event)
+{
+    if (event->timerId() == kCheckFrameDisp) {
+        if (elSinceFirstFrame->hasExpired(10000)) {
+            elSinceFirstFrame->invalidate();
+            emit noRenderNewFrameLongTime();
+            killTimer(&kCheckFrameDisp);
+        }
+    }
 }
 
 }

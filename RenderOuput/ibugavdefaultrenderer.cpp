@@ -1,13 +1,16 @@
 #include "ibugavdefaultrenderer.h"
 
 #include <QDebug>
+#include <QWindow>
+
 namespace BugAV {
 
 IBugAVDefaultRenderer::IBugAVDefaultRenderer(QWidget *parent)
-    :QWidget(parent)
+    :QFrame(parent)
     ,IBugAVRenderer()
 {
-
+//    setAttribute(Qt::WA_NativeWindow);
+//        setAttribute(Qt::WA_NoSystemBackground);
 }
 
 IBugAVDefaultRenderer::~IBugAVDefaultRenderer()
@@ -53,5 +56,41 @@ void IBugAVDefaultRenderer::clearBufferRender()
 {
 
 }
+
+void IBugAVDefaultRenderer::registerWinIDChangedCB(const IBugAVRenderer::CallbackWinIDChanged &cbFunc, QString id, void *opaque)
+{
+    this->winIDChangedCB = cbFunc;
+    this->opaque = opaque;
+    this->id = id;
+    if (this->winIDChangedCB != nullptr) {
+        unsigned int wnID = winId();
+        this->winIDChangedCB(wnID, id, opaque);
+    }
+//    showEvent(nullptr);
+}
+
+//void IBugAVDefaultRenderer::showEvent(QShowEvent *event)
+//{
+//    QWidget::winId();
+//    if (this->winIDChangedCB != nullptr && windowHandle() != nullptr) {
+//       unsigned int wnID = windowHandle()->winId();
+//       this->winIDChangedCB(wnID, id, opaque);
+//    }
+//}
+
+//bool IBugAVDefaultRenderer::event(QEvent *event)
+//{
+//    auto t = event->type();
+//    if (windowTitle() != nullptr) {
+//        qDebug() << windowHandle()->winId();
+//    }
+//    if (event->type() == QEvent::WinIdChange) {
+//        if (this->winIDChangedCB != nullptr) {
+//            unsigned int wnID = windowHandle()->winId();
+//            this->winIDChangedCB(wnID, id, opaque);
+//        }
+//    }
+//    return QWidget::event(event);
+//}
 
 }

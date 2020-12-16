@@ -11,6 +11,7 @@ extern "C" {
 #include <QCoreApplication>
 #include <math.h>
 #include "QTimer"
+#include <QWindow>
 
 #ifdef Q_OS_LINUX
 #include <x86intrin.h>
@@ -555,6 +556,30 @@ void BugGLWidget::updateFrameBuffer(const Frame &frame)
     }
     emit reqUpdate();
 }
+
+void BugGLWidget::registerWinIDChangedCB(const CallbackWinIDChanged &cbFunc, QString id, void *opaque)
+{
+    this->winIDChangedCB = cbFunc;
+    this->opaque = opaque;
+    this->id = id;
+    if (this->winIDChangedCB != nullptr && windowHandle() != nullptr) {
+        unsigned int wnID = windowHandle()->winId();
+        this->winIDChangedCB(wnID, id, opaque);
+    }
+}
+
+//bool BugGLWidget::event(QEvent *event)
+//{
+//    auto t = event->type();
+//    if (event->type() == QEvent::WinIdChange) {
+//        if (this->winIDChangedCB != nullptr) {
+//            unsigned int wnID = windowHandle()->winId();
+//            this->winIDChangedCB(wnID, id, opaque);
+//        }
+//    }
+//    return QOpenGLWidget::event(event);
+//}
+
 
 //void BugGLWidget::newImageBuffer(const QImage &img)
 //{

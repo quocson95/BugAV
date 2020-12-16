@@ -77,7 +77,9 @@ public:
 
     QMap<QString, QString> getMetadata() const;
 
+    void enableHIKSDK();
     void setWindowForHIKSDK(QWidget *w);
+    void setWindowFishEyeForHIKSDK(QString id, QWidget *w);
 
 Q_SIGNALS:
     void stateChanged(BugAV::AVState state);
@@ -113,6 +115,7 @@ private:
     //Q_DECLARE_PRIVATE(BugPlayer);
     QScopedPointer<BugPlayerPrivate> d_ptr;
     bool needSeekCurrent;
+    bool useHIKSDK;
 };
 }
 Q_DECLARE_METATYPE(BugAV::AVState);

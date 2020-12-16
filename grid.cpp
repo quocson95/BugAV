@@ -20,7 +20,7 @@ Grid::Grid(QWidget *parent) :
     size = 1;
     // camera fish eye
 //    files << "rtsp://root:@Sgpmc256@@113.166.120.32:8554/live.sdp";
-    files << "rtmp://61.28.233.79:1935/live/189d2377-bf2a-47d1-9207-2784343d567c_main_1608023731?ci=JDE4OWQyMzc3LWJmMmEtNDdkMS05MjA3LTI3ODQzNDNkNTY3YwIzOAAEbWFpbgN2Y2MbMWxnZXppYU5MOWEwNmZIdnF2UFJUSmZsMktsAAA=&sig=d9c0731ac";
+    files << "rtmp://61.28.233.149:1935/live/6584e6ff-1476-4c2f-89e2-f78fb8530868_sub_1603685183?ci=JDY1ODRlNmZmLTE0NzYtNGMyZi04OWUyLWY3OGZiODUzMDg2OAIzOAADc3ViA3ZjYxsxbGlpZFQ3SVByWHQwUUJYQW5PWDU4ZzNMQmsAAA==&sig=5baf8f7cb";
 //    files << "https://api.stg.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1604721339&id=973a7c32e6d3f340f464a723c7b754eeff3bd5fc&tk=67574b5e4d75cb5e18e84c8032ff2e3112199c2e&noRedirect=true";
 //    files << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603269402&id=d72fdf56dc08a0052920d454ccb1fe0b561fcb59&tk=aabe3cbbda1402b9a4c9cc11bd0cfa8aa09a3e7f&noRedirect=true";
 //    files  << "https://api.dev.vcloudcam.vn/rec/v2/segment/playlist-public/?expire=1603269598&id=f0c1c0d70c88aa8540916d661e62c6e058022fea&tk=de612ae9a4c55e929c827adcfb4f45c92a2917b4&noRedirect=true";
@@ -89,13 +89,18 @@ void Grid::start()
 void Grid::addPlayer(int i, int j)
 {
     auto player = new BugAV::BugPlayer(this, BugAV::ModePlayer::RealTime);
-    auto renderer = new BugAV::BugGLWidget;
+    auto renderer = new BugAV::IBugAVDefaultRenderer;
+//     w.show();
+
+
+    player->enableHIKSDK();
+    player->setWindowFishEyeForHIKSDK("id", renderer);
     player->setPixFmtRGB32(true);
     QVariantHash avformat;
     avformat["probesize"] = 4096;
 //    avformat["analyzeduration"] = 1000000;
     avformat["rtsp_flags"] = "prefer_tcp";
-    player->setRenderer(renderer);
+//    player->setRenderer(renderer);
     player->setOptionsForFormat(avformat);
     player->setPixFmtRGB32(true);
 //    renderer->setRegionOfInterest(100, 100, 200, 200);
@@ -106,12 +111,13 @@ void Grid::addPlayer(int i, int j)
     player->setSpeed(1);    
 //    player->seek(509);
 //    player->setDisableAudio();
-    ui->g->addWidget(renderer, i, j);
+
     players.push_back(player);
     renderers.push_back(renderer);
-    w.show();
+    ui->g->addWidget(renderer, i, j);
+
 //    auto x = w.windowHandle()->winId();
-    player->setWindowForHIKSDK(&w);
+//    player->setWindowForHIKSDK(&w);
 //        if (i == 0 && j ==0) {
 //            player->setSaveRawImage(true);
 //        }

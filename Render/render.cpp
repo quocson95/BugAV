@@ -43,12 +43,13 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
 //    ,QRunnable()
     ,renderer{renderer}
     ,is{is}
+    ,elSinceFirstFrame{nullptr}
     ,elPrevFrame{nullptr}
 //    ,picture{nullptr}
 {    
     defaultRenderer = BugAVRendererDefault;
     elTimer = nullptr;
-
+    elSinceFirstFrame = std::make_unique<QElapsedTimer>();
     if (renderer == nullptr) {
         renderer = defaultRenderer;
     }
@@ -58,12 +59,12 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
 //    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
     timerCheckNoFrameRender = new QTimer{};
     connect(timerCheckNoFrameRender, &QTimer::timeout, [=]()->void {
-        if (this->lastUpdateFrame == 0) {
+        if (!this->elSinceFirstFrame->isValid()) {
             return;
-        }
-        auto now = QDateTime::currentMSecsSinceEpoch();
-        if (now - this->lastUpdateFrame > 10000) {
+        }        
+        if (this->elSinceFirstFrame->hasExpired(10000)) {
             emit noRenderNewFrameLongTime();
+            this->elSinceFirstFrame->invalidate();
         }
     });
     preferPixFmt = AVPixelFormat::AV_PIX_FMT_NONE;
@@ -80,6 +81,7 @@ Render::~Render()
     thread->deleteLater();
     timerCheckNoFrameRender->deleteLater();
 
+
 }
 
 void Render::start()
@@ -90,7 +92,7 @@ void Render::start()
     if (thread->isRunning()) {
         return;
     }
-    lastUpdateFrame = 0;
+    elSinceFirstFrame->invalidate();
     requestStop = false;   
     lastVideoRefresh = 0;
     remaining_time = 0;
@@ -212,10 +214,10 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
         return;
     }
 
-    if (lastUpdateFrame == 0) {
+    if (!elSinceFirstFrame->isValid()) {
         emit firstFrameComming();
-    }
-    lastUpdateFrame = QDateTime::currentMSecsSinceEpoch();
+        elSinceFirstFrame->start();
+    }    
 
     if (renderer == nullptr || renderer == defaultRenderer) {
         return;
@@ -591,7 +593,7 @@ bool Render::isRunning() const
 
 QString Render::statistic()
 {
-    auto s = QString("Last render %1").arg(QDateTime::fromMSecsSinceEpoch(lastUpdateFrame).toString());
+    auto s = QString("Last render %1").arg(QDateTime::fromMSecsSinceEpoch(elSinceFirstFrame->elapsed()).toString());
     return s;
 }
 

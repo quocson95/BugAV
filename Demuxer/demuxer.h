@@ -58,6 +58,8 @@ public:
 
     void setWindowForHIKSDK(QWidget *w);
 
+    void setFakeStreamDecoder(FakeStreamDecoder *fakeStreamDec);
+
 signals:
     void started();
     void stopped();
