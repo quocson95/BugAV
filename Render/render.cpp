@@ -42,6 +42,7 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
     ,renderer{renderer}
     ,is{is}
     ,elPrevFrame{nullptr}
+    ,dstFrame{nullptr}
 //    ,picture{nullptr}
 {    
     defaultRenderer = BugAVRendererDefault;
@@ -118,7 +119,7 @@ double Render::vp_duration(double maxFrameDuration, Frame *vp, Frame *nextvp)
 {
     if (vp->serial == nextvp->serial) {
         double duration = nextvp->getPts() - vp->getPts();
-        if (isnan(duration) || duration <= 0.0 || duration > maxFrameDuration) {
+        if (qIsNaN(duration) || duration <= 0.0 || duration > maxFrameDuration) {
             return vp->duration;
         } else {
             return duration;
@@ -225,9 +226,23 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
     }
     elPrevFrame->restart();
 
-    if (!initSwsBuff) {
+    if (!initSwsBuff) {       
+        auto ratio = 1.0 / (double(frame->width)  / 1080.0);
+//        auto ratio = 1.0;
+//        if (ratio < 1.0) {
+//            ratio = 1.0;
+//        }
+//         ratio = 0.5;
+        if (ratio > 1.0) {
+            ratio = 1.0;
+        }
+
+        dstFrame = av_frame_alloc();
+        dstFrame->width = frame->width * ratio;
+        dstFrame->height = frame->height *ratio;
+        dstFrame->format = AV_PIX_FMT_RGB32;
         initSwsBuff = true;
-        auto ret = av_image_alloc(dst_data, dst_linesize, frame->width, frame->height, AV_PIX_FMT_RGB32, 1);
+        auto ret = av_image_alloc(dstFrame->data, dstFrame->linesize, dstFrame->width, dstFrame->height, (AVPixelFormat)dstFrame->format, 1);
         if (ret < 0) {
             qDebug() << "Init sws data error ";
             initSwsBuff =  false;
@@ -237,7 +252,7 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
     auto fmt = fixDeprecatedPixelFormat(AVPixelFormat(is->viddec.avctx->pix_fmt));
     frame->format = fmt;
     auto ret = 0;
-    AVFrame *dstFrame = frame;
+//    AVFrame *dstFrame = frame;
     if (this->preferPixFmt == AVPixelFormat::AV_PIX_FMT_NONE && fmt == AVPixelFormat::AV_PIX_FMT_YUV420P) {
 //        // do nothing.
 //        // native render yuv420p
@@ -245,21 +260,21 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
 //         todo native renderer non yuv 420p
         *img_convert_ctx = sws_getCachedContext(*img_convert_ctx,
                     is->viddec.avctx->width, is->viddec.avctx->height, fmt,
-                    is->viddec.avctx->width, is->viddec.avctx->height, AV_PIX_FMT_RGB32,
+                    dstFrame->width, dstFrame->height, (AVPixelFormat)dstFrame->format,
                     sws_flags,nullptr, nullptr, nullptr);
 
         if (*img_convert_ctx) {
             ret = sws_scale(*img_convert_ctx  ,frame->data, frame->linesize, 0,
-                            is->viddec.avctx->height, dst_data, dst_linesize);
+                            is->viddec.avctx->height, dstFrame->data, dstFrame->linesize);
 
         }
-        for (auto i = 0; i < 3; i++) {
-            dstFrame->data[i] = dst_data[i];
-            dstFrame->linesize[i] = dst_linesize[i];
-        }
-        dstFrame->width = frame->width;
-        dstFrame->height = frame->height;
-        dstFrame->format = AV_PIX_FMT_RGB32;
+//        for (auto i = 0; i < 3; i++) {
+////            dstFrame->data[i] = dst_data[i];
+//            dstFrame->linesize[i] = dst_linesize[i];
+//        }
+//        dstFrame->width = frame->width;
+//        dstFrame->height = frame->height;
+//        dstFrame->format = AV_PIX_FMT_RGB32;
     }
 //    is->lastVideoPts = dstFrame->pts;
 
@@ -566,7 +581,8 @@ bool Render::isAvailFirstFrame()
 void Render::freeSwsBuff()
 {
     if (initSwsBuff == true) {
-        av_freep(dst_data);
+        av_freep(&dstFrame->data[0]);
+        av_frame_free(&dstFrame);
         initSwsBuff = false;
     }
 }

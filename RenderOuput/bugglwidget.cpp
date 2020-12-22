@@ -45,6 +45,7 @@ const char g_fragmentShader[] = {
     "1.596, -0.813,  0) * yuv;\n"
     "gl_FragColor = vec4(rgb, 1);\n"
     "}\n" };
+
 const GLfloat m_verticesA[20] = { 1, 1, 0, 1, 0, -1, 1, 0, 0, 0, -1, -1, 0, 0,
                             1, 1, -1, 0, 1, 1, };  
 
@@ -56,6 +57,25 @@ static const char g_fragmentShaderRGB[] = glsl(
         varying vec2 vTextureCoord;
         void main() {
             vec4 c = texture2D(Ytex, vTextureCoord);
+            gl_FragColor = c;
+        });
+
+static const char g_fragmentShaderRGB_FEC[] = glsl(
+        uniform sampler2D Ytex;
+        uniform sampler2D u_Texture0;
+        varying vec2 vTextureCoord;
+        void main() {
+//            float p = 90.0;
+//            float t = 4.0;
+//            float z = 1.0;
+//            float r = 0.5;
+            vec2 coord = vTextureCoord;
+//            vec2 xyzr = vec2(coord.x * coord.x + coord.y * coord.y + z *z * r * r,
+//                             coord.x * coord.x + coord.y * coord.y + z *z * r * r);
+//            vec2 xy = vec2((r*(coord.x * cos(p) - coord.y*sin(p)*cos(t) + z*r*sin(t)*sin(p)))/sqrt(xyzr.x),
+//                          (r*(coord.x * sin(p) - coord.y*cos(p)*cos(t) + z*r*sin(t)*cos(p)))/sqrt(xyzr.x));
+//            vec2 xy = vec2(1, r*(coord.x * cos(p) - coord.y*sin(p)cos(t) ));
+            vec4 c = texture2D(Ytex, coord);
             gl_FragColor = c;
         });
 #undef glsl
@@ -542,7 +562,9 @@ void BugGLWidget::updateFrameBuffer(const Frame &frame)
     // todo realloc rawRgbFilter if rawRgbFilter.cap < frame.sizeInBytes
 
     QMutexLocker locker(&mutexBufRGB);
+    rawRgbFilter.resize(frame.cap);
     rawRgbFilter.sizeInBytes = frame.sizeInBytes;
+    rawRgbFilter.height = frame.height;
     for (auto i = 0 ; i < 3; i++) {
         rawRgbFilter.linesize[i] = frame.linesize[i];
     }
@@ -781,4 +803,17 @@ void BugGLWidget::setTransparent(bool transparent)
     // the entire backingstore is updated accordingly.
     window()->update();
 }
+
+Frame BugAV::BugGLWidget::getLastDisplayFrame()
+{
+    Frame f;
+    QMutexLocker locker(&mutexBufRGB);
+    if (rgbBuffer[bufIndex].y == nullptr) {
+        return f;
+    }    
+    f = rawRgbData.clone();
+    rwMutex.unlock();
+    return f;
+}
+
 }

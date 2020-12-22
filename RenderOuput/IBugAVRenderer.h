@@ -13,6 +13,7 @@ struct Frame {
     int height;
     int sizeInBytes;
     int cap;
+    int type;
 
     Frame() {
         for (auto i = 0; i < 3; i++) {
@@ -24,9 +25,18 @@ struct Frame {
         this->data[0] = nullptr;
         this->data[1] = nullptr;
         this->data[2] = nullptr;
+
+        this->type = 0;
     }
 
-    Frame clone() {
+    void resize(int size) {
+        if (cap <= size) {
+            this->cap = size;
+            this->data[0] = (unsigned char *)realloc(this->data[0], this->cap);
+        }
+    }
+
+    Frame clone() const {
         Frame f;
         f.cap = cap;
         f.height = height;
@@ -36,6 +46,7 @@ struct Frame {
         }        
         f.data[0] = static_cast<unsigned char *>(malloc(cap));
         memcpy(f.data[0], this->data[0], sizeInBytes);
+        f.type = this->type;
         return f;
     }
 

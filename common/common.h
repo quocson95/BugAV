@@ -15,7 +15,7 @@ extern "C" {
 
 namespace BugAV {
 
-#define sws_flags SWS_BICUBIC
+#define sws_flags SWS_FAST_BILINEAR
 
 class AudioParams {
 public:

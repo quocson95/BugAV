@@ -95,9 +95,9 @@ private:
 
     QTimer *timerCheckNoFrameRender;
 
-    uint8_t *dst_data[4];
+//    uint8_t *dst_data[4];
     bool initSwsBuff = false;
-    int dst_linesize[4];
+//    int dst_linesize[4];
 
     // prefer pixel format for render
     // default will using AV_PIX_FMT_YUV420P for render
@@ -110,6 +110,8 @@ private:
     QElapsedTimer *elTimer;
 
     qint64 currentFramePts;
+
+    AVFrame *dstFrame;
 
 public:
     void setSaveRawImage(bool value);

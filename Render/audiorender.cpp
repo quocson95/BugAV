@@ -194,7 +194,7 @@ void BugAV::AudioRender::sdl_audio_callback(void *opaque, Uint8 *stream, int len
         }
         is->audio_write_buf_size = is->audio_buf_size - is->audio_buf_index;
         /* Let's assume the audio driver that is used by SDL has two periods. */
-        if (!isnan(is->audio_clock)) {
+        if (!qIsNaN(is->audio_clock)) {
             is->audclk.setAt(is->audio_clock - (double)(2 * is->audio_hw_buf_size + is->audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, ar->audio_callback_time / 1000000.0);
             is->extclk.syncToSlave(&is->audclk);
         }

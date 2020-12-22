@@ -39,6 +39,7 @@ public:
     QImage receiveFrame(const QImage& frame) override;
 
     QImage getLastFrame() const;
+    Frame getLastDisplayFrame();
 
     void clearBufferRender() override;
 
