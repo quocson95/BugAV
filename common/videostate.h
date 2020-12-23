@@ -176,6 +176,8 @@ public:
     QElapsedTimer *elLastEmptyRead;
     QMap<QString, QString> metadata;
 
+    int maxFrameWidth;
+
 private:
     Define *def;
     double speed;

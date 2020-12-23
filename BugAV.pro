@@ -20,6 +20,9 @@ CONFIG += MAKE_LIB
 MAKE_LIB {
     TEMPLATE = lib
 }
+#CONFIG += sanitizer
+#CONFIG += sanitize_address
+#CONFIG += sanitize_undefined
 
 QMAKE_LFLAGS_RELEASE += /MAP
 QMAKE_CFLAGS_RELEASE += /Zi
@@ -59,6 +62,7 @@ HEADERS += \
     RenderOuput/IBugAVRenderer.h \
     RenderOuput/bugglwidget.h \     \
     RenderOuput/ibugavdefaultrenderer.h \
+    RenderOuput/vopengl.h \
     common/clock.h \
     common/common.h \
     common/define.h \
@@ -85,6 +89,7 @@ SOURCES += \
     RenderOuput/IBugAVRenderer.cpp \
     RenderOuput/bugglwidget.cpp \
     RenderOuput/ibugavdefaultrenderer.cpp \
+    RenderOuput/vopengl.cpp \
     common/clock.cpp \
     common/define.cpp \
     common/framequeue.cpp \

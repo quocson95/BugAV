@@ -13,6 +13,7 @@ public:
     ~IBugAVDefaultRenderer() override;
 
     void updateData(AVFrame *frame) override;
+    void updateData(Frame *frame) override;
 
     void setRegionOfInterest(int x, int y, int w, int h) override;
 

@@ -92,6 +92,8 @@ VideoState::VideoState(Define *def):
     videoq->abort_request = 0;
     audioq->abort_request = 0;
 
+    maxFrameWidth = -1;
+
     setSpeed(1.0);
 //    PacketQueue::mustInitOnce();
     init();

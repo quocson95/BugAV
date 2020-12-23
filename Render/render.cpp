@@ -226,28 +226,7 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
     }
     elPrevFrame->restart();
 
-    if (!initSwsBuff) {       
-        auto ratio = 1.0 / (double(frame->width)  / 1080.0);
-//        auto ratio = 1.0;
-//        if (ratio < 1.0) {
-//            ratio = 1.0;
-//        }
-//         ratio = 0.5;
-        if (ratio > 1.0) {
-            ratio = 1.0;
-        }
 
-        dstFrame = av_frame_alloc();
-        dstFrame->width = frame->width * ratio;
-        dstFrame->height = frame->height *ratio;
-        dstFrame->format = AV_PIX_FMT_RGB32;
-        initSwsBuff = true;
-        auto ret = av_image_alloc(dstFrame->data, dstFrame->linesize, dstFrame->width, dstFrame->height, (AVPixelFormat)dstFrame->format, 1);
-        if (ret < 0) {
-            qDebug() << "Init sws data error ";
-            initSwsBuff =  false;
-        }
-    }
 
     auto fmt = fixDeprecatedPixelFormat(AVPixelFormat(is->viddec.avctx->pix_fmt));
     frame->format = fmt;
@@ -256,7 +235,35 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
     if (this->preferPixFmt == AVPixelFormat::AV_PIX_FMT_NONE && fmt == AVPixelFormat::AV_PIX_FMT_YUV420P) {
 //        // do nothing.
 //        // native render yuv420p
+        dstFrame = frame;
+        initSwsBuff = false;
     } else if (fmt != this->preferPixFmt) {
+        if (!initSwsBuff) {
+            freeSwsBuff();
+            auto ratio = 1.0;
+            if (is->maxFrameWidth > 0) {
+                ratio = 1.0 / (double(frame->width)  / is->maxFrameWidth);
+            }
+    //        auto ratio = 1.0;
+    //        if (ratio < 1.0) {
+    //            ratio = 1.0;
+    //        }
+    //         ratio = 0.5;
+            if (ratio > 1.0) {
+                ratio = 1.0;
+            }
+
+            dstFrame = av_frame_alloc();
+            dstFrame->width = frame->width * ratio;
+            dstFrame->height = frame->height *ratio;
+            dstFrame->format = this->preferPixFmt;
+            initSwsBuff = true;
+            auto ret = av_image_alloc(dstFrame->data, dstFrame->linesize, dstFrame->width, dstFrame->height, (AVPixelFormat)dstFrame->format, 1);
+            if (ret < 0) {
+                qDebug() << "Init sws data error ";
+                initSwsBuff =  false;
+            }
+        }
 //         todo native renderer non yuv 420p
         *img_convert_ctx = sws_getCachedContext(*img_convert_ctx,
                     is->viddec.avctx->width, is->viddec.avctx->height, fmt,

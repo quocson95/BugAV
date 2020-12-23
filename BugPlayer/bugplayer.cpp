@@ -237,6 +237,11 @@ void BugPlayer::setPixFmtRGB32(bool value)
     }
 }
 
+int BugPlayer::getPixFmt() const
+{
+    return d_ptr->render->getPreferPixFmt();
+}
+
 void BugPlayer::setSpeed(const double &speed)
 {
     // need reload
@@ -304,6 +309,11 @@ bool BugPlayer::isMute() const
 QMap<QString, QString> BugPlayer::getMetadata() const
 {
     return d_ptr->is->metadata;
+}
+
+void BugPlayer::setMaxFrameWidth(int maxFrameWidth)
+{
+    d_ptr->is->maxFrameWidth = maxFrameWidth;
 }
 
 void BugPlayer::positionChangedSlot(qint64 posi)

@@ -7,66 +7,59 @@
 
 struct AVFrame;
 
+constexpr int RGB_FORMAT = 28;
+constexpr int YUV_FORMAT = 0;
+
 struct Frame {
     unsigned char* data[3];
     int linesize[3];
     int height;
     int sizeInBytes;
     int cap;
-    int type;
+    // type
+    // -1 or 28 is rgb32
+    // 0 yuv
+    int format;
 
-    Frame() {
-        for (auto i = 0; i < 3; i++) {
-           this->linesize[i] = 0;
-        }
-        this->height = 0;
-        this->sizeInBytes = 0;
-        this->cap = 0;
-        this->data[0] = nullptr;
-        this->data[1] = nullptr;
-        this->data[2] = nullptr;
+    Frame();
 
-        this->type = 0;
+    unsigned char * y() const;
+    unsigned char * u() const;
+    unsigned char * v() const;
+
+    unsigned char * rgb();
+
+    void setLinesize(int *linesize, int size = 1);
+
+    void resize(int size);
+
+    bool isRGB() const;
+
+    bool isYUV() const;
+
+    void resize(int *linesize, int h);
+
+    Frame clone() const;
+
+    void crop(Frame frame, int w, int h, int offsetX, int offsetY);
+
+    void cropRGB(Frame frame, int w, int h, int offsetX, int offsetY);
+
+    void cropYUV(Frame frame, int w, int h, int offsetX, int offsetY);
+
+    void mallocData(int size = 0);
+    void mallocData(int *linesize, int h);
+
+    bool isNull() const;
+
+    void freeMem();
+
+    int getWidth() const {
+        return linesize[0];
     }
 
-    void resize(int size) {
-        if (cap <= size) {
-            this->cap = size;
-            this->data[0] = (unsigned char *)realloc(this->data[0], this->cap);
-        }
-    }
-
-    Frame clone() const {
-        Frame f;
-        f.cap = cap;
-        f.height = height;
-        f.sizeInBytes = sizeInBytes;
-        for (auto i = 0; i < 3; i++) {
-            f.linesize[i] = linesize[i];
-        }        
-        f.data[0] = static_cast<unsigned char *>(malloc(cap));
-        memcpy(f.data[0], this->data[0], sizeInBytes);
-        f.type = this->type;
-        return f;
-    }
-
-    void mallocData(int size = 0) {
-        freeMem();
-        if (size == 0) {
-            size = linesize[0] * height * 4;
-        }
-        cap = size;
-        data[0] = static_cast<unsigned char *>(malloc(cap));
-    }
-
-    bool isNull() const {
-        return this->data[0] == nullptr || linesize[0] < 1 || height < 1;
-    }
-
-    void freeMem() {
-        if (this->data[0] != nullptr) {
-            free(this->data[0]);
-        }
+    int getHeight() const {
+        return height;
     }
 } ;
 
@@ -77,7 +70,8 @@ class IBugAVRenderer  {
 public:
 //    IBugAVRenderer() = default;
     virtual ~IBugAVRenderer() = default;
-    virtual void updateData(AVFrame *frame) = 0;    
+    virtual void updateData(AVFrame *frame) = 0;
+    virtual void updateData(Frame *frame) = 0;
 
     virtual void setRegionOfInterest(int x, int y, int w, int h) = 0;
     virtual QSize videoFrameSize() const = 0;

@@ -26,6 +26,7 @@ public:
     ~BugGLWidget() override;
 
     void updateData(AVFrame *frame) override;
+    void updateData(Frame *frame) override;
 
     void setRegionOfInterest(int x, int y, int w, int h) override;
     void setRegionOfInterest(int x, int y, int w, int h, bool emitUpdate);
@@ -45,7 +46,7 @@ public:
 
 public slots:
 
-    void setTransparent(bool transparent);    
+    void setTransparent(bool transparent);
 
 protected:
 //    void resizeGL(int w, int h) Q_DECL_OVERRIDE;
@@ -74,6 +75,7 @@ private:
 
      void prepareYUV(AVFrame *frame);
      void prepareRGB(AVFrame *frame);
+     void prepareRGB(Frame *frame);
 
      void drawYUV();
      void drawRGB();
@@ -121,14 +123,14 @@ private:
 
     Frame originFrame;
 
-    YUVBuff yuvBuffer[BUFF_SIZE];
+    Frame yuvBuffer[BUFF_SIZE];
 
-    YUVBuff rgbBuffer[BUFF_SIZE]; // buffer data for painter
+    Frame rgbBuffer[BUFF_SIZE]; // buffer data for painter
     Frame rawRgbData; // raw frame data from ffmpeg
     Frame rawRgbFilter; // raw frame data after filter by client
 
 
-    int bufIndex;   
+    int bufIndex;
 
     QVector<QImage> imagesTransform;
     int bufImgTransformIndex;
@@ -154,6 +156,10 @@ private:
 public:
     void newFrame(const Frame &frame) override;
     void updateFrameBuffer(const Frame &frame) override;
+
+    // QOpenGLWidget interface
+protected:
+    void resizeGL(int w, int h) override;
 };
 }
 #endif // BugGLWidget_H

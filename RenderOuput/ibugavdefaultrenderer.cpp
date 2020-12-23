@@ -21,6 +21,12 @@ void IBugAVDefaultRenderer::updateData(AVFrame *frame)
 //    qDebug() << "default render";
 }
 
+void IBugAVDefaultRenderer::updateData(Frame *frame)
+{
+    Q_UNUSED(frame)
+//    qDebug() << "default render";
+}
+
 void IBugAVDefaultRenderer::setRegionOfInterest(int x, int y, int w, int h)
 {
     Q_UNUSED(x)

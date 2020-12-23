@@ -39,7 +39,7 @@
      <item>
       <widget class="QPushButton" name="reCreateGrid">
        <property name="text">
-        <string>Clear</string>
+        <string>YUV</string>
        </property>
       </widget>
      </item>

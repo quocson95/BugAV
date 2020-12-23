@@ -58,6 +58,7 @@ public:
     void setEnableFramedrop(bool value = true);
 
     void setPixFmtRGB32(bool value = true);
+    int getPixFmt() const;
 
     // set speed, can set anytime
     void setSpeed(const double & speed);
@@ -76,6 +77,8 @@ public:
     bool isMute() const;
 
     QMap<QString, QString> getMetadata() const;
+
+    void setMaxFrameWidth(int maxFrameWidth);
 
 Q_SIGNALS:
     void stateChanged(BugAV::AVState state);

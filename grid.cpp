@@ -87,14 +87,14 @@ void Grid::addPlayer(int i, int j)
 {
     auto player = new BugAV::BugPlayer(this, BugAV::ModePlayer::RealTime);
     auto renderer = new BugAV::BugGLWidget;
-    player->setPixFmtRGB32(true);
+
     QVariantHash avformat;
     avformat["probesize"] = 4096;
 //    avformat["analyzeduration"] = 1000000;
     avformat["rtsp_flags"] = "prefer_tcp";
     player->setRenderer(renderer);
     player->setOptionsForFormat(avformat);
-    player->setPixFmtRGB32(true);
+    player->setPixFmtRGB32(false);
 //    renderer->setRegionOfInterest(100, 100, 200, 200);
     if (i*size + j < files.size()) {
         player->play(files.at(i*size + j));
@@ -114,9 +114,18 @@ void Grid::addPlayer(int i, int j)
 
 void Grid::on_reCreateGrid_clicked()
 {
-    foreach (auto player, players) {
-//        player->setRenderer(nullptr);
-        player->stop();
+//    foreach (auto player, players) {
+////        player->setRenderer(nullptr);
+//        player->stop();
+//    }
+
+    auto pixFmt  = players[0]->getPixFmt();
+    players[0]->setPixFmtRGB32(pixFmt != 28);
+    pixFmt  = players[0]->getPixFmt();
+    if (pixFmt == 28) {
+        ui->reCreateGrid->setText("RGB");
+    } else {
+        ui->reCreateGrid->setText("YUV");
     }
 //    for(auto i = 0; i < ui->g->count(); i++) {
 //        ui->g->removeWidget(ui->g->itemAt(i)->widget());
