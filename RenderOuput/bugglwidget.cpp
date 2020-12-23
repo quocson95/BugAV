@@ -844,7 +844,6 @@ Frame BugAV::BugGLWidget::getLastDisplayFrame()
         return f;
     }    
     f = rawRgbData.clone();
-    rwMutex.unlock();
     return f;
 }
 
