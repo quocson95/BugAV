@@ -12,6 +12,11 @@
 #include <SDL2/SDL_audio.h>
 #endif
 
+#ifdef Q_OS_MAC
+#include <SDL.h>
+#define Uint8 quint8
+#endif
+
 
 constexpr qint16 AUDIO_BUFF_SIZE_LIVE = 512; // byte
 constexpr qint16 AUDIO_BUFF_SIZE_VOD = AUDIO_BUFF_SIZE_LIVE * 4; // byte, 2048
