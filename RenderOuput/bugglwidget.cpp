@@ -129,7 +129,11 @@ void BugGLWidget::initBufferRGB(int w, int h)
         imagesTransform.push_back(QImage{w, h, QImage::Format_RGB32});
     }
     const size_t rgb_stride = w*3 +(16-(3*w)%16)%16;
-    dataRGB = static_cast<unsigned char*>(_mm_malloc(rgb_stride * h, 16));
+    #ifdef Q_OS_MAC
+        dataRGB = static_cast<unsigned char*>(malloc(rgb_stride * h));
+    #else
+         dataRGB = static_cast<unsigned char*>(_mm_malloc(rgb_stride * h, 16));
+    #endif
 }
 
 void BugGLWidget::freeBufferRGB()
@@ -137,7 +141,11 @@ void BugGLWidget::freeBufferRGB()
     images.clear();
 //    imagesTransform.clear();
     if (dataRGB != nullptr) {
+        #ifdef Q_OS_MAC
+        free(dataRGB);
+        #else
         _mm_free(dataRGB);
+        #endif
         dataRGB = nullptr;
     }
 }
