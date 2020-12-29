@@ -10,7 +10,7 @@ struct AVFrame;
 constexpr int RGB_FORMAT = 28;
 constexpr int YUV_FORMAT = 0;
 
-struct Frame {
+struct LIB_EXPORT Frame {
     unsigned char* data[3];
     int linesize[3];
     int height;

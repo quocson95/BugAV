@@ -580,6 +580,9 @@ void BugGLWidget::updateFrameBuffer(const Frame &frame)
 
 void BugGLWidget::resizeGL(int w, int h)
 {
+    if (picSize.width() == 0 ){
+        picSize = size();
+    }
     makeCurrent();
     glViewport(0, 0, w, h);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f );
