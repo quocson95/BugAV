@@ -161,16 +161,22 @@ int BugAV::AudioRender::initAudioFormat(int64_t wanted_channel_layout,
 void BugAV::AudioRender::sdl_audio_callback(void *opaque, Uint8 *stream, int len)
 {
         AudioRender *ar = static_cast<AudioRender *>(opaque);
+        if (ar == nullptr || !ar->isRunning()) {
+            return;
+        }
         auto is = ar->is;
         int audio_size, len1;
 
         ar->audio_callback_time = av_gettime_relative();
 
         while (len > 0) {
-            if (is->audio_buf_index >= is->audio_buf_size) {
+            if (static_cast<unsigned int>(is->audio_buf_index) >= is->audio_buf_size) {
                audio_size = ar->audioDecodeFrame();
                if (audio_size < 0) {
                     /* if error, just output silence */
+                   if (is->audio_tgt.frame_size <= 0) {
+                       return;
+                   }
                    is->audio_buf = NULL;
                    is->audio_buf_size = SDL_AUDIO_MIN_BUFFER_SIZE / is->audio_tgt.frame_size * is->audio_tgt.frame_size;
                } else {
@@ -195,7 +201,9 @@ void BugAV::AudioRender::sdl_audio_callback(void *opaque, Uint8 *stream, int len
         is->audio_write_buf_size = is->audio_buf_size - is->audio_buf_index;
         /* Let's assume the audio driver that is used by SDL has two periods. */
         if (!isnan(is->audio_clock)) {
-            is->audclk.setAt(is->audio_clock - (double)(2 * is->audio_hw_buf_size + is->audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, ar->audio_callback_time / 1000000.0);
+            if (is->audio_tgt.bytes_per_sec >  0) {
+                is->audclk.setAt(is->audio_clock - (double)(2 * is->audio_hw_buf_size + is->audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, ar->audio_callback_time / 1000000.0);
+            }
             is->extclk.syncToSlave(&is->audclk);
         }
 }
