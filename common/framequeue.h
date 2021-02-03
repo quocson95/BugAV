@@ -87,6 +87,7 @@ public:
 private:
 //    Define *def;
     qint64 frameQueueSize;
+    int hasInit;
 //    bool
 };
 }

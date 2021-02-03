@@ -60,7 +60,9 @@ void BugAV::AudioRender::start()
 
 void BugAV::AudioRender::stop()
 {
+    mutexSDLCallback.lock();
     reqStop = true;
+    mutexSDLCallback.unlock();
     if (audio_dev > 0) {
         SDL_CloseAudioDevice(audio_dev);
     }
@@ -161,7 +163,13 @@ int BugAV::AudioRender::initAudioFormat(int64_t wanted_channel_layout,
 void BugAV::AudioRender::sdl_audio_callback(void *opaque, Uint8 *stream, int len)
 {
         AudioRender *ar = static_cast<AudioRender *>(opaque);
-        if (ar == nullptr || !ar->isRunning()) {
+        if (ar == nullptr) {
+            return;
+        }
+
+        QMutexLocker locker(&ar->mutexSDLCallback);
+        Q_UNUSED(locker)
+        if (!ar->isRunning()) {
             return;
         }
         auto is = ar->is;
@@ -170,6 +178,9 @@ void BugAV::AudioRender::sdl_audio_callback(void *opaque, Uint8 *stream, int len
         ar->audio_callback_time = av_gettime_relative();
 
         while (len > 0) {
+            if (!ar->isRunning()) {
+                return;
+            }
             if (static_cast<unsigned int>(is->audio_buf_index) >= is->audio_buf_size) {
                audio_size = ar->audioDecodeFrame();
                if (audio_size < 0) {
@@ -280,14 +291,17 @@ int BugAV::AudioRender::audioDecodeFrame()
             return -100;
         }
 #endif
-        if (!(af = is->sampq->peekReadable())) {
+        af = is->sampq->peekReadable();
+        if (af == nullptr) {
             return -1;
         }
 
         is->sampq->queueNext();
    } while (af->serial != is->audioq->serial);
    auto avFrame = af->frame;
-
+   if (af->frame->sample_rate <= 0) {
+       return -1;
+   }
    data_size = av_samples_get_buffer_size(nullptr, avFrame->channels,
                                           avFrame->nb_samples,
                                           AVSampleFormat(avFrame->format),
@@ -320,6 +334,7 @@ int BugAV::AudioRender::audioDecodeFrame()
        is->audio_src.fmt = AVSampleFormat(avFrame->format);
    }
     if (is->swr_ctx) {
+
         const auto& in = (const quint8 **)(af->frame->extended_data);
         auto out = &is->audio_buf1;
         int out_count = qint64(wanted_nb_samples * is->audio_tgt.freq / af->frame->sample_rate + 256);

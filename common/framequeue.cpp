@@ -22,6 +22,7 @@ FrameQueue::FrameQueue(qint64 frameQueueSize)
         queue[i].frame = nullptr;
         queue[i].speed = &speed;
     }
+    hasInit = false;
 }
 
 FrameQueue::~FrameQueue()
@@ -38,14 +39,20 @@ FrameQueue::~FrameQueue()
 
 int FrameQueue::init(PacketQueue *pktq, int maxSize, int keepLast)
 {
-    this->pktq = pktq;
-    for (auto i = 0; i < max_size; i++) {
-        Frame *vp = &queue[i];       
-        unrefItem(vp);
-        if (vp->frame != nullptr) {
-            av_frame_free(&vp->frame);
-        }
+    // fix later
+    // only call init once
+    if (hasInit) {
+        return 0 ;
     }
+    hasInit = true;
+    this->pktq = pktq;
+//    for (auto i = 0; i < max_size; i++) {
+//        Frame *vp = &queue[i];
+//        unrefItem(vp);
+//        if (vp->frame != nullptr) {
+//            av_frame_free(&vp->frame);
+//        }
+//    }
     this->max_size = FFMIN(maxSize, this->frameQueueSize);
     this->keep_last = !!keepLast;
     for (auto i = 0; i < max_size; i++) {

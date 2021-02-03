@@ -238,7 +238,7 @@ void Render::uploadTexture(Frame *f, SwsContext **img_convert_ctx)
     frame->format = fmt;
     auto ret = 0;
     AVFrame *dstFrame = frame;
-    if (this->preferPixFmt == AVPixelFormat::AV_PIX_FMT_NONE && fmt == AVPixelFormat::AV_PIX_FMT_YUV420P) {
+    if (this->preferPixFmt == AVPixelFormat::AV_PIX_FMT_NONE || fmt == AVPixelFormat::AV_PIX_FMT_YUV420P) {
 //        // do nothing.
 //        // native render yuv420p
     } else if (fmt != this->preferPixFmt) {

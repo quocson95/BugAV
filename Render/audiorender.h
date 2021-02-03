@@ -82,6 +82,8 @@ private:
 
     SDL_AudioDeviceID audio_dev;
     int64_t audio_callback_time;
+    QMutex mutexSDLCallback;
+
 
     // QObject interface
 //protected:

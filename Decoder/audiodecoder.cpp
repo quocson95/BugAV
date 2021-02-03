@@ -309,6 +309,7 @@ void BugAV::AudioDecoder::process()
         is->sampq->queuePush();
     }
     is->audioq->flush();
+    av_frame_unref(frame);
     av_frame_free(&frame);
     emit stopped();
     qDebug() << "!!!AudioDecoder Thread exit";
