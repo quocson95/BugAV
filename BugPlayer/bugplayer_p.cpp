@@ -69,9 +69,10 @@ int BugPlayerPrivate::play()
 //        qDebug() << "is playing. Ignore play action";
         if (isSourceChange()) {
             qDebug() << "source change, do stop before play " << is->fileUrl << " --> " << curFile;
-            stop();            
+            stop();
+            return playPriv();
         }
-        return playPriv();
+        return 0;
     }
     if (isPause()) {
         qDebug() << "Toggle pause ";
