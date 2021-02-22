@@ -60,10 +60,12 @@ void BugAV::AudioRender::start()
 
 void BugAV::AudioRender::stop()
 {
-    mutexSDLCallback.lock();
+//    mutexSDLCallback.lock();
     reqStop = true;
-    mutexSDLCallback.unlock();
+//    mutexSDLCallback.unlock();
     if (audio_dev > 0) {
+        SDL_ClearQueuedAudio(audio_dev);
+        SDL_LockAudioDevice(audio_dev);
         SDL_CloseAudioDevice(audio_dev);
     }
     audio_dev = 0;
