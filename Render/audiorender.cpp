@@ -186,6 +186,9 @@ void BugAV::AudioRender::sdl_audio_callback(void *opaque, Uint8 *stream, int len
             if (static_cast<unsigned int>(is->audio_buf_index) >= is->audio_buf_size) {
                audio_size = ar->audioDecodeFrame();
                if (audio_size < 0) {
+                   if (!ar->isRunning()) {
+                       return;
+                   }
                     /* if error, just output silence */
                    if (is->audio_tgt.frame_size <= 0) {
                        return;
