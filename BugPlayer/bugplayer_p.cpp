@@ -278,7 +278,7 @@ void BugPlayerPrivate::setDisableAudio(bool value)
 
 void BugPlayerPrivate::setMute(bool value)
 {
-    if (is->muted == value) {
+    if (is->muted == int(value)) {
         return;
     }
     is->muted = value;

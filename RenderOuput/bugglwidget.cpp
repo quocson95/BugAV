@@ -219,7 +219,10 @@ int BugGLWidget::fastUp16(int x)
 
 void BugGLWidget::copyData()
 {
-    mutex.lock();   
+    QMutexLocker locker(&mutex);
+    if ((renderH + offsetY) > frameH || (renderW + offsetX) > frameW)  {
+        return;
+    }
     auto index = bufIndex + 1;
     if(index>=BUFF_SIZE)
         index=0;
@@ -244,7 +247,6 @@ void BugGLWidget::copyData()
                 static_cast<size_t>(renderW / 2));
     }
     bufIndex = index;
-    mutex.unlock();
     emit reqUpdate();
 }
 
