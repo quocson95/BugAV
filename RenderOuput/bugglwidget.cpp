@@ -252,6 +252,7 @@ void BugGLWidget::copyData()
 
 void BugGLWidget::prepareYUV(AVFrame *frame)
 {
+    mutex.lock();
     if (    lineSize != frame->linesize[0]
             || frame->width != frameW
             || frame->height != frameH
@@ -260,7 +261,7 @@ void BugGLWidget::prepareYUV(AVFrame *frame)
         initBufferYUV(frame->linesize, frame->height);
         initShader(frame->width, frame->height);        
     }
-    mutex.lock();
+
     memcpy(originFrame.data[0], frame->data[0], frame->linesize[0] * frame->height);
     memcpy(originFrame.data[1], frame->data[1], frame->linesize[1] * frame->height/2);
     memcpy(originFrame.data[2], frame->data[2], frame->linesize[2] * frame->height/2);
