@@ -406,7 +406,7 @@ int Demuxer::streamHasEnoughPackets(AVStream *st, int streamID, PacketQueue *que
                queue->abort_request ||
                (st->disposition & AV_DISPOSITION_ATTACHED_PIC) ||
             ((queue->nb_packets > MIN_FRAMES) &&
-             (!queue->duration || av_q2d(st->time_base) * queue->duration > 30.0));
+             (!queue->duration || av_q2d(st->time_base) * queue->duration > 1.0));
 }
 
 void Demuxer::freeAvctx()
