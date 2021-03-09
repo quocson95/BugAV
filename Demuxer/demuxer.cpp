@@ -703,7 +703,7 @@ bool Demuxer::getSkipNonKeyFrame() const
 void Demuxer::enableSkipNonKeyFrame(bool value)
 {
     skipNonKeyFrame = value;
-    is->audio_disable = skipNonKeyFrame;
+//    is->audio_disable = skipNonKeyFrame;
 }
 
 void Demuxer::reOpenAudioSt()
