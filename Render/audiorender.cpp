@@ -292,7 +292,7 @@ int BugAV::AudioRender::audioDecodeFrame()
         while (is->sampq->queueNbRemain() == 0) {
             if ((av_gettime_relative() - audio_callback_time) > 1000000LL * is->audio_hw_buf_size / is->audio_tgt.bytes_per_sec / 2)
                 return -1;
-//            av_usleep (1000);
+            av_usleep (1000);
             return -100;
         }
 #endif
