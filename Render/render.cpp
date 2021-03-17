@@ -107,6 +107,7 @@ void Render::stop()
         thread->wait(500);
     } while(thread->isRunning());
     currentFramePts = 0;
+    is->firstFrameTs = -1;
 }
 
 void Render::setIs(VideoState *value)
@@ -508,9 +509,14 @@ void Render::updatePositionChanged(Frame *vp)
 
         if (vp->frame->pts  > 0) {
             auto q = AVRational{1, AV_TIME_BASE};
-            auto ts_rescale = qint64(av_rescale_q(vp->frame->pts, is->video_st->time_base, q));
-            auto ts = ts_rescale - is->ic->start_time;            
-            emit positionChanged(ts);
+            auto ts_rescale = qint64(av_rescale_q(vp->frame->best_effort_timestamp, is->video_st->time_base, q));
+//            auto ts = ts_rescale - is->ic->start_time;
+            if (is->firstFrameTs < 0) {
+                is->firstFrameTs = ts_rescale;
+                return;
+            }
+            emit positionChanged(ts_rescale - is->firstFrameTs);
+//            is->audclk.get()
         }
         elTimer->restart();
     }
@@ -518,10 +524,11 @@ void Render::updatePositionChanged(Frame *vp)
 
 qint64 Render::getCurrentPosi() const
 {
-    if (currentFramePts  > 0 && is->video_st != nullptr) {
+    if (currentFramePts  > 0 && is->video_st != nullptr && is->firstFrameTs > 0) {
         auto q = AVRational{1, AV_TIME_BASE};
         auto ts_rescale = qint64(av_rescale_q(currentFramePts, is->video_st->time_base, q));
-        auto ts = ts_rescale - is->ic->start_time;
+//        auto ts = ts_rescale - is->ic->start_time;
+        auto ts = ts_rescale - is->firstFrameTs;
         return ts;
     }
     return 0;

@@ -735,7 +735,7 @@ void Demuxer::doSeek(const double &position)
         pos = is->duration;
     }
     pos += is->ic->start_time;
-    auto curPos = is->getMasterClock() * AV_TIME_BASE;
+    auto curPos = is-> firstFrameTs;
     auto incr = pos - curPos;    
     streamSeek(pos, incr, seek_by_bytes);    
 }
