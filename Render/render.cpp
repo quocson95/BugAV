@@ -108,6 +108,7 @@ void Render::stop()
     } while(thread->isRunning());
     currentFramePts = 0;
     is->firstFrameTs = -1;
+    lastPositionTs = -1;
 }
 
 void Render::setIs(VideoState *value)
@@ -515,7 +516,11 @@ void Render::updatePositionChanged(Frame *vp)
                 is->firstFrameTs = ts_rescale;
                 return;
             }
-            emit positionChanged(ts_rescale - is->firstFrameTs);
+            auto ts = ts_rescale - is->firstFrameTs;
+            if (lastPositionTs == -1 || ts - lastPositionTs < 60000000) {
+                lastPositionTs = ts;
+                emit positionChanged(ts);
+            }
 //            is->audclk.get()
         }
         elTimer->restart();

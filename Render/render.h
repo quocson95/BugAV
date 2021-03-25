@@ -110,6 +110,7 @@ private:
     QElapsedTimer *elTimer;
 
     qint64 currentFramePts;
+    qint64 lastPositionTs;
 //    qint64 firstFrameTs;
 
 public:
