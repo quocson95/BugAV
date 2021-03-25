@@ -79,6 +79,8 @@ void BugGLWidget::initializeTexture( GLuint  id, int width, int height) {
 void BugGLWidget::freeBufferYUV()
 {
     for(int i=0;i<BUFF_SIZE;i++) {
+        yuvBuffer[i].w = 0;
+        yuvBuffer[i].h = 0;
         if (yuvBuffer[i].y != nullptr) {
             free (yuvBuffer[i].y);
         }
@@ -92,6 +94,8 @@ void BugGLWidget::freeBufferYUV()
         yuvBuffer[i].y = nullptr;
         yuvBuffer[i].u = nullptr;
         yuvBuffer[i].v = nullptr;
+
+
     }
      for(int i=0;i<3;i++) {
          if (originFrame.data[i] != nullptr) {
@@ -103,6 +107,7 @@ void BugGLWidget::freeBufferYUV()
 
 void BugGLWidget::initBufferYUV(int *linesize, int h)
 {
+    QMutexLocker lock(&lockDrawUI);
     hasInitYUV = true;
     freeBufferYUV();
     this->lineSize = linesize[0];
@@ -110,8 +115,11 @@ void BugGLWidget::initBufferYUV(int *linesize, int h)
         originFrame.linesize[i] = linesize[i];
         originFrame.data[i] = static_cast<unsigned char*>(malloc(size_t((linesize[i]) * (h))));
     }
+
     for(int i=0;i<BUFF_SIZE;i++)
     {
+       yuvBuffer[i].w = linesize[0];
+       yuvBuffer[i].h = h;
        yuvBuffer[i].y= static_cast<unsigned char*>(malloc(linesize[0] * h));
        yuvBuffer[i].u= static_cast<unsigned char*>(malloc(linesize[1] * h/2));
        yuvBuffer[i].v= static_cast<unsigned char*>(malloc(linesize[2] * h/2));
@@ -246,6 +254,8 @@ void BugGLWidget::copyData()
                originFrame.data[2] + originFrame.linesize[2] * (i + offsetY_2) + offsetX_2,
                 static_cast<size_t>(renderW / 2));
     }
+    yuvBuffer[index].w = renderW;
+    yuvBuffer[index].h = renderH;
     bufIndex = index;
     emit reqUpdate();
 }
@@ -304,6 +314,7 @@ void BugGLWidget::prepareRGB(AVFrame *frame)
 
 void BugGLWidget::drawYUV()
 {
+    QMutexLocker lock(&lockDrawUI);
     if (noNeedRender) {
         return;
     }
@@ -326,7 +337,8 @@ void BugGLWidget::drawYUV()
 
 //    glViewport(0, 0, width, height);
 
-    if(renderW ==0 || renderH ==0)return;
+    if(yuvBuffer[bufIndex].w == 0 || yuvBuffer[bufIndex].h  == 0)
+        return;
     m_programA->bind();
 
 //    mutex.lock();
@@ -335,7 +347,7 @@ void BugGLWidget::drawYUV()
 //    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, renderW, renderH, GL_RED,
 //                    GL_UNSIGNED_BYTE, buffer[bufIndex]);
 
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, renderW, renderH, GL_LUMINANCE,
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, yuvBuffer[bufIndex].w, yuvBuffer[bufIndex].h, GL_LUMINANCE,
                     GL_UNSIGNED_BYTE, yuvBuffer[bufIndex].y);
 
     int i=m_programA->uniformLocation("Ytex");
@@ -345,7 +357,7 @@ void BugGLWidget::drawYUV()
     glBindTexture(GL_TEXTURE_2D, m_textureIds[1]);
 //    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, renderW / 2, renderH / 2, GL_RED,
 //                    GL_UNSIGNED_BYTE, buffer[bufIndex] + renderWxH);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, renderW/2, renderH/2, GL_LUMINANCE,
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, yuvBuffer[bufIndex].w / 2, yuvBuffer[bufIndex].h / 2, GL_LUMINANCE,
                     GL_UNSIGNED_BYTE, yuvBuffer[bufIndex].u);
 
     i=m_programA->uniformLocation("Utex");
@@ -355,7 +367,7 @@ void BugGLWidget::drawYUV()
     glBindTexture(GL_TEXTURE_2D, m_textureIds[2]);
 //    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, renderW / 2, renderH / 2, GL_RED,
 //                    GL_UNSIGNED_BYTE, buffer[bufIndex] + renderWxH +renderWxH_4);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, renderW/2, renderH/2, GL_LUMINANCE,
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, yuvBuffer[bufIndex].w / 2, yuvBuffer[bufIndex].h / 2, GL_LUMINANCE,
                     GL_UNSIGNED_BYTE, yuvBuffer[bufIndex].v);
 
 //    mutex.unlock();

@@ -112,6 +112,8 @@ private:
         uint8_t *y;
         uint8_t *u;
         uint8_t *v;
+        int w;
+        int h;
     };
 
     typedef struct {
@@ -141,7 +143,9 @@ private:
 
     int pixFmt;
 
-    unsigned char* dataRGB;   
+    unsigned char* dataRGB;
+
+    QMutex lockDrawUI;
 
 
     // IBugAVRenderer interface
