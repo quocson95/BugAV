@@ -369,14 +369,14 @@ void Render::videoRefresh()
 
     forever{
         if (is->pictq->queueNbRemain() == 0) {
-            if (!is->realtime && is->elLastEmptyRead->isValid()) {
-//                auto t = is->elLastEmptyRead->elapsed();
-                qDebug() << "last read empty packet " << is->elLastEmptyRead->elapsed();
-                if (is->elLastEmptyRead->hasExpired(3000)) {
-                     qDebug() << "noMoreFrame detect ";
-                    emit noMoreFrame();
-                }
-            }
+//            if (!is->realtime && is->elLastEmptyRead->isValid()) {
+////                auto t = is->elLastEmptyRead->elapsed();
+//                qDebug() << "last read empty packet " << is->elLastEmptyRead->elapsed();
+//                if (is->elLastEmptyRead->hasExpired(3000)) {
+//                     qDebug() << "noMoreFrame detect ";
+//                    emit noMoreFrame();
+//                }
+//            }
             // nothing to do, no picture to display in the queue
         } else {
             double last_duration, duration, delay;
