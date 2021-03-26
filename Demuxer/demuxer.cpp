@@ -196,8 +196,10 @@ bool Demuxer::load()
         streamOpenCompnent(stIndex[AVMEDIA_TYPE_VIDEO]);
     }
 
-    if (stIndex[AVMEDIA_TYPE_AUDIO] >= 0) {
-        streamOpenCompnent(stIndex[AVMEDIA_TYPE_AUDIO]);
+    if (is->audio_disable == false) {
+        if (stIndex[AVMEDIA_TYPE_AUDIO] >= 0) {
+            streamOpenCompnent(stIndex[AVMEDIA_TYPE_AUDIO]);
+        }
     }
 
     if (is->video_stream < 0 && is->audio_stream < 0 ) {
