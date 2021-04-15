@@ -14,12 +14,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-#DEFINES += MAKE_LIB
-#CONFIG += MAKE_LIB
+DEFINES += MAKE_LIB
+CONFIG += MAKE_LIB
 
-#MAKE_LIB {
-#    TEMPLATE = lib
-#}
+MAKE_LIB {
+    TEMPLATE = lib
+}
 #CONFIG += sanitizer
 #CONFIG += sanitize_address
 #CONFIG += sanitize_undefined
@@ -36,11 +36,17 @@ win32:{
     LIBS += -L$$PWD/SDL2-2.0.12/lib/x64 -lSDL2
     INCLUDEPATH += $$PWD/SDL2-2.0.12/include
 } else:unix:!macx {
-    LIBS += -lSDL2
+    LIBS += -lSDL2 -lopenal
+    LIBS += -L$$PWD/../portaudio-build/lib/ -lportaudio
+
+    INCLUDEPATH += $$PWD/../portaudio-build/include
+    DEPENDPATH += $$PWD/../portaudio-build/include
 } else {
     QMAKE_LFLAGS += -F/Users/sondq/Library/Frameworks/
     INCLUDEPATH += /Users/sondq/Library/Frameworks/SDL2.framework/Headers
     LIBS += -framework SDL2
+
+
 }
 #LIBS += -lopenal
 
@@ -62,8 +68,11 @@ HEADERS += \
     Decoder/videodecoder.h \
     Demuxer/demuxer.h \
     Demuxer/handlerinterupt.h \
+    Render/IAudioBackend.h \
     Render/audioopenalbackend.h \
+    Render/audiooutputportaudio.h \
     Render/audiorender.h \
+    Render/portaudiobackend.h \
     Render/render.h \
     RenderOuput/IBugAVRenderer.h \
     RenderOuput/bugglwidget.h \     \
@@ -89,7 +98,9 @@ SOURCES += \
     Demuxer/demuxer.cpp \
     Demuxer/handlerinterupt.cpp \
     Render/audioopenalbackend.cpp \
+    Render/audiooutputportaudio.cpp \
     Render/audiorender.cpp \
+    Render/portaudiobackend.cpp \
     Render/render.cpp \
     RenderOuput/IBugAVRenderer.cpp \
     RenderOuput/bugglwidget.cpp \
@@ -103,3 +114,5 @@ SOURCES += \
     grid.cpp \
     main.cpp \
     statckwidget.cpp \
+
+

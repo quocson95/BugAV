@@ -18,7 +18,8 @@ extern "C" {
 #include "common/videostate.h"
 #include "Decoder/decoder.h"
 #include "handlerinterupt.h"
-#include <Render/audiorender.h>
+//#include <Render/audiorender.h>
+#include "Render/audiooutputportaudio.h"
 
 namespace BugAV {
 
@@ -64,7 +65,7 @@ Demuxer::~Demuxer()
     }
 }
 
-void Demuxer::setAudioRender(AudioRender *audioRender)
+void Demuxer::setAudioRender(IAudioBackEnd *audioRender)
 {
     this->audioRender = audioRender;
 }
@@ -523,7 +524,7 @@ int Demuxer::streamOpenCompnent(int stream_index)
             auto sample_rate    = avctx->sample_rate;
             auto nb_channels    = avctx->channels;
             auto channel_layout = avctx->channel_layout;
-            ret = audioRender->initAudioFormat(channel_layout, nb_channels, sample_rate, &is->audio_tgt);
+            ret = audioRender->open(channel_layout, nb_channels, sample_rate, &is->audio_tgt);
             if (ret < 0) {
                 return ret;
             }

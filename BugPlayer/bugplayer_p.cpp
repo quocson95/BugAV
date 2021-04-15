@@ -7,7 +7,9 @@
 #include "Demuxer/demuxer.h"
 #include "Render/render.h"
 #include <common/define.h>
-#include <Render/audiorender.h>
+//#include <Render/audiorender.h>
+#include "Render/audiooutputportaudio.h"
+//#include "Render/IAudioBackend.h"
 
 namespace BugAV {
 BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
@@ -18,7 +20,7 @@ BugPlayerPrivate::BugPlayerPrivate(BugPlayer *q, ModePlayer mode)
     def->setModePlayer(mode);
 
     is = new VideoState{def};  
-    audioRender = new AudioRender{is};
+    audioRender = new AudioOutputPortAudio{is};
     demuxer = new Demuxer{is, def};
     demuxer->setAudioRender(audioRender);
 
@@ -45,6 +47,7 @@ BugPlayerPrivate::~BugPlayerPrivate()
     delete vDecoder;
     delete render;
     delete demuxer;
+    delete audioRender;
     delete is;
 }
 
@@ -221,7 +224,7 @@ void BugPlayerPrivate::stopAudio()
     is->audioq->abort();
     is->sampq->wakeSignal();
     aDecoder->stop();    
-    audioRender->stop();
+    audioRender->close();
     is->resetAudioStream();
 }
 
@@ -282,7 +285,12 @@ void BugPlayerPrivate::setMute(bool value)
         return;
     }
     is->muted = value;
-//    if (is->muted) {
+    if (is->muted == false) {
+        if (is->audio_tgt.bytes_per_sec > 0) {
+            audioRender->open(is->audio_tgt.channel_layout, is->audio_tgt.channels, is->audio_tgt.freq, &is->audio_tgt);
+        }
+    }
+    //    if (is->muted) {
 //        stopAudio();
 //        is->audioq->flush();
 //        return;

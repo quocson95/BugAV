@@ -1,4 +1,4 @@
-#ifdef xxx
+//#ifdef xxx
 #ifndef AUDIOOPENALBACKEND_H
 #define AUDIOOPENALBACKEND_H
 
@@ -12,7 +12,7 @@
 #include <common/common.h>
 
 namespace BugAV {
-constexpr quint8 NUM_BUFFERS_OPENAL = 5;
+constexpr quint8 NUM_BUFFERS_OPENAL = 25;
 class AudioOpenALBackEnd
 {    
 public:
@@ -58,4 +58,4 @@ private:
 }
 
 #endif // AUDIOOPENALBACKEND_H
-#endif
+//#endif

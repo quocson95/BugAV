@@ -24,7 +24,7 @@ VideoState::VideoState(Define *def):
 
     continue_read_thread = new QWaitCondition;
     show_mode = ShowMode::SHOW_MODE_VIDEO;    
-    av_sync_type = ShowModeClock::AV_SYNC_VIDEO_MASTER;
+    av_sync_type = ShowModeClock::AV_SYNC_EXTERNAL_CLOCK;
     videoq = new PacketQueue;
     audioq = new PacketQueue;
     useAVFilter = false;
@@ -58,7 +58,7 @@ VideoState::VideoState(Define *def):
     audio_buf_index = 0; /* in bytes */
     audio_write_buf_size = 0;
     audio_volume = 100;
-    muted = 1;
+    muted = true;
 //    disableAudio = false;
     frame_drops_early = 0;
     frame_drops_late = 0;
@@ -117,7 +117,8 @@ VideoState::~VideoState()
     // video
     delete pictq;  
     delete videoq;
-    // audio
+    // audio    
+
     delete sampq;
     delete audioq;
 }

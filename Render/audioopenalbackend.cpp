@@ -1,4 +1,4 @@
-#ifdef xxx
+//#ifdef true
 #include "audioopenalbackend.h"
 #include <QDebug>
 #include <SDL2/SDL.h>
@@ -265,4 +265,4 @@ void BugAV::AudioOpenALBackEnd::setAudioParam(const AudioParams &value)
 {
     audioParam = value;
 }
-#endif
+//#endif

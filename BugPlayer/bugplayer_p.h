@@ -14,7 +14,8 @@ class Render;
 class IBugAVRenderer;
 class BugPlayer;
 class Define;
-class AudioRender;
+//class AudioRender;
+class IAudioBackEnd;
 
 class BugPlayerPrivate
 {
@@ -85,7 +86,7 @@ public:
     AudioDecoder *aDecoder;
 
     Render *render;
-    AudioRender *audioRender;
+    IAudioBackEnd *audioRender;
 
     QString curFile;
 

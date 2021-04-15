@@ -227,6 +227,9 @@ Frame::~Frame()
 
 double Frame::getPts() const
 {
+    if (qIsNaN(pts)) {
+        return pts;
+    }
     if (*speed == 1.00) {
         return pts;
     }

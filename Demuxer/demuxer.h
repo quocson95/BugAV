@@ -18,7 +18,7 @@ class StreamInfo;
 class VideoState;
 class HandlerInterupt;
 class Define;
-class AudioRender;
+class IAudioBackEnd;
 
 class Demuxer: public QObject
 {
@@ -28,7 +28,7 @@ public:
     Demuxer(VideoState *is, Define *def);
     ~Demuxer();
 
-    void setAudioRender(AudioRender *audioRender);
+    void setAudioRender(IAudioBackEnd *audioRender);
 
     void setAvformat(QVariantHash avformat);      
 
@@ -111,7 +111,7 @@ private:
 
 //    AVCodecContext *avctx;
 
-    AudioRender *audioRender;
+    IAudioBackEnd *audioRender;
 
     bool skipNonKeyFrame;
 

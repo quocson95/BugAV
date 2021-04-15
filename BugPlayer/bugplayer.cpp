@@ -45,7 +45,7 @@ void BugPlayer::streamLoaded()
         auto denyStartAudioThread = d_ptr->is->audio_disable;
         if (!denyStartAudioThread) {
             d_ptr->aDecoder->start();
-            d_ptr->audioRender->start();
+//            d_ptr->audioRender->start();
         }
         d_ptr->render->start();
         d_ptr->vDecoder->start();
