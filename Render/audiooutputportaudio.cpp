@@ -26,7 +26,7 @@ AudioOutputPortAudio::AudioOutputPortAudio(VideoState *is)
 
 AudioOutputPortAudio::~AudioOutputPortAudio()
 {
-    close();
+    AudioOutputPortAudio::close();
     delete curThread;
 }
 

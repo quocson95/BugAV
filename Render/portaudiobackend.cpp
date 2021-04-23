@@ -80,7 +80,8 @@ int BugAV::PortAudioBackend::open(AudioParams audio_hw_params)
     if (!isSupport) {
         return -1;
     }
-    PaError err = Pa_OpenStream(&stream, NULL, outputParameters, this->audio_hw_params.freq, 0, paNoFlag, NULL, NULL);
+    PaError err = Pa_OpenStream(&stream, NULL, outputParameters, this->audio_hw_params.freq,
+                                paFramesPerBufferUnspecified, paNoFlag, NULL, NULL);
     if (err != paNoError) {
        qWarning("Open portaudio stream error: %s", Pa_GetErrorText(err));
        return -1;
