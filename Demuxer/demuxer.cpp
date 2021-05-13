@@ -330,7 +330,8 @@ int Demuxer::readFrame()
     } else {
         is->eof = 0;
     }
-    if (pkt->stream_index == is->video_stream && is->video_st != nullptr
+    if (pkt->stream_index == is->video_stream
+            && is->video_st != nullptr
             && !(is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
         if (!skipNonKeyFrame) {
             is->videoq->put(pkt);

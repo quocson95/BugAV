@@ -285,7 +285,7 @@ void BugAV::AudioDecoder::process()
             break;
         }
         auto got_frame = getAudioFrame(frame);
-        if (got_frame < 0) {
+        if (got_frame < 0 || frame == nullptr) {
             qDebug() << "get audio frame error";
             break;
             // break; // todo handle this, continue or exit?

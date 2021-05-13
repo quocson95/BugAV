@@ -55,7 +55,7 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
     connect(thread, SIGNAL (started()), this, SLOT (process()));
 //    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
     timerCheckNoFrameRender = new QTimer{};
-    connect(timerCheckNoFrameRender, &QTimer::timeout, this,  [=]()->void {
+    connect(timerCheckNoFrameRender, &QTimer::timeout, this, [=]()->void {
         if (this->lastUpdateFrame == 0) {
             return;
         }
