@@ -69,7 +69,7 @@ private slots:
     void videoRefresh();
     void videoDisplay();
 
-    void updatePositionChanged(Frame *vp);
+    void updatePositionChanged(BugAV::Frame *vp);
 private:
     uint8_t * buffer;
 //    uint8_t *out_buffer;

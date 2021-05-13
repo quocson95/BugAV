@@ -145,7 +145,7 @@ int VideoDecoder::getVideoFrame(AVFrame *frame)
         return  -1;
     }
     auto gotPicture = is->viddec.decodeFrame(frame);
-    if (gotPicture < 0) {
+    if (gotPicture < 0 || frame == nullptr) {
         qDebug() << "got picture error";
         return -1;
     }
