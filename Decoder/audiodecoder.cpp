@@ -285,14 +285,18 @@ void BugAV::AudioDecoder::process()
             break;
         }
         auto got_frame = getAudioFrame(frame);
-        if (got_frame < 0) {
+        if (got_frame < 0 || frame == nullptr) {
             qDebug() << "get audio frame error";
             break;
             // break; // todo handle this, continue or exit?
         }
+        if (frame == nullptr) {
+            continue;
+        }
 //        qDebug() << "AudioDecoder get audio frame";
-        if (got_frame) {
-            tb = AVRational{1, frame->sample_rate};
+        if (got_frame ) {
+            auto sample_rate = frame->sample_rate;
+            tb = AVRational{1, sample_rate};
         }
         Frame *f;
         if (!(f = is->sampq->peekWriteable())) {

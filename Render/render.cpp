@@ -47,15 +47,15 @@ Render::Render(VideoState *is, IBugAVRenderer *renderer)
     defaultRenderer = BugAVRendererDefault;
     elTimer = nullptr;
 
-    if (renderer == nullptr) {
-        renderer = defaultRenderer;
-    }
+//    if (renderer == nullptr) {
+//        renderer = defaultRenderer;
+//    }
     thread = new QThread{this};
     moveToThread(thread);
     connect(thread, SIGNAL (started()), this, SLOT (process()));
 //    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
     timerCheckNoFrameRender = new QTimer{};
-    connect(timerCheckNoFrameRender, &QTimer::timeout, [=]()->void {
+    connect(timerCheckNoFrameRender, &QTimer::timeout, this, [=]()->void {
         if (this->lastUpdateFrame == 0) {
             return;
         }

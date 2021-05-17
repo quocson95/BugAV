@@ -10,7 +10,7 @@ extern "C" {
 namespace BugAV {
 VideoState::VideoState(Define *def):
     img_convert_ctx{nullptr}
-//  ,audio_disable{false}
+  ,audio_disable{false}
   ,debug{0}
 {    
     #ifdef QT_DEBUG
