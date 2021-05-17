@@ -27,6 +27,9 @@ AudioOutputPortAudio::AudioOutputPortAudio(VideoState *is)
 AudioOutputPortAudio::~AudioOutputPortAudio()
 {
     close();
+    if (is->muted == false ){
+        PortAudioBackendDefault->close();
+    }
     delete curThread;
 }
 

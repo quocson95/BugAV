@@ -122,7 +122,6 @@ int BugAV::PortAudioBackend::write(uint8_t *data, int size)
         auto err = Pa_StartStream(stream);
         if (err > 0) {
             qDebug() << "Write portaudio stream error: "<<  Pa_GetErrorText(err);
-            return   0;
         }
         return 0;
     }

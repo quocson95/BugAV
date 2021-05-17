@@ -35,6 +35,8 @@ win32:{
     #lib sld2
     LIBS += -L$$PWD/SDL2-2.0.12/lib/x64 -lSDL2
     INCLUDEPATH += $$PWD/SDL2-2.0.12/include
+    LIBS += -L$$PWD/../portaudio-build/lib/ -lportaudio_x64
+    INCLUDEPATH += $$PWD/../portaudio-build/include
 } else:unix:!macx {
     LIBS += -lSDL2 -lopenal
     LIBS += -L$$PWD/../portaudio-build/lib/ -lportaudio

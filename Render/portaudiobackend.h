@@ -54,6 +54,7 @@ private:
         audioBackend = new PortAudioBackend;
     };
     ~PortAudioBackendImpl() {
+        audioBackend->close();
         delete audioBackend;
     }
     PortAudioBackend *audioBackend;
