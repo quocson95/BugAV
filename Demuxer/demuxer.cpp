@@ -110,6 +110,11 @@ bool Demuxer::load()
                                    is->fileUrl.toUtf8(),
                                    is->iformat, &formatOpts);
     handlerInterupt->end();
+    if (handlerInterupt->isTimeout()) {
+        qDebug() << "Open timeout file  " << is->fileUrl << "";
+        unload();
+        return false;
+    }
     if (ret < 0) {
         qDebug() << "Open input fail " << is->fileUrl;
         unload();
@@ -143,6 +148,12 @@ bool Demuxer::load()
     handlerInterupt->begin(HandlerInterupt::Action::FindStreamInfo);
     ret = avformat_find_stream_info(is->ic, nullptr);
     handlerInterupt->end();
+
+    if (handlerInterupt->isTimeout()) {
+        qDebug() << "Open find info file  " << is->fileUrl << "";
+        unload();
+        return false;
+    }
     if (ret < 0) {
         unload();
         qDebug() << "could not find codec parameters";
@@ -285,8 +296,17 @@ int Demuxer::readFrame()
 //            emit readFrameError();
         }
     }
+    if (reqStop) {
+        return  -1;
+    }
     handlerInterupt->begin(HandlerInterupt::Action::Read);
     auto ret = av_read_frame(is->ic, pkt);
+    handlerInterupt->end();
+    if (handlerInterupt->isTimeout()) {
+        qDebug() << "read frame timeout  " << is->fileUrl << "";
+
+        return -1;
+    }
     // try open video stream, maybe comming late in rtmp
     if (is->video_st == nullptr) {
         reFindStream(is->ic, AVMEDIA_TYPE_VIDEO, stIndex[AVMEDIA_TYPE_VIDEO]);
@@ -305,7 +325,6 @@ int Demuxer::readFrame()
             reFindStream(is->ic, AVMEDIA_TYPE_AUDIO, stIndex[AVMEDIA_TYPE_AUDIO]);
         }
     }
-    handlerInterupt->end();
     if (ret < 0) {
         if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !is->eof) {
             if (is->video_stream >= 0) {
@@ -656,7 +675,7 @@ void Demuxer::process()
     } else {
         elLastRetryOpenAudioSt->invalidate();
     }
-    if (!load() && !reqStop) {
+    if (!load()) {
         emit loadFailed();
         isRun = false;
         curThread->terminate();

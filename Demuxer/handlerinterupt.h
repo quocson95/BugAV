@@ -31,6 +31,11 @@ public:
 
     void setReqStop(bool value);
 
+    bool isTimeout();
+
+private:
+    void printTimeout();
+    void printTimeAbort();
 private:
     int status;
     qint64 timeout;
@@ -41,6 +46,7 @@ private:
     bool timeoutAbort;
 
     bool reqStop;
+    bool stopByTimeout;
 };
 }
 #endif // HANDLERINTERUPT_H

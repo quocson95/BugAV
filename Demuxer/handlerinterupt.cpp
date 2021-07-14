@@ -12,6 +12,7 @@ HandlerInterupt::HandlerInterupt(Demuxer *demuxer, qint64 timeout)
     callback = handleTimeout;
     opaque = this;
     reqStop = false;
+    stopByTimeout = false;
 }
 
 HandlerInterupt::~HandlerInterupt()
@@ -27,6 +28,7 @@ void HandlerInterupt::begin(HandlerInterupt::Action action)
     emitError = true;
     this->action = action;
     timer.start();
+    stopByTimeout = false;
 }
 
 void HandlerInterupt::end()
@@ -49,7 +51,9 @@ int HandlerInterupt::handleTimeout(void *opaque)
     }
 
     if (handler->status < 0) {
-        qDebug("[Interupt] Status < 0. Abort");
+//        qDebug("[Interupt] Status < 0. Abort");
+        handler->printTimeout();
+        handler->stopByTimeout = true;
         return 1;
     }
     if (handler->timeout < 0) {
@@ -79,9 +83,11 @@ int HandlerInterupt::handleTimeout(void *opaque)
             //handler->mStatus.testAndSetAcquire(0, ec);
         }
         if (handler->timeoutAbort) {
-            qDebug("[Interupt] timeout abort");
+            handler->printTimeAbort();
+            handler->stopByTimeout = true;
             return 1;
         }
+//        handler->printTimeout();
         qDebug("[Interupt] status: %d, Timeout expired: %lld/%lld -> no abort!", (int)handler->status, handler->timer.elapsed(), handler->timeout);
         return 0;
     }
@@ -100,5 +106,58 @@ void HandlerInterupt::setStatus(int value)
 void HandlerInterupt::setReqStop(bool value)
 {
     reqStop = value;
+}
+
+bool HandlerInterupt::isTimeout()
+{
+    return stopByTimeout;
+}
+
+void HandlerInterupt::printTimeout()
+{
+    QString actionStr = "";
+    switch (action) {
+    case FindStreamInfo: {
+        actionStr = "FindStreamInfo";
+        break;
+    }
+    case Read: {
+        actionStr = "Read";
+        break;
+    }
+    case Open: {
+        actionStr = "Open";
+        break;
+    }
+    default: {
+        actionStr = "Unknow";
+
+    }
+    }
+    qDebug() << "[Interupt] timeout, action: " << actionStr;
+}
+
+void HandlerInterupt::printTimeAbort()
+{
+    QString actionStr = "";
+    switch (action) {
+    case FindStreamInfo: {
+        actionStr = "FindStreamInfo";
+        break;
+    }
+    case Read: {
+        actionStr = "Read";
+        break;
+    }
+    case Open: {
+        actionStr = "Open";
+        break;
+    }
+    default: {
+        actionStr = "Unknow";
+
+    }
+    }
+    qDebug() << "[Interupt] timeout abort, action: " << actionStr;
 }
 }
